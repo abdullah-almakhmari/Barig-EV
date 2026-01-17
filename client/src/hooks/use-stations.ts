@@ -45,6 +45,8 @@ export function useCreateStation() {
         lat: Number(data.lat),
         lng: Number(data.lng),
         powerKw: data.powerKw ? Number(data.powerKw) : undefined,
+        chargerCount: data.chargerCount ? Number(data.chargerCount) : 1,
+        availableChargers: data.availableChargers ? Number(data.availableChargers) : 1,
       };
       
       const validated = api.stations.create.input.parse(payload);

@@ -108,6 +108,7 @@ export function StationMap({ stations }: StationMapProps) {
   return (
     <div className="h-full w-full rounded-2xl overflow-hidden border border-border shadow-inner bg-muted/20 relative">
       <MapContainer 
+        key={`map-${stations.length}`}
         center={center} 
         zoom={11} 
         style={{ height: "100%", width: "100%", zIndex: 0 }}
