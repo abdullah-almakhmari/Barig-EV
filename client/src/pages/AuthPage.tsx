@@ -9,7 +9,6 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { SiGoogle } from "react-icons/si";
 import { Loader2, Mail, Lock, User } from "lucide-react";
 import { SEO } from "@/components/SEO";
 import { useLanguage } from "@/components/LanguageContext";
@@ -69,10 +68,6 @@ export default function AuthPage() {
       firstName: registerFirstName || undefined,
       lastName: registerLastName || undefined,
     });
-  };
-
-  const handleGoogleLogin = () => {
-    window.location.href = "/api/auth/google";
   };
 
   const seoTitle = language === "ar" ? "تسجيل الدخول" : "Login";
@@ -144,24 +139,6 @@ export default function AuthPage() {
                   </Button>
                 </form>
 
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t" />
-                  </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-background px-2 text-muted-foreground">{t("auth.or")}</span>
-                  </div>
-                </div>
-
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={handleGoogleLogin}
-                  data-testid="button-google-login"
-                >
-                  <SiGoogle className="me-2 h-4 w-4" />
-                  {t("auth.continueWithGoogle")}
-                </Button>
               </TabsContent>
 
               <TabsContent value="register" className="space-y-4 mt-4">
@@ -240,24 +217,6 @@ export default function AuthPage() {
                   </Button>
                 </form>
 
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t" />
-                  </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-background px-2 text-muted-foreground">{t("auth.or")}</span>
-                  </div>
-                </div>
-
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={handleGoogleLogin}
-                  data-testid="button-google-register"
-                >
-                  <SiGoogle className="me-2 h-4 w-4" />
-                  {t("auth.continueWithGoogle")}
-                </Button>
               </TabsContent>
             </Tabs>
           </CardContent>
