@@ -89,6 +89,14 @@ export async function registerRoutes(
         return res.status(404).json({ message: "Station not found" });
       }
       const report = await storage.createReport(input);
+      
+      // Update station status based on report
+      if (input.status === "NOT_WORKING") {
+        await storage.updateStationStatus(input.stationId, "OFFLINE");
+      } else if (input.status === "WORKING") {
+        await storage.updateStationStatus(input.stationId, "OPERATIONAL");
+      }
+      
       res.status(201).json(report);
     } catch (err) {
       if (err instanceof z.ZodError) {

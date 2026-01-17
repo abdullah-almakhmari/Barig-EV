@@ -107,6 +107,9 @@ export function useCreateReport() {
       queryClient.invalidateQueries({ 
         queryKey: [api.stations.get.path, variables.stationId] 
       });
+      queryClient.invalidateQueries({ 
+        queryKey: [api.stations.list.path] 
+      });
     },
   });
 }

@@ -11,6 +11,7 @@ export interface IStorage {
   getStation(id: number): Promise<Station | undefined>;
   createStation(station: InsertStation): Promise<Station>;
   updateStationAvailability(id: number, availableChargers: number): Promise<Station | undefined>;
+  updateStationStatus(id: number, status: string): Promise<Station | undefined>;
   getReports(stationId: number): Promise<Report[]>;
   createReport(report: InsertReport): Promise<Report>;
   seed(): Promise<void>;
@@ -65,6 +66,14 @@ export class DatabaseStorage implements IStorage {
   async updateStationAvailability(id: number, availableChargers: number): Promise<Station | undefined> {
     const [updated] = await db.update(stations)
       .set({ availableChargers })
+      .where(eq(stations.id, id))
+      .returning();
+    return updated;
+  }
+
+  async updateStationStatus(id: number, status: string): Promise<Station | undefined> {
+    const [updated] = await db.update(stations)
+      .set({ status })
       .where(eq(stations.id, id))
       .returning();
     return updated;
