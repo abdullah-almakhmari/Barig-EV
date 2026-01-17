@@ -1,7 +1,7 @@
 import { useLanguage } from "./LanguageContext";
 import { useTranslation } from "react-i18next";
 import { Link, useLocation } from "wouter";
-import { MapPin, Plus, List, Languages, Zap } from "lucide-react";
+import { MapPin, Plus, List, Languages, Zap, Navigation } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export function Header() {
@@ -30,9 +30,21 @@ export function Header() {
             <Button
               variant={location === "/" ? "secondary" : "ghost"}
               className="gap-2 font-medium"
+              data-testid="button-nav-map"
             >
               <MapPin className="w-4 h-4" />
               <span className="hidden sm:inline">{t("nav.map")}</span>
+            </Button>
+          </Link>
+
+          <Link href="/nearby">
+            <Button
+              variant={location === "/nearby" ? "secondary" : "ghost"}
+              className="gap-2 font-medium"
+              data-testid="button-nav-nearby"
+            >
+              <Navigation className="w-4 h-4" />
+              <span className="hidden sm:inline">{t("nav.nearby")}</span>
             </Button>
           </Link>
 
