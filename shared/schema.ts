@@ -19,6 +19,9 @@ export const stations = pgTable("stations", {
   cityAr: text("city_ar").notNull(),
   address: text("address"),
   status: text("status").default("OPERATIONAL"), // OPERATIONAL, MAINTENANCE, OFFLINE
+  stationType: text("station_type").default("PUBLIC"), // PUBLIC, HOME
+  contactPhone: text("contact_phone"),
+  contactWhatsapp: text("contact_whatsapp"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

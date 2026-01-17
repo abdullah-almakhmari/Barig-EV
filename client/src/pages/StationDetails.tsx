@@ -2,7 +2,7 @@ import { useRoute } from "wouter";
 import { useStation, useStationReports, useStartCharging, useStopCharging } from "@/hooks/use-stations";
 import { useTranslation } from "react-i18next";
 import { useLanguage } from "@/components/LanguageContext";
-import { Loader2, Navigation, Clock, ShieldCheck, MapPin, Zap, BatteryCharging, CircleCheck, CircleX } from "lucide-react";
+import { Loader2, Navigation, Clock, ShieldCheck, MapPin, Zap, BatteryCharging, CircleCheck, CircleX, Home, Building2, Phone, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -55,10 +55,16 @@ export default function StationDetails() {
         
         <div className="relative z-10 flex flex-col md:flex-row justify-between gap-6">
           <div>
-            <div className="flex items-center gap-3 mb-2">
+            <div className="flex items-center gap-3 mb-2 flex-wrap">
               <Badge variant={station.status === "OPERATIONAL" ? "default" : "destructive"} className="px-3 py-1">
                 {t(`station.status.${station.status?.toLowerCase()}`)}
               </Badge>
+              {station.stationType === "HOME" && (
+                <Badge variant="secondary" className="px-3 py-1 bg-orange-100 text-orange-700 border-orange-200">
+                  <Home className="w-3 h-3 mr-1" />
+                  {t("station.type.home")}
+                </Badge>
+              )}
               <span className="text-muted-foreground text-sm font-medium tracking-wide uppercase">
                 {station.operator}
               </span>
@@ -93,6 +99,27 @@ export default function StationDetails() {
               <Navigation className="mr-2 h-5 w-5 rtl:ml-2 rtl:mr-0" />
               Navigate
             </Button>
+            {station.stationType === "HOME" && station.contactWhatsapp && (
+              <Button 
+                variant="outline"
+                className="w-full border-green-500 text-green-600 hover:bg-green-50"
+                onClick={() => window.open(`https://wa.me/${station.contactWhatsapp?.replace(/[^0-9]/g, '')}`, '_blank')}
+                data-testid="button-contact-whatsapp"
+              >
+                <MessageCircle className="mr-2 h-5 w-5 rtl:ml-2 rtl:mr-0" />
+                WhatsApp
+              </Button>
+            )}
+            {station.stationType === "HOME" && station.contactPhone && (
+              <Button 
+                variant="outline"
+                onClick={() => window.open(`tel:${station.contactPhone}`, '_blank')}
+                data-testid="button-contact-phone"
+              >
+                <Phone className="mr-2 h-5 w-5 rtl:ml-2 rtl:mr-0" />
+                {t("station.contact")}
+              </Button>
+            )}
             <ReportDialog stationId={id} />
           </div>
         </div>
