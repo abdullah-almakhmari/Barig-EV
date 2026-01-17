@@ -1,7 +1,8 @@
 import {
-  stations, reports,
+  stations, reports, chargingSessions,
   type Station, type InsertStation,
-  type Report, type InsertReport
+  type Report, type InsertReport,
+  type ChargingSession, type InsertChargingSession
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, ilike, or } from "drizzle-orm";
@@ -14,6 +15,12 @@ export interface IStorage {
   updateStationStatus(id: number, status: string): Promise<Station | undefined>;
   getReports(stationId: number): Promise<Report[]>;
   createReport(report: InsertReport): Promise<Report>;
+  startChargingSession(stationId: number, batteryStartPercent?: number): Promise<ChargingSession>;
+  endChargingSession(sessionId: number, batteryEndPercent?: number, energyKwh?: number): Promise<ChargingSession | undefined>;
+  getChargingSessions(stationId?: number): Promise<ChargingSession[]>;
+  getActiveSession(stationId: number): Promise<ChargingSession | undefined>;
+  getSessionById(sessionId: number): Promise<ChargingSession | undefined>;
+  deleteSession(sessionId: number): Promise<void>;
   seed(): Promise<void>;
 }
 
@@ -89,6 +96,71 @@ export class DatabaseStorage implements IStorage {
   async createReport(insertReport: InsertReport): Promise<Report> {
     const [report] = await db.insert(reports).values(insertReport).returning();
     return report;
+  }
+
+  async startChargingSession(stationId: number, batteryStartPercent?: number): Promise<ChargingSession> {
+    const [session] = await db.insert(chargingSessions).values({
+      stationId,
+      batteryStartPercent,
+      isActive: true,
+      startTime: new Date(),
+    }).returning();
+    return session;
+  }
+
+  async endChargingSession(sessionId: number, batteryEndPercent?: number, energyKwh?: number): Promise<ChargingSession | undefined> {
+    const [session] = await db.select().from(chargingSessions).where(eq(chargingSessions.id, sessionId));
+    if (!session) return undefined;
+
+    const endTime = new Date();
+    const durationMinutes = session.startTime 
+      ? Math.round((endTime.getTime() - new Date(session.startTime).getTime()) / 60000)
+      : null;
+
+    const [updated] = await db.update(chargingSessions)
+      .set({
+        endTime,
+        durationMinutes,
+        batteryEndPercent,
+        energyKwh,
+        isActive: false,
+      })
+      .where(eq(chargingSessions.id, sessionId))
+      .returning();
+    return updated;
+  }
+
+  async getChargingSessions(stationId?: number): Promise<ChargingSession[]> {
+    if (stationId) {
+      return await db.select()
+        .from(chargingSessions)
+        .where(eq(chargingSessions.stationId, stationId))
+        .orderBy(desc(chargingSessions.createdAt));
+    }
+    return await db.select()
+      .from(chargingSessions)
+      .orderBy(desc(chargingSessions.createdAt));
+  }
+
+  async getActiveSession(stationId: number): Promise<ChargingSession | undefined> {
+    const [session] = await db.select()
+      .from(chargingSessions)
+      .where(and(
+        eq(chargingSessions.stationId, stationId),
+        eq(chargingSessions.isActive, true)
+      ));
+    return session;
+  }
+
+  async getSessionById(sessionId: number): Promise<ChargingSession | undefined> {
+    const [session] = await db.select()
+      .from(chargingSessions)
+      .where(eq(chargingSessions.id, sessionId));
+    return session;
+  }
+
+  async deleteSession(sessionId: number): Promise<void> {
+    await db.delete(chargingSessions).where(eq(chargingSessions.id, sessionId));
   }
 
   async seed(): Promise<void> {

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { insertStationSchema, insertReportSchema, stations, reports } from './schema';
+import { insertStationSchema, insertReportSchema, stations, reports, chargingSessions } from './schema';
 
 export const errorSchemas = {
   validation: z.object({
@@ -92,6 +92,52 @@ export const api = {
       responses: {
         201: z.custom<typeof reports.$inferSelect>(),
         400: errorSchemas.validation,
+      },
+    },
+  },
+  chargingSessions: {
+    start: {
+      method: 'POST' as const,
+      path: '/api/charging-sessions/start',
+      input: z.object({
+        stationId: z.number(),
+        batteryStartPercent: z.number().min(0).max(100).optional(),
+      }),
+      responses: {
+        201: z.custom<typeof chargingSessions.$inferSelect>(),
+        400: errorSchemas.validation,
+        404: errorSchemas.notFound,
+      },
+    },
+    end: {
+      method: 'POST' as const,
+      path: '/api/charging-sessions/:id/end',
+      input: z.object({
+        batteryEndPercent: z.number().min(0).max(100).optional(),
+        energyKwh: z.number().min(0).optional(),
+      }),
+      responses: {
+        200: z.custom<typeof chargingSessions.$inferSelect>(),
+        400: errorSchemas.validation,
+        404: errorSchemas.notFound,
+      },
+    },
+    list: {
+      method: 'GET' as const,
+      path: '/api/charging-sessions',
+      input: z.object({
+        stationId: z.coerce.number().optional(),
+      }).optional(),
+      responses: {
+        200: z.array(z.custom<typeof chargingSessions.$inferSelect>()),
+      },
+    },
+    getActive: {
+      method: 'GET' as const,
+      path: '/api/stations/:id/active-session',
+      responses: {
+        200: z.custom<typeof chargingSessions.$inferSelect>().nullable(),
+        404: errorSchemas.notFound,
       },
     },
   },

@@ -11,6 +11,7 @@ import Home from "@/pages/Home";
 import StationDetails from "@/pages/StationDetails";
 import AddStation from "@/pages/AddStation";
 import NearbyStations from "@/pages/NearbyStations";
+import ChargingHistory from "@/pages/ChargingHistory";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -19,6 +20,7 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/add" component={AddStation} />
       <Route path="/nearby" component={NearbyStations} />
+      <Route path="/history" component={ChargingHistory} />
       <Route path="/station/:id" component={StationDetails} />
       <Route component={NotFound} />
     </Switch>

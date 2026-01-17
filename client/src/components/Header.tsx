@@ -1,7 +1,7 @@
 import { useLanguage } from "./LanguageContext";
 import { useTranslation } from "react-i18next";
 import { Link, useLocation } from "wouter";
-import { MapPin, Plus, List, Languages, Zap, Navigation } from "lucide-react";
+import { MapPin, Plus, Languages, Zap, Navigation, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export function Header() {
@@ -52,9 +52,21 @@ export function Header() {
             <Button
               variant={location === "/add" ? "secondary" : "ghost"}
               className="gap-2 font-medium"
+              data-testid="button-nav-add"
             >
               <Plus className="w-4 h-4" />
               <span className="hidden sm:inline">{t("nav.add")}</span>
+            </Button>
+          </Link>
+
+          <Link href="/history">
+            <Button
+              variant={location === "/history" ? "secondary" : "ghost"}
+              className="gap-2 font-medium"
+              data-testid="button-nav-history"
+            >
+              <History className="w-4 h-4" />
+              <span className="hidden sm:inline">{t("nav.history")}</span>
             </Button>
           </Link>
 

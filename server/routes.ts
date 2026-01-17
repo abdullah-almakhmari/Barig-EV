@@ -80,31 +80,20 @@ export async function registerRoutes(
     }
   });
 
+  // Deprecated: Use /api/charging-sessions/start instead
   app.post(api.stations.startCharging.path, async (req, res) => {
-    const station = await storage.getStation(Number(req.params.id));
-    if (!station) {
-      return res.status(404).json({ message: "Station not found" });
-    }
-    const available = station.availableChargers ?? 0;
-    if (available <= 0) {
-      return res.status(400).json({ message: "No available chargers" });
-    }
-    const updated = await storage.updateStationAvailability(Number(req.params.id), available - 1);
-    res.json(updated);
+    return res.status(410).json({ 
+      message: "Deprecated. Use /api/charging-sessions/start with stationId instead",
+      redirect: api.chargingSessions.start.path
+    });
   });
 
+  // Deprecated: Use /api/charging-sessions/:id/end instead  
   app.post(api.stations.stopCharging.path, async (req, res) => {
-    const station = await storage.getStation(Number(req.params.id));
-    if (!station) {
-      return res.status(404).json({ message: "Station not found" });
-    }
-    const available = station.availableChargers ?? 0;
-    const total = station.chargerCount ?? 1;
-    if (available >= total) {
-      return res.status(400).json({ message: "All chargers already available" });
-    }
-    const updated = await storage.updateStationAvailability(Number(req.params.id), available + 1);
-    res.json(updated);
+    return res.status(410).json({ 
+      message: "Deprecated. Use /api/charging-sessions/:id/end instead",
+      redirect: api.chargingSessions.end.path
+    });
   });
 
   app.post(api.reports.create.path, async (req, res) => {
@@ -134,6 +123,97 @@ export async function registerRoutes(
       }
       throw err;
     }
+  });
+
+  // Charging Sessions
+  app.post(api.chargingSessions.start.path, async (req, res) => {
+    try {
+      const input = api.chargingSessions.start.input.parse(req.body);
+      const station = await storage.getStation(input.stationId);
+      if (!station) {
+        return res.status(404).json({ message: "Station not found" });
+      }
+      
+      // Check available chargers - multiple sessions allowed as long as chargers are available
+      const available = station.availableChargers ?? 0;
+      if (available <= 0) {
+        return res.status(400).json({ message: "No available chargers" });
+      }
+      
+      // Create charging session first, then update availability
+      const session = await storage.startChargingSession(input.stationId, input.batteryStartPercent);
+      
+      try {
+        await storage.updateStationAvailability(input.stationId, available - 1);
+      } catch (err) {
+        // Rollback: delete the session if availability update failed
+        await storage.deleteSession(session.id);
+        throw err;
+      }
+      
+      res.status(201).json(session);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({
+          message: err.errors[0].message,
+          field: err.errors[0].path.join('.'),
+        });
+      }
+      throw err;
+    }
+  });
+
+  app.post(api.chargingSessions.end.path, async (req, res) => {
+    try {
+      const input = api.chargingSessions.end.input.parse(req.body);
+      const sessionId = Number(req.params.id);
+      
+      // Check if session exists and is active before ending
+      const existingSession = await storage.getSessionById(sessionId);
+      if (!existingSession) {
+        return res.status(404).json({ message: "Session not found" });
+      }
+      if (!existingSession.isActive) {
+        return res.status(400).json({ message: "Session already ended" });
+      }
+      
+      const session = await storage.endChargingSession(sessionId, input.batteryEndPercent, input.energyKwh);
+      if (!session) {
+        return res.status(404).json({ message: "Session not found" });
+      }
+      
+      // Increase available chargers
+      const station = await storage.getStation(session.stationId);
+      if (station) {
+        const available = station.availableChargers ?? 0;
+        const total = station.chargerCount ?? 1;
+        if (available < total) {
+          await storage.updateStationAvailability(session.stationId, available + 1);
+        }
+      }
+      
+      res.json(session);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({
+          message: err.errors[0].message,
+          field: err.errors[0].path.join('.'),
+        });
+      }
+      throw err;
+    }
+  });
+
+  app.get(api.chargingSessions.list.path, async (req, res) => {
+    const stationId = req.query.stationId ? Number(req.query.stationId) : undefined;
+    const sessions = await storage.getChargingSessions(stationId);
+    res.json(sessions);
+  });
+
+  app.get(api.chargingSessions.getActive.path, async (req, res) => {
+    const stationId = Number(req.params.id);
+    const session = await storage.getActiveSession(stationId);
+    res.json(session || null);
   });
 
   return httpServer;

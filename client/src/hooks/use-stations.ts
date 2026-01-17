@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, buildUrl } from "@shared/routes";
-import type { InsertStation, InsertReport } from "@shared/schema";
+import type { InsertStation, InsertReport, ChargingSession } from "@shared/schema";
 import { z } from "zod";
 
 // --- Stations Hooks ---
@@ -154,6 +154,85 @@ export function useStopCharging() {
     onSuccess: (_, stationId) => {
       queryClient.invalidateQueries({ queryKey: [api.stations.get.path, stationId] });
       queryClient.invalidateQueries({ queryKey: [api.stations.list.path] });
+    },
+  });
+}
+
+// --- Charging Sessions Hooks ---
+
+export function useChargingSessions(stationId?: number) {
+  return useQuery({
+    queryKey: [api.chargingSessions.list.path, stationId],
+    queryFn: async () => {
+      const url = new URL(api.chargingSessions.list.path, window.location.origin);
+      if (stationId) url.searchParams.append("stationId", String(stationId));
+      const res = await fetch(url.toString(), { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch charging sessions");
+      return res.json() as Promise<ChargingSession[]>;
+    },
+  });
+}
+
+export function useActiveSession(stationId: number) {
+  return useQuery({
+    queryKey: [api.chargingSessions.getActive.path, stationId],
+    queryFn: async () => {
+      const url = buildUrl(api.chargingSessions.getActive.path, { id: stationId });
+      const res = await fetch(url, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch active session");
+      return res.json() as Promise<ChargingSession | null>;
+    },
+    enabled: !!stationId && !isNaN(stationId),
+  });
+}
+
+export function useStartChargingSession() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: { stationId: number; batteryStartPercent?: number }) => {
+      const res = await fetch(api.chargingSessions.start.path, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+        credentials: "include",
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Failed to start charging session");
+      }
+      return res.json() as Promise<ChargingSession>;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: [api.stations.get.path, variables.stationId] });
+      queryClient.invalidateQueries({ queryKey: [api.stations.list.path] });
+      queryClient.invalidateQueries({ queryKey: [api.chargingSessions.list.path] });
+      queryClient.invalidateQueries({ queryKey: [api.chargingSessions.getActive.path, variables.stationId] });
+    },
+  });
+}
+
+export function useEndChargingSession() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: { sessionId: number; stationId: number; batteryEndPercent?: number; energyKwh?: number }) => {
+      const url = buildUrl(api.chargingSessions.end.path, { id: data.sessionId });
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ batteryEndPercent: data.batteryEndPercent, energyKwh: data.energyKwh }),
+        credentials: "include",
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Failed to end charging session");
+      }
+      return res.json() as Promise<ChargingSession>;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: [api.stations.get.path, variables.stationId] });
+      queryClient.invalidateQueries({ queryKey: [api.stations.list.path] });
+      queryClient.invalidateQueries({ queryKey: [api.chargingSessions.list.path] });
+      queryClient.invalidateQueries({ queryKey: [api.chargingSessions.getActive.path, variables.stationId] });
     },
   });
 }

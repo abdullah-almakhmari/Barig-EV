@@ -1,44 +1,22 @@
 import { useRoute } from "wouter";
-import { useStation, useStationReports, useStartCharging, useStopCharging } from "@/hooks/use-stations";
+import { useStation, useStationReports } from "@/hooks/use-stations";
 import { useTranslation } from "react-i18next";
 import { useLanguage } from "@/components/LanguageContext";
-import { Loader2, Navigation, Clock, ShieldCheck, MapPin, Zap, BatteryCharging, CircleCheck, CircleX, Home, Building2, Phone, MessageCircle } from "lucide-react";
+import { Loader2, Navigation, Clock, ShieldCheck, MapPin, BatteryCharging, Home, Phone, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { ReportDialog } from "@/components/ReportDialog";
+import { ChargingSessionDialog } from "@/components/ChargingSessionDialog";
 import { formatDistanceToNow } from "date-fns";
-import { useToast } from "@/hooks/use-toast";
 
 export default function StationDetails() {
   const [, params] = useRoute("/station/:id");
   const id = params ? parseInt(params.id) : 0;
   const { t } = useTranslation();
   const { language } = useLanguage();
-  const { toast } = useToast();
   
   const { data: station, isLoading } = useStation(id);
   const { data: reports } = useStationReports(id);
-  const startCharging = useStartCharging();
-  const stopCharging = useStopCharging();
-
-  const handleStartCharging = async () => {
-    try {
-      await startCharging.mutateAsync(id);
-      toast({ title: t("charging.startCharging"), description: "Charger marked as in use" });
-    } catch (error: any) {
-      toast({ variant: "destructive", title: t("common.error"), description: error.message });
-    }
-  };
-
-  const handleStopCharging = async () => {
-    try {
-      await stopCharging.mutateAsync(id);
-      toast({ title: t("charging.stopCharging"), description: "Charger marked as available" });
-    } catch (error: any) {
-      toast({ variant: "destructive", title: t("common.error"), description: error.message });
-    }
-  };
 
   if (isLoading) return <div className="flex justify-center p-20"><Loader2 className="animate-spin text-primary" /></div>;
   if (!station) return <div className="p-20 text-center">{t("common.error")}</div>;
@@ -147,27 +125,11 @@ export default function StationDetails() {
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-3">
-          <Button 
-            onClick={handleStartCharging}
-            disabled={startCharging.isPending || (station.availableChargers ?? 0) <= 0}
-            className="flex-1 bg-orange-500 hover:bg-orange-600 text-white"
-            data-testid="button-start-charging"
-          >
-            {startCharging.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Zap className="mr-2 h-4 w-4 rtl:ml-2 rtl:mr-0" />}
-            {t("charging.startCharging")}
-          </Button>
-          <Button 
-            onClick={handleStopCharging}
-            disabled={stopCharging.isPending || (station.availableChargers ?? 0) >= (station.chargerCount ?? 1)}
-            variant="outline"
-            className="flex-1 border-emerald-500 text-emerald-600 hover:bg-emerald-50"
-            data-testid="button-stop-charging"
-          >
-            {stopCharging.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CircleCheck className="mr-2 h-4 w-4 rtl:ml-2 rtl:mr-0" />}
-            {t("charging.stopCharging")}
-          </Button>
-        </div>
+        <ChargingSessionDialog 
+          stationId={id}
+          availableChargers={station.availableChargers ?? 0}
+          totalChargers={station.chargerCount ?? 1}
+        />
       </div>
 
       {/* Info Grid */}

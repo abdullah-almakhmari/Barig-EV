@@ -33,13 +33,29 @@ export const reports = pgTable("reports", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const chargingSessions = pgTable("charging_sessions", {
+  id: serial("id").primaryKey(),
+  stationId: integer("station_id").notNull(),
+  startTime: timestamp("start_time").defaultNow(),
+  endTime: timestamp("end_time"),
+  durationMinutes: integer("duration_minutes"),
+  energyKwh: real("energy_kwh"),
+  batteryStartPercent: integer("battery_start_percent"),
+  batteryEndPercent: integer("battery_end_percent"),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const insertStationSchema = createInsertSchema(stations).omit({ id: true, createdAt: true });
 export const insertReportSchema = createInsertSchema(reports).omit({ id: true, createdAt: true });
+export const insertChargingSessionSchema = createInsertSchema(chargingSessions).omit({ id: true, createdAt: true });
 
 export type Station = typeof stations.$inferSelect;
 export type InsertStation = z.infer<typeof insertStationSchema>;
 export type Report = typeof reports.$inferSelect;
 export type InsertReport = z.infer<typeof insertReportSchema>;
+export type ChargingSession = typeof chargingSessions.$inferSelect;
+export type InsertChargingSession = z.infer<typeof insertChargingSessionSchema>;
 
 export type StationWithReports = Station & {
   reports?: Report[];
