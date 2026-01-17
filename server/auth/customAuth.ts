@@ -283,13 +283,40 @@ export async function setupAuth(app: Express) {
   });
 
   if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
-    app.get("/api/auth/google", passport.authenticate("google", { scope: ["profile", "email"] }));
+    app.get("/api/auth/google", (req: Request, res: Response, next: NextFunction) => {
+      console.log("Starting Google OAuth flow...");
+      passport.authenticate("google", { scope: ["profile", "email"] })(req, res, next);
+    });
 
     app.get(
       "/api/auth/google/callback",
-      passport.authenticate("google", { failureRedirect: "/login?error=google_failed" }),
-      (_req: Request, res: Response) => {
-        res.redirect("/");
+      (req: Request, res: Response, next: NextFunction) => {
+        console.log("Google callback received:", req.query);
+        
+        // Check if Google returned an error
+        if (req.query.error) {
+          console.error("Google OAuth error:", req.query.error, req.query.error_description);
+          return res.redirect(`/login?error=${req.query.error}`);
+        }
+        
+        passport.authenticate("google", (err: any, user: Express.User | false, info: any) => {
+          if (err) {
+            console.error("Google auth error:", err);
+            return res.redirect("/login?error=auth_failed");
+          }
+          if (!user) {
+            console.error("Google auth failed - no user:", info);
+            return res.redirect("/login?error=google_failed");
+          }
+          req.login(user, (loginErr) => {
+            if (loginErr) {
+              console.error("Google login error:", loginErr);
+              return res.redirect("/login?error=login_failed");
+            }
+            console.log("Google login successful for user:", user.id);
+            return res.redirect("/");
+          });
+        })(req, res, next);
       }
     );
   }
