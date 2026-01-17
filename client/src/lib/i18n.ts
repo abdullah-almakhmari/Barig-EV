@@ -5,7 +5,7 @@ import { initReactI18next } from 'react-i18next';
 const resources = {
   en: {
     translation: {
-      "app.title": "ShawnCharge",
+      "app.title": "Bariq",
       "nav.map": "Map View",
       "nav.list": "Stations",
       "nav.add": "Add Station",
@@ -73,7 +73,7 @@ const resources = {
   },
   ar: {
     translation: {
-      "app.title": "ShawnCharge",
+      "app.title": "بارق",
       "nav.map": "الخريطة",
       "nav.list": "المحطات",
       "nav.add": "أضف محطة",
