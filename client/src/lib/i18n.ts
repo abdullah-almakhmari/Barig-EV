@@ -5,7 +5,7 @@ import { initReactI18next } from 'react-i18next';
 const resources = {
   en: {
     translation: {
-      "app.title": "Oman EV Charge",
+      "app.title": "ShawnCharge",
       "nav.map": "Map View",
       "nav.list": "Stations",
       "nav.add": "Add Station",
@@ -67,13 +67,13 @@ const resources = {
       "nearby.notSupported": "Location is not supported by your browser",
       "nearby.distance": "km away",
       "nearby.retry": "Retry",
-      "hero.title": "Find EV Charging Stations in Oman",
+      "hero.title": "Find EV Charging Stations Near You",
       "hero.subtitle": "Locate, report, and add charging points seamlessly.",
     }
   },
   ar: {
     translation: {
-      "app.title": "شحن المركبات عمان",
+      "app.title": "ShawnCharge",
       "nav.map": "الخريطة",
       "nav.list": "المحطات",
       "nav.add": "أضف محطة",
@@ -135,7 +135,7 @@ const resources = {
       "nearby.notSupported": "المتصفح لا يدعم تحديد الموقع",
       "nearby.distance": "كم",
       "nearby.retry": "إعادة المحاولة",
-      "hero.title": "اعثر على محطات شحن المركبات الكهربائية في عمان",
+      "hero.title": "اعثر على محطات شحن المركبات الكهربائية بالقرب منك",
       "hero.subtitle": "تحديد المواقع، الإبلاغ، وإضافة نقاط شحن بسهولة.",
     }
   }
