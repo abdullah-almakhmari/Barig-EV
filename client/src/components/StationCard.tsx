@@ -20,23 +20,29 @@ export function StationCard({ station, variant = "full" }: StationCardProps) {
   const name = isAr ? station.nameAr : station.name;
   const city = isAr ? station.cityAr : station.city;
 
-  const getStatusColor = (status: string | null) => {
-    switch (status) {
-      case "OPERATIONAL": return "bg-emerald-500/10 text-emerald-600 border-emerald-500/20";
-      case "MAINTENANCE": return "bg-amber-500/10 text-amber-600 border-amber-500/20";
-      case "OFFLINE": return "bg-red-500/10 text-red-600 border-red-500/20";
-      default: return "bg-gray-500/10 text-gray-600 border-gray-500/20";
+  const getAvailabilityStatus = () => {
+    if (station.status === "OFFLINE") {
+      return {
+        color: "bg-red-500/10 text-red-600 border-red-500/20",
+        icon: <AlertTriangle className="w-3 h-3 me-1" />,
+        label: t("station.status.offline")
+      };
     }
+    if ((station.availableChargers ?? 0) > 0) {
+      return {
+        color: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
+        icon: <CheckCircle className="w-3 h-3 me-1" />,
+        label: t("station.status.available")
+      };
+    }
+    return {
+      color: "bg-orange-500/10 text-orange-600 border-orange-500/20",
+      icon: <BatteryCharging className="w-3 h-3 me-1" />,
+      label: t("station.status.inuse")
+    };
   };
 
-  const getStatusIcon = (status: string | null) => {
-    switch (status) {
-      case "OPERATIONAL": return <CheckCircle className="w-3 h-3 me-1" />;
-      case "MAINTENANCE": return <AlertTriangle className="w-3 h-3 me-1" />;
-      case "OFFLINE": return <AlertTriangle className="w-3 h-3 me-1" />;
-      default: return null;
-    }
-  };
+  const availabilityStatus = getAvailabilityStatus();
 
   const handleCardClick = () => {
     if (variant === "compact") {
@@ -61,18 +67,11 @@ export function StationCard({ station, variant = "full" }: StationCardProps) {
       <div className="flex justify-between items-start mb-3 relative z-10">
         <div>
           <div className="flex items-center gap-2 mb-2 flex-wrap">
-            <Badge variant="outline" className={getStatusColor(station.status)}>
-              {getStatusIcon(station.status)}
-              {t(`station.status.${station.status?.toLowerCase()}`)}
+            <Badge variant="outline" className={availabilityStatus.color}>
+              {availabilityStatus.icon}
+              {availabilityStatus.label}
             </Badge>
-            <Badge 
-              variant="outline" 
-              className={`${
-                (station.availableChargers ?? 0) > 0 
-                  ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" 
-                  : "bg-red-500/10 text-red-600 border-red-500/20"
-              }`}
-            >
+            <Badge variant="outline" className="bg-muted/50">
               <BatteryCharging className="w-3 h-3 me-1" />
               {station.availableChargers ?? 0}/{station.chargerCount ?? 1} {t("station.available")}
             </Badge>

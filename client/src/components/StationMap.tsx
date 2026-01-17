@@ -21,9 +21,18 @@ let DefaultIcon = L.icon({
 
 L.Marker.prototype.options.icon = DefaultIcon;
 
-// Custom Icons could be added here
-const createCustomIcon = (type: string) => {
-  const color = type.includes('DC') ? '#f59e0b' : '#10b981'; // Amber for DC, Emerald for AC
+// Custom Icons based on availability status
+const createCustomIcon = (station: Station) => {
+  let color: string;
+  
+  if (station.status === "OFFLINE") {
+    color = '#ef4444'; // Red - offline
+  } else if ((station.availableChargers ?? 0) > 0) {
+    color = '#10b981'; // Green - available
+  } else {
+    color = '#f97316'; // Orange - in use
+  }
+  
   return L.divIcon({
     className: 'custom-div-icon',
     html: `<div style="background-color: ${color}; width: 16px; height: 16px; border-radius: 50%; border: 3px solid white; box-shadow: 0 4px 6px rgba(0,0,0,0.3);"></div>`,
@@ -158,7 +167,7 @@ export function StationMap({ stations }: StationMapProps) {
           <Marker 
             key={station.id} 
             position={[station.lat, station.lng]}
-            icon={createCustomIcon(station.chargerType)}
+            icon={createCustomIcon(station)}
           >
             <Popup>
               <div dir={document.documentElement.dir} className="w-full">
