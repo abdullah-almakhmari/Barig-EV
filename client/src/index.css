@@ -74,6 +74,17 @@
   width: 280px !important;
 }
 
+/* Custom Marker Icons */
+.custom-div-icon {
+  background: transparent !important;
+  border: none !important;
+}
+
+.user-location-icon {
+  background: transparent !important;
+  border: none !important;
+}
+
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
