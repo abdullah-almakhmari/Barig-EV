@@ -1,13 +1,14 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Zap, BatteryCharging, Battery, Gauge } from "lucide-react";
-import { useStartChargingSession, useEndChargingSession, useActiveSession } from "@/hooks/use-stations";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Loader2, Zap, BatteryCharging, Battery, Gauge, Car } from "lucide-react";
+import { useStartChargingSession, useEndChargingSession, useActiveSession, useVehicles } from "@/hooks/use-stations";
 import { useToast } from "@/hooks/use-toast";
-import type { ChargingSession } from "@shared/schema";
+import type { ChargingSession, EvVehicle } from "@shared/schema";
 
 interface ChargingSessionDialogProps {
   stationId: number;
@@ -15,23 +16,44 @@ interface ChargingSessionDialogProps {
   totalChargers: number;
 }
 
+const VEHICLE_STORAGE_KEY = "bariq_selected_vehicle";
+
 export function ChargingSessionDialog({ stationId, availableChargers, totalChargers }: ChargingSessionDialogProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { toast } = useToast();
   const [openStart, setOpenStart] = useState(false);
   const [openEnd, setOpenEnd] = useState(false);
   const [batteryStart, setBatteryStart] = useState("");
   const [batteryEnd, setBatteryEnd] = useState("");
   const [energyKwh, setEnergyKwh] = useState("");
+  const [selectedVehicleId, setSelectedVehicleId] = useState<string>("");
 
   const { data: activeSession, isLoading: loadingSession } = useActiveSession(stationId);
+  const { data: vehicles, isLoading: loadingVehicles } = useVehicles();
   const startSession = useStartChargingSession();
   const endSession = useEndChargingSession();
+  
+  const isArabic = i18n.language === "ar";
+
+  useEffect(() => {
+    const stored = localStorage.getItem(VEHICLE_STORAGE_KEY);
+    if (stored) {
+      setSelectedVehicleId(stored);
+    }
+  }, []);
+
+  const handleVehicleChange = (value: string) => {
+    setSelectedVehicleId(value);
+    localStorage.setItem(VEHICLE_STORAGE_KEY, value);
+  };
+
+  const selectedVehicle = vehicles?.find(v => v.id === Number(selectedVehicleId));
 
   const handleStartSession = async () => {
     try {
       await startSession.mutateAsync({
         stationId,
+        vehicleId: selectedVehicleId ? Number(selectedVehicleId) : undefined,
         batteryStartPercent: batteryStart ? Number(batteryStart) : undefined,
       });
       toast({ title: t("charging.sessionStarted"), description: t("charging.sessionStartedDesc") });
@@ -188,6 +210,30 @@ export function ChargingSessionDialog({ stationId, availableChargers, totalCharg
               <DialogTitle>{t("charging.startSession")}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <Car className="w-4 h-4" />
+                  {t("vehicle.select")}
+                </Label>
+                <Select value={selectedVehicleId} onValueChange={handleVehicleChange}>
+                  <SelectTrigger data-testid="select-vehicle">
+                    <SelectValue placeholder={t("vehicle.selectHint")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {vehicles?.map((vehicle) => (
+                      <SelectItem key={vehicle.id} value={String(vehicle.id)} data-testid={`vehicle-option-${vehicle.id}`}>
+                        {isArabic ? `${vehicle.brandAr} ${vehicle.modelAr}` : `${vehicle.brand} ${vehicle.model}`}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {selectedVehicle && (
+                  <div className="text-xs text-muted-foreground flex gap-3">
+                    <span>{selectedVehicle.batteryCapacityKwh} kWh</span>
+                    <span>{selectedVehicle.chargerType}</span>
+                  </div>
+                )}
+              </div>
               <div className="space-y-2">
                 <Label htmlFor="batteryStart" className="flex items-center gap-2">
                   <Battery className="w-4 h-4" />

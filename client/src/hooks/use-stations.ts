@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, buildUrl } from "@shared/routes";
-import type { InsertStation, InsertReport, ChargingSession } from "@shared/schema";
+import type { InsertStation, InsertReport, ChargingSession, EvVehicle } from "@shared/schema";
 import { z } from "zod";
 
 // --- Stations Hooks ---
@@ -189,7 +189,7 @@ export function useActiveSession(stationId: number) {
 export function useStartChargingSession() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (data: { stationId: number; batteryStartPercent?: number }) => {
+    mutationFn: async (data: { stationId: number; vehicleId?: number; batteryStartPercent?: number }) => {
       const res = await fetch(api.chargingSessions.start.path, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -234,5 +234,31 @@ export function useEndChargingSession() {
       queryClient.invalidateQueries({ queryKey: [api.chargingSessions.list.path] });
       queryClient.invalidateQueries({ queryKey: [api.chargingSessions.getActive.path, variables.stationId] });
     },
+  });
+}
+
+// --- Vehicles Hooks ---
+
+export function useVehicles() {
+  return useQuery({
+    queryKey: [api.vehicles.list.path],
+    queryFn: async () => {
+      const res = await fetch(api.vehicles.list.path, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch vehicles");
+      return res.json() as Promise<EvVehicle[]>;
+    },
+  });
+}
+
+export function useVehicle(id: number) {
+  return useQuery({
+    queryKey: [api.vehicles.get.path, id],
+    queryFn: async () => {
+      const url = buildUrl(api.vehicles.get.path, { id });
+      const res = await fetch(url, { credentials: "include" });
+      if (!res.ok) throw new Error("Vehicle not found");
+      return res.json() as Promise<EvVehicle>;
+    },
+    enabled: !!id && !isNaN(id),
   });
 }

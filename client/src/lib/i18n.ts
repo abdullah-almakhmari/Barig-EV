@@ -94,6 +94,13 @@ const resources = {
       "nearby.retry": "Retry",
       "hero.title": "Find EV Charging Stations Near You",
       "hero.subtitle": "Locate, report, and add charging points seamlessly.",
+      "vehicle.title": "Your Vehicle",
+      "vehicle.select": "Select Vehicle",
+      "vehicle.none": "No vehicle selected",
+      "vehicle.battery": "Battery Capacity",
+      "vehicle.chargerType": "Charger Type",
+      "vehicle.maxPower": "Max Charging Power",
+      "vehicle.selectHint": "Select your EV to track charging",
     }
   },
   ar: {
@@ -187,6 +194,13 @@ const resources = {
       "nearby.retry": "إعادة المحاولة",
       "hero.title": "اعثر على محطات شحن المركبات الكهربائية بالقرب منك",
       "hero.subtitle": "تحديد المواقع، الإبلاغ، وإضافة نقاط شحن بسهولة.",
+      "vehicle.title": "سيارتك",
+      "vehicle.select": "اختر السيارة",
+      "vehicle.none": "لم يتم اختيار سيارة",
+      "vehicle.battery": "سعة البطارية",
+      "vehicle.chargerType": "نوع الشاحن",
+      "vehicle.maxPower": "أقصى قوة شحن",
+      "vehicle.selectHint": "اختر سيارتك الكهربائية لتتبع الشحن",
     }
   }
 };
