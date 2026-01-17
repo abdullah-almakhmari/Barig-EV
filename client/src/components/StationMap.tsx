@@ -3,7 +3,7 @@ import { Station } from "@shared/schema";
 import { StationCard } from "./StationCard";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Navigation, Loader2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -39,6 +39,22 @@ const userLocationIcon = L.divIcon({
   iconSize: [14, 14],
   iconAnchor: [7, 7],
 });
+
+// Component to fit bounds to all stations
+function FitBoundsToStations({ stations }: { stations: Station[] }) {
+  const map = useMap();
+  
+  useEffect(() => {
+    if (stations.length > 0) {
+      const bounds = L.latLngBounds(
+        stations.map(s => [s.lat, s.lng] as [number, number])
+      );
+      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 12 });
+    }
+  }, [stations.length, map]);
+
+  return null;
+}
 
 // LocateControl component to handle location button
 function LocateControl({ 
@@ -119,6 +135,7 @@ export function StationMap({ stations }: StationMapProps) {
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         
+        <FitBoundsToStations stations={stations} />
         <LocateControl onLocationFound={handleLocationFound} />
 
         {userLocation && (

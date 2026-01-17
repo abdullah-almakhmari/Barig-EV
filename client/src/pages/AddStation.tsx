@@ -84,12 +84,12 @@ export default function AddStation() {
 
   async function onSubmit(data: InsertStation) {
     try {
-      await createStation.mutateAsync(data);
+      const newStation = await createStation.mutateAsync(data);
       toast({
         title: "Success",
         description: "Station added successfully!",
       });
-      setLocation("/");
+      setLocation(`/station/${newStation.id}`);
     } catch (error) {
       toast({
         variant: "destructive",
