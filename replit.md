@@ -77,13 +77,16 @@ The `shared/` directory contains code used by both frontend and backend:
 
 ## Recent Changes
 
-### User Authentication (January 2026)
-- Added Replit Auth for user login/logout via Google, GitHub, Apple, or email
-- User data stored in PostgreSQL (users and sessions tables)
-- Protected routes: charging session start/end and history require login
-- Charging sessions and reports now linked to userId for per-user data
-- Header shows user avatar and logout button when logged in, login button when logged out
-- Auth files: server/replit_integrations/auth/, client/src/hooks/use-auth.ts
+### Custom Authentication System (January 2026)
+- Replaced Replit Auth with custom in-app authentication
+- **Email/Password**: Register and login with email/password (bcrypt hashing, 12 rounds)
+- **Google OAuth**: Optional "Continue with Google" (requires GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET env vars)
+- Session-based auth with express-session stored in PostgreSQL
+- User table extended: passwordHash, provider (local/google), providerId, emailVerified
+- Auth endpoints: POST /api/auth/register, /api/auth/login, /api/auth/logout, GET /api/auth/user
+- Frontend: /login page with login/register tabs, bilingual support (Arabic/English)
+- Protected routes: charging sessions, adding stations/reports require login
+- Auth files: server/auth/customAuth.ts, client/src/pages/AuthPage.tsx, client/src/hooks/use-auth.ts
 
 ### EV Vehicle Selection (January 2026)
 - Added evVehicles table with 20 popular GCC cars including BYD (Atto 3, Seal, Dolphin, Han, Tang), Tesla, Nissan, BMW, Mercedes, Audi, Porsche, Hyundai, Kia, VW, MG

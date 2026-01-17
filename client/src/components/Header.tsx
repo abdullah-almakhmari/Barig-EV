@@ -100,19 +100,26 @@ export function Header() {
                     {getInitials(user?.firstName, user?.lastName)}
                   </AvatarFallback>
                 </Avatar>
-                <a href="/api/logout">
-                  <Button variant="ghost" size="icon" className="rounded-full" data-testid="button-logout">
-                    <LogOut className="w-5 h-5" />
-                  </Button>
-                </a>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="rounded-full" 
+                  onClick={() => {
+                    fetch("/api/auth/logout", { method: "POST", credentials: "include" })
+                      .then(() => window.location.href = "/");
+                  }}
+                  data-testid="button-logout"
+                >
+                  <LogOut className="w-5 h-5" />
+                </Button>
               </div>
             ) : (
-              <a href="/api/login">
+              <Link href="/login">
                 <Button variant="default" size="sm" className="gap-2" data-testid="button-login">
                   <LogIn className="w-4 h-4" />
                   <span className="hidden sm:inline">{t("auth.login")}</span>
                 </Button>
-              </a>
+              </Link>
             )
           )}
         </nav>
