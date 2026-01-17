@@ -4,7 +4,7 @@ import { Station } from "@shared/schema";
 import { Zap, Battery, AlertTriangle, CheckCircle, Navigation, BatteryCharging } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 
 interface StationCardProps {
   station: Station;
@@ -12,6 +12,7 @@ interface StationCardProps {
 }
 
 export function StationCard({ station, variant = "full" }: StationCardProps) {
+  const [, setLocation] = useLocation();
   const { t } = useTranslation();
   const { language } = useLanguage();
 
@@ -37,12 +38,23 @@ export function StationCard({ station, variant = "full" }: StationCardProps) {
     }
   };
 
+  const handleCardClick = () => {
+    if (variant === "compact") {
+      setLocation(`/station/${station.id}`);
+    }
+  };
+
   return (
-    <div className={`
-      group relative overflow-hidden rounded-2xl bg-card border border-border/50
-      shadow-sm hover:shadow-md transition-all duration-300
-      ${variant === "full" ? "p-5" : "p-3"}
-    `}>
+    <div 
+      className={`
+        group relative overflow-hidden rounded-2xl bg-card border border-border/50
+        shadow-sm hover:shadow-md transition-all duration-300
+        ${variant === "full" ? "p-5" : "p-3"}
+        ${variant === "compact" ? "cursor-pointer" : ""}
+      `}
+      onClick={handleCardClick}
+      data-testid={`station-card-${station.id}`}
+    >
       {/* Decorative gradient blob */}
       <div className="absolute -top-10 -right-10 w-24 h-24 bg-primary/5 rounded-full blur-2xl group-hover:bg-primary/10 transition-all" />
 
