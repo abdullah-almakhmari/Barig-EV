@@ -141,7 +141,7 @@ export async function registerRoutes(
       }
       
       // Create charging session first, then update availability
-      const session = await storage.startChargingSession(input.stationId, input.batteryStartPercent);
+      const session = await storage.startChargingSession(input.stationId, input.batteryStartPercent, input.vehicleId);
       
       try {
         await storage.updateStationAvailability(input.stationId, available - 1);
@@ -214,6 +214,20 @@ export async function registerRoutes(
     const stationId = Number(req.params.id);
     const session = await storage.getActiveSession(stationId);
     res.json(session || null);
+  });
+
+  // Vehicles
+  app.get(api.vehicles.list.path, async (req, res) => {
+    const vehicles = await storage.getVehicles();
+    res.json(vehicles);
+  });
+
+  app.get(api.vehicles.get.path, async (req, res) => {
+    const vehicle = await storage.getVehicle(Number(req.params.id));
+    if (!vehicle) {
+      return res.status(404).json({ message: "Vehicle not found" });
+    }
+    res.json(vehicle);
   });
 
   return httpServer;

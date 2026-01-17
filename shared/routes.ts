@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { insertStationSchema, insertReportSchema, stations, reports, chargingSessions } from './schema';
+import { insertStationSchema, insertReportSchema, stations, reports, chargingSessions, evVehicles } from './schema';
 
 export const errorSchemas = {
   validation: z.object({
@@ -101,6 +101,7 @@ export const api = {
       path: '/api/charging-sessions/start',
       input: z.object({
         stationId: z.number(),
+        vehicleId: z.number().optional(),
         batteryStartPercent: z.number().min(0).max(100).optional(),
       }),
       responses: {
@@ -137,6 +138,23 @@ export const api = {
       path: '/api/stations/:id/active-session',
       responses: {
         200: z.custom<typeof chargingSessions.$inferSelect>().nullable(),
+        404: errorSchemas.notFound,
+      },
+    },
+  },
+  vehicles: {
+    list: {
+      method: 'GET' as const,
+      path: '/api/vehicles',
+      responses: {
+        200: z.array(z.custom<typeof evVehicles.$inferSelect>()),
+      },
+    },
+    get: {
+      method: 'GET' as const,
+      path: '/api/vehicles/:id',
+      responses: {
+        200: z.custom<typeof evVehicles.$inferSelect>(),
         404: errorSchemas.notFound,
       },
     },

@@ -36,6 +36,7 @@ export const reports = pgTable("reports", {
 export const chargingSessions = pgTable("charging_sessions", {
   id: serial("id").primaryKey(),
   stationId: integer("station_id").notNull(),
+  vehicleId: integer("vehicle_id"),
   startTime: timestamp("start_time").defaultNow(),
   endTime: timestamp("end_time"),
   durationMinutes: integer("duration_minutes"),
@@ -46,9 +47,22 @@ export const chargingSessions = pgTable("charging_sessions", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const evVehicles = pgTable("ev_vehicles", {
+  id: serial("id").primaryKey(),
+  brand: text("brand").notNull(),
+  model: text("model").notNull(),
+  brandAr: text("brand_ar").notNull(),
+  modelAr: text("model_ar").notNull(),
+  batteryCapacityKwh: real("battery_capacity_kwh"),
+  chargerType: text("charger_type").notNull(), // CCS, CHAdeMO, Type2, Tesla
+  maxChargingPowerKw: real("max_charging_power_kw"),
+  imageUrl: text("image_url"),
+});
+
 export const insertStationSchema = createInsertSchema(stations).omit({ id: true, createdAt: true });
 export const insertReportSchema = createInsertSchema(reports).omit({ id: true, createdAt: true });
 export const insertChargingSessionSchema = createInsertSchema(chargingSessions).omit({ id: true, createdAt: true });
+export const insertEvVehicleSchema = createInsertSchema(evVehicles).omit({ id: true });
 
 export type Station = typeof stations.$inferSelect;
 export type InsertStation = z.infer<typeof insertStationSchema>;
@@ -56,7 +70,13 @@ export type Report = typeof reports.$inferSelect;
 export type InsertReport = z.infer<typeof insertReportSchema>;
 export type ChargingSession = typeof chargingSessions.$inferSelect;
 export type InsertChargingSession = z.infer<typeof insertChargingSessionSchema>;
+export type EvVehicle = typeof evVehicles.$inferSelect;
+export type InsertEvVehicle = z.infer<typeof insertEvVehicleSchema>;
 
 export type StationWithReports = Station & {
   reports?: Report[];
+};
+
+export type ChargingSessionWithVehicle = ChargingSession & {
+  vehicle?: EvVehicle;
 };

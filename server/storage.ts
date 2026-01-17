@@ -1,8 +1,9 @@
 import {
-  stations, reports, chargingSessions,
+  stations, reports, chargingSessions, evVehicles,
   type Station, type InsertStation,
   type Report, type InsertReport,
-  type ChargingSession, type InsertChargingSession
+  type ChargingSession, type InsertChargingSession,
+  type EvVehicle, type InsertEvVehicle
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, ilike, or } from "drizzle-orm";
@@ -15,12 +16,14 @@ export interface IStorage {
   updateStationStatus(id: number, status: string): Promise<Station | undefined>;
   getReports(stationId: number): Promise<Report[]>;
   createReport(report: InsertReport): Promise<Report>;
-  startChargingSession(stationId: number, batteryStartPercent?: number): Promise<ChargingSession>;
+  startChargingSession(stationId: number, batteryStartPercent?: number, vehicleId?: number): Promise<ChargingSession>;
   endChargingSession(sessionId: number, batteryEndPercent?: number, energyKwh?: number): Promise<ChargingSession | undefined>;
   getChargingSessions(stationId?: number): Promise<ChargingSession[]>;
   getActiveSession(stationId: number): Promise<ChargingSession | undefined>;
   getSessionById(sessionId: number): Promise<ChargingSession | undefined>;
   deleteSession(sessionId: number): Promise<void>;
+  getVehicles(): Promise<EvVehicle[]>;
+  getVehicle(id: number): Promise<EvVehicle | undefined>;
   seed(): Promise<void>;
 }
 
@@ -98,9 +101,10 @@ export class DatabaseStorage implements IStorage {
     return report;
   }
 
-  async startChargingSession(stationId: number, batteryStartPercent?: number): Promise<ChargingSession> {
+  async startChargingSession(stationId: number, batteryStartPercent?: number, vehicleId?: number): Promise<ChargingSession> {
     const [session] = await db.insert(chargingSessions).values({
       stationId,
+      vehicleId,
       batteryStartPercent,
       isActive: true,
       startTime: new Date(),
@@ -161,6 +165,15 @@ export class DatabaseStorage implements IStorage {
 
   async deleteSession(sessionId: number): Promise<void> {
     await db.delete(chargingSessions).where(eq(chargingSessions.id, sessionId));
+  }
+
+  async getVehicles(): Promise<EvVehicle[]> {
+    return await db.select().from(evVehicles);
+  }
+
+  async getVehicle(id: number): Promise<EvVehicle | undefined> {
+    const [vehicle] = await db.select().from(evVehicles).where(eq(evVehicles.id, id));
+    return vehicle;
   }
 
   async seed(): Promise<void> {
@@ -307,6 +320,34 @@ export class DatabaseStorage implements IStorage {
     ];
 
     await db.insert(stations).values(seedStations);
+
+    const existingVehicles = await this.getVehicles();
+    if (existingVehicles.length === 0) {
+      const seedVehicles: InsertEvVehicle[] = [
+        { brand: "BYD", model: "Atto 3", brandAr: "بي واي دي", modelAr: "أتو 3", batteryCapacityKwh: 60.5, chargerType: "CCS", maxChargingPowerKw: 80 },
+        { brand: "BYD", model: "Seal", brandAr: "بي واي دي", modelAr: "سيل", batteryCapacityKwh: 82.5, chargerType: "CCS", maxChargingPowerKw: 150 },
+        { brand: "BYD", model: "Dolphin", brandAr: "بي واي دي", modelAr: "دولفين", batteryCapacityKwh: 44.9, chargerType: "CCS", maxChargingPowerKw: 60 },
+        { brand: "BYD", model: "Han", brandAr: "بي واي دي", modelAr: "هان", batteryCapacityKwh: 85.4, chargerType: "CCS", maxChargingPowerKw: 120 },
+        { brand: "BYD", model: "Tang", brandAr: "بي واي دي", modelAr: "تانج", batteryCapacityKwh: 86.4, chargerType: "CCS", maxChargingPowerKw: 110 },
+        { brand: "Tesla", model: "Model 3", brandAr: "تيسلا", modelAr: "موديل 3", batteryCapacityKwh: 60, chargerType: "CCS", maxChargingPowerKw: 170 },
+        { brand: "Tesla", model: "Model Y", brandAr: "تيسلا", modelAr: "موديل واي", batteryCapacityKwh: 75, chargerType: "CCS", maxChargingPowerKw: 250 },
+        { brand: "Tesla", model: "Model S", brandAr: "تيسلا", modelAr: "موديل إس", batteryCapacityKwh: 100, chargerType: "CCS", maxChargingPowerKw: 250 },
+        { brand: "Nissan", model: "Leaf", brandAr: "نيسان", modelAr: "ليف", batteryCapacityKwh: 40, chargerType: "CHAdeMO", maxChargingPowerKw: 50 },
+        { brand: "BMW", model: "iX3", brandAr: "بي إم دبليو", modelAr: "آي إكس 3", batteryCapacityKwh: 80, chargerType: "CCS", maxChargingPowerKw: 150 },
+        { brand: "BMW", model: "i4", brandAr: "بي إم دبليو", modelAr: "آي 4", batteryCapacityKwh: 83.9, chargerType: "CCS", maxChargingPowerKw: 200 },
+        { brand: "Mercedes", model: "EQS", brandAr: "مرسيدس", modelAr: "إي كيو إس", batteryCapacityKwh: 107.8, chargerType: "CCS", maxChargingPowerKw: 200 },
+        { brand: "Mercedes", model: "EQE", brandAr: "مرسيدس", modelAr: "إي كيو إي", batteryCapacityKwh: 90.6, chargerType: "CCS", maxChargingPowerKw: 170 },
+        { brand: "Audi", model: "e-tron", brandAr: "أودي", modelAr: "إي ترون", batteryCapacityKwh: 95, chargerType: "CCS", maxChargingPowerKw: 150 },
+        { brand: "Porsche", model: "Taycan", brandAr: "بورش", modelAr: "تايكان", batteryCapacityKwh: 93.4, chargerType: "CCS", maxChargingPowerKw: 270 },
+        { brand: "Hyundai", model: "Ioniq 5", brandAr: "هيونداي", modelAr: "أيونيك 5", batteryCapacityKwh: 77.4, chargerType: "CCS", maxChargingPowerKw: 220 },
+        { brand: "Hyundai", model: "Ioniq 6", brandAr: "هيونداي", modelAr: "أيونيك 6", batteryCapacityKwh: 77.4, chargerType: "CCS", maxChargingPowerKw: 220 },
+        { brand: "Kia", model: "EV6", brandAr: "كيا", modelAr: "إي في 6", batteryCapacityKwh: 77.4, chargerType: "CCS", maxChargingPowerKw: 240 },
+        { brand: "Volkswagen", model: "ID.4", brandAr: "فولكس فاجن", modelAr: "آي دي 4", batteryCapacityKwh: 77, chargerType: "CCS", maxChargingPowerKw: 135 },
+        { brand: "MG", model: "ZS EV", brandAr: "إم جي", modelAr: "زد إس", batteryCapacityKwh: 50.3, chargerType: "CCS", maxChargingPowerKw: 76 },
+      ];
+      await db.insert(evVehicles).values(seedVehicles);
+    }
+
     console.log("Database seeded successfully");
   }
 }
