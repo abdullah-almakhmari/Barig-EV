@@ -39,7 +39,10 @@ The server handles API routes, serves static files in production, and uses Vite 
 - **Tables**: 
   - `stations` - EV charging station data with bilingual names (Arabic/English)
   - `reports` - User-submitted station status reports
-  - `chargingSessions` - Charging session tracking with duration and energy metrics
+  - `evVehicles` - Catalog of EV models (reference data)
+  - `userVehicles` - User's owned vehicles (links users to evVehicles)
+  - `chargingSessions` - Charging session tracking with duration and energy metrics, linked to userVehicles
+- **All tables have created_at and updated_at timestamps for analytics**
 
 ### Shared Code
 

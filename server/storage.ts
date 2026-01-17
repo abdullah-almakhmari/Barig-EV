@@ -1,9 +1,10 @@
 import {
-  stations, reports, chargingSessions, evVehicles,
+  stations, reports, chargingSessions, evVehicles, userVehicles,
   type Station, type InsertStation,
   type Report, type InsertReport,
   type ChargingSession, type InsertChargingSession,
-  type EvVehicle, type InsertEvVehicle
+  type EvVehicle, type InsertEvVehicle,
+  type UserVehicle, type InsertUserVehicle, type UserVehicleWithDetails
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, ilike, or } from "drizzle-orm";
@@ -16,7 +17,7 @@ export interface IStorage {
   updateStationStatus(id: number, status: string): Promise<Station | undefined>;
   getReports(stationId: number): Promise<Report[]>;
   createReport(report: InsertReport): Promise<Report>;
-  startChargingSession(stationId: number, batteryStartPercent?: number, vehicleId?: number, userId?: string): Promise<ChargingSession>;
+  startChargingSession(stationId: number, batteryStartPercent?: number, userVehicleId?: number, userId?: string): Promise<ChargingSession>;
   endChargingSession(sessionId: number, batteryEndPercent?: number, energyKwh?: number): Promise<ChargingSession | undefined>;
   getChargingSessions(stationId?: number, userId?: string): Promise<ChargingSession[]>;
   getActiveSession(stationId: number): Promise<ChargingSession | undefined>;
@@ -24,6 +25,12 @@ export interface IStorage {
   deleteSession(sessionId: number): Promise<void>;
   getVehicles(): Promise<EvVehicle[]>;
   getVehicle(id: number): Promise<EvVehicle | undefined>;
+  getUserVehicles(userId: string): Promise<UserVehicleWithDetails[]>;
+  getUserVehicle(id: number): Promise<UserVehicleWithDetails | undefined>;
+  createUserVehicle(vehicle: InsertUserVehicle): Promise<UserVehicle>;
+  updateUserVehicle(id: number, vehicle: Partial<InsertUserVehicle>): Promise<UserVehicle | undefined>;
+  deleteUserVehicle(id: number): Promise<void>;
+  setDefaultUserVehicle(userId: string, vehicleId: number): Promise<void>;
   seed(): Promise<void>;
 }
 
@@ -75,7 +82,7 @@ export class DatabaseStorage implements IStorage {
 
   async updateStationAvailability(id: number, availableChargers: number): Promise<Station | undefined> {
     const [updated] = await db.update(stations)
-      .set({ availableChargers })
+      .set({ availableChargers, updatedAt: new Date() })
       .where(eq(stations.id, id))
       .returning();
     return updated;
@@ -83,7 +90,7 @@ export class DatabaseStorage implements IStorage {
 
   async updateStationStatus(id: number, status: string): Promise<Station | undefined> {
     const [updated] = await db.update(stations)
-      .set({ status })
+      .set({ status, updatedAt: new Date() })
       .where(eq(stations.id, id))
       .returning();
     return updated;
@@ -101,11 +108,11 @@ export class DatabaseStorage implements IStorage {
     return report;
   }
 
-  async startChargingSession(stationId: number, batteryStartPercent?: number, vehicleId?: number, userId?: string): Promise<ChargingSession> {
+  async startChargingSession(stationId: number, batteryStartPercent?: number, userVehicleId?: number, userId?: string): Promise<ChargingSession> {
     const [session] = await db.insert(chargingSessions).values({
       stationId,
       userId,
-      vehicleId,
+      userVehicleId,
       batteryStartPercent,
       isActive: true,
       startTime: new Date(),
@@ -129,6 +136,7 @@ export class DatabaseStorage implements IStorage {
         batteryEndPercent,
         energyKwh,
         isActive: false,
+        updatedAt: new Date(),
       })
       .where(eq(chargingSessions.id, sessionId))
       .returning();
@@ -183,6 +191,42 @@ export class DatabaseStorage implements IStorage {
   async getVehicle(id: number): Promise<EvVehicle | undefined> {
     const [vehicle] = await db.select().from(evVehicles).where(eq(evVehicles.id, id));
     return vehicle;
+  }
+
+  async getUserVehicles(userId: string): Promise<UserVehicleWithDetails[]> {
+    const userVehiclesList = await db.select().from(userVehicles).where(eq(userVehicles.userId, userId)).orderBy(desc(userVehicles.createdAt));
+    const result: UserVehicleWithDetails[] = [];
+    for (const uv of userVehiclesList) {
+      const evVehicle = await this.getVehicle(uv.evVehicleId);
+      result.push({ ...uv, evVehicle });
+    }
+    return result;
+  }
+
+  async getUserVehicle(id: number): Promise<UserVehicleWithDetails | undefined> {
+    const [uv] = await db.select().from(userVehicles).where(eq(userVehicles.id, id));
+    if (!uv) return undefined;
+    const evVehicle = await this.getVehicle(uv.evVehicleId);
+    return { ...uv, evVehicle };
+  }
+
+  async createUserVehicle(vehicle: InsertUserVehicle): Promise<UserVehicle> {
+    const [created] = await db.insert(userVehicles).values(vehicle).returning();
+    return created;
+  }
+
+  async updateUserVehicle(id: number, vehicle: Partial<InsertUserVehicle>): Promise<UserVehicle | undefined> {
+    const [updated] = await db.update(userVehicles).set({ ...vehicle, updatedAt: new Date() }).where(eq(userVehicles.id, id)).returning();
+    return updated;
+  }
+
+  async deleteUserVehicle(id: number): Promise<void> {
+    await db.delete(userVehicles).where(eq(userVehicles.id, id));
+  }
+
+  async setDefaultUserVehicle(userId: string, vehicleId: number): Promise<void> {
+    await db.update(userVehicles).set({ isDefault: false, updatedAt: new Date() }).where(eq(userVehicles.userId, userId));
+    await db.update(userVehicles).set({ isDefault: true, updatedAt: new Date() }).where(eq(userVehicles.id, vehicleId));
   }
 
   async seed(): Promise<void> {

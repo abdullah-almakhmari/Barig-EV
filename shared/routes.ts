@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { insertStationSchema, insertReportSchema, stations, reports, chargingSessions, evVehicles } from './schema';
+import { insertStationSchema, insertReportSchema, insertUserVehicleSchema, stations, reports, chargingSessions, evVehicles, userVehicles } from './schema';
 
 export const errorSchemas = {
   validation: z.object({
@@ -101,7 +101,7 @@ export const api = {
       path: '/api/charging-sessions/start',
       input: z.object({
         stationId: z.number(),
-        vehicleId: z.number().optional(),
+        userVehicleId: z.number().optional(),
         batteryStartPercent: z.number().min(0).max(100).optional(),
       }),
       responses: {
@@ -155,6 +155,58 @@ export const api = {
       path: '/api/vehicles/:id',
       responses: {
         200: z.custom<typeof evVehicles.$inferSelect>(),
+        404: errorSchemas.notFound,
+      },
+    },
+  },
+  userVehicles: {
+    list: {
+      method: 'GET' as const,
+      path: '/api/user-vehicles',
+      responses: {
+        200: z.array(z.custom<typeof userVehicles.$inferSelect>()),
+      },
+    },
+    get: {
+      method: 'GET' as const,
+      path: '/api/user-vehicles/:id',
+      responses: {
+        200: z.custom<typeof userVehicles.$inferSelect>(),
+        404: errorSchemas.notFound,
+      },
+    },
+    create: {
+      method: 'POST' as const,
+      path: '/api/user-vehicles',
+      input: insertUserVehicleSchema.omit({ userId: true }),
+      responses: {
+        201: z.custom<typeof userVehicles.$inferSelect>(),
+        400: errorSchemas.validation,
+      },
+    },
+    update: {
+      method: 'PATCH' as const,
+      path: '/api/user-vehicles/:id',
+      input: insertUserVehicleSchema.partial().omit({ userId: true }),
+      responses: {
+        200: z.custom<typeof userVehicles.$inferSelect>(),
+        400: errorSchemas.validation,
+        404: errorSchemas.notFound,
+      },
+    },
+    delete: {
+      method: 'DELETE' as const,
+      path: '/api/user-vehicles/:id',
+      responses: {
+        200: z.object({ success: z.boolean() }),
+        404: errorSchemas.notFound,
+      },
+    },
+    setDefault: {
+      method: 'POST' as const,
+      path: '/api/user-vehicles/:id/set-default',
+      responses: {
+        200: z.object({ success: z.boolean() }),
         404: errorSchemas.notFound,
       },
     },

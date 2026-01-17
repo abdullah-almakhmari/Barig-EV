@@ -5,10 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Zap, BatteryCharging, Battery, Gauge, Car } from "lucide-react";
-import { useStartChargingSession, useEndChargingSession, useActiveSession, useVehicles } from "@/hooks/use-stations";
+import { Loader2, Zap, BatteryCharging, Battery, Gauge, Car, Plus } from "lucide-react";
+import { useStartChargingSession, useEndChargingSession, useActiveSession, useVehicles, useUserVehicles, useCreateUserVehicle } from "@/hooks/use-stations";
+import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
-import type { ChargingSession, EvVehicle } from "@shared/schema";
+import type { ChargingSession, EvVehicle, UserVehicleWithDetails } from "@shared/schema";
 
 interface ChargingSessionDialogProps {
   stationId: number;
@@ -16,44 +17,82 @@ interface ChargingSessionDialogProps {
   totalChargers: number;
 }
 
-const VEHICLE_STORAGE_KEY = "bariq_selected_vehicle";
+const VEHICLE_STORAGE_KEY = "bariq_selected_user_vehicle";
 
 export function ChargingSessionDialog({ stationId, availableChargers, totalChargers }: ChargingSessionDialogProps) {
   const { t, i18n } = useTranslation();
   const { toast } = useToast();
+  const { user } = useAuth();
   const [openStart, setOpenStart] = useState(false);
   const [openEnd, setOpenEnd] = useState(false);
   const [batteryStart, setBatteryStart] = useState("");
   const [batteryEnd, setBatteryEnd] = useState("");
   const [energyKwh, setEnergyKwh] = useState("");
-  const [selectedVehicleId, setSelectedVehicleId] = useState<string>("");
+  const [selectedUserVehicleId, setSelectedUserVehicleId] = useState<string>("");
+  const [showAddVehicle, setShowAddVehicle] = useState(false);
+  const [selectedCatalogVehicleId, setSelectedCatalogVehicleId] = useState<string>("");
 
   const { data: activeSession, isLoading: loadingSession } = useActiveSession(stationId);
-  const { data: vehicles, isLoading: loadingVehicles } = useVehicles();
+  const { data: userVehicles = [], isLoading: loadingUserVehicles } = useUserVehicles();
+  const { data: catalogVehicles = [], isLoading: loadingCatalogVehicles } = useVehicles();
   const startSession = useStartChargingSession();
   const endSession = useEndChargingSession();
+  const createUserVehicle = useCreateUserVehicle();
   
   const isArabic = i18n.language === "ar";
+  const isLoggedIn = !!user;
 
   useEffect(() => {
     const stored = localStorage.getItem(VEHICLE_STORAGE_KEY);
     if (stored) {
-      setSelectedVehicleId(stored);
+      setSelectedUserVehicleId(stored);
     }
   }, []);
 
-  const handleVehicleChange = (value: string) => {
-    setSelectedVehicleId(value);
-    localStorage.setItem(VEHICLE_STORAGE_KEY, value);
+  useEffect(() => {
+    if (userVehicles.length > 0 && !selectedUserVehicleId) {
+      const defaultVehicle = userVehicles.find(v => v.isDefault) || userVehicles[0];
+      if (defaultVehicle) {
+        setSelectedUserVehicleId(String(defaultVehicle.id));
+        localStorage.setItem(VEHICLE_STORAGE_KEY, String(defaultVehicle.id));
+      }
+    }
+  }, [userVehicles]);
+
+  const handleUserVehicleChange = (value: string) => {
+    if (value === "add_new") {
+      setShowAddVehicle(true);
+    } else {
+      setSelectedUserVehicleId(value);
+      localStorage.setItem(VEHICLE_STORAGE_KEY, value);
+    }
   };
 
-  const selectedVehicle = vehicles?.find(v => v.id === Number(selectedVehicleId));
+  const handleAddVehicle = async () => {
+    if (!selectedCatalogVehicleId) return;
+    try {
+      const newVehicle = await createUserVehicle.mutateAsync({
+        evVehicleId: Number(selectedCatalogVehicleId),
+        isDefault: userVehicles.length === 0,
+      });
+      setSelectedUserVehicleId(String(newVehicle.id));
+      localStorage.setItem(VEHICLE_STORAGE_KEY, String(newVehicle.id));
+      setShowAddVehicle(false);
+      setSelectedCatalogVehicleId("");
+      toast({ title: t("vehicle.added"), description: t("vehicle.addedDesc") });
+    } catch (error: any) {
+      toast({ variant: "destructive", title: t("common.error"), description: error.message });
+    }
+  };
+
+  const selectedUserVehicle = userVehicles.find(v => v.id === Number(selectedUserVehicleId));
+  const selectedCatalogVehicle = catalogVehicles.find(v => v.id === Number(selectedCatalogVehicleId));
 
   const handleStartSession = async () => {
     try {
       await startSession.mutateAsync({
         stationId,
-        vehicleId: selectedVehicleId ? Number(selectedVehicleId) : undefined,
+        userVehicleId: selectedUserVehicleId ? Number(selectedUserVehicleId) : undefined,
         batteryStartPercent: batteryStart ? Number(batteryStart) : undefined,
       });
       toast({ title: t("charging.sessionStarted"), description: t("charging.sessionStartedDesc") });
@@ -210,30 +249,78 @@ export function ChargingSessionDialog({ stationId, availableChargers, totalCharg
               <DialogTitle>{t("charging.startSession")}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label className="flex items-center gap-2">
-                  <Car className="w-4 h-4" />
-                  {t("vehicle.select")}
-                </Label>
-                <Select value={selectedVehicleId} onValueChange={handleVehicleChange}>
-                  <SelectTrigger data-testid="select-vehicle">
-                    <SelectValue placeholder={t("vehicle.selectHint")} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {vehicles?.map((vehicle) => (
-                      <SelectItem key={vehicle.id} value={String(vehicle.id)} data-testid={`vehicle-option-${vehicle.id}`}>
-                        {isArabic ? `${vehicle.brandAr} ${vehicle.modelAr}` : `${vehicle.brand} ${vehicle.model}`}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {selectedVehicle && (
-                  <div className="text-xs text-muted-foreground flex gap-3">
-                    <span>{selectedVehicle.batteryCapacityKwh} kWh</span>
-                    <span>{selectedVehicle.chargerType}</span>
+              {showAddVehicle ? (
+                <div className="space-y-3">
+                  <Label className="flex items-center gap-2">
+                    <Plus className="w-4 h-4" />
+                    {t("vehicle.addNew")}
+                  </Label>
+                  <Select value={selectedCatalogVehicleId} onValueChange={setSelectedCatalogVehicleId}>
+                    <SelectTrigger data-testid="select-catalog-vehicle">
+                      <SelectValue placeholder={t("vehicle.selectModel")} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {catalogVehicles.map((vehicle) => (
+                        <SelectItem key={vehicle.id} value={String(vehicle.id)}>
+                          {isArabic ? `${vehicle.brandAr} ${vehicle.modelAr}` : `${vehicle.brand} ${vehicle.model}`}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {selectedCatalogVehicle && (
+                    <div className="text-xs text-muted-foreground flex gap-3">
+                      <span>{selectedCatalogVehicle.batteryCapacityKwh} kWh</span>
+                      <span>{selectedCatalogVehicle.chargerType}</span>
+                    </div>
+                  )}
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={() => setShowAddVehicle(false)}>
+                      {t("common.cancel")}
+                    </Button>
+                    <Button size="sm" onClick={handleAddVehicle} disabled={!selectedCatalogVehicleId || createUserVehicle.isPending}>
+                      {createUserVehicle.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      {t("vehicle.add")}
+                    </Button>
                   </div>
-                )}
-              </div>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <Car className="w-4 h-4" />
+                    {t("vehicle.select")}
+                  </Label>
+                  <Select value={selectedUserVehicleId} onValueChange={handleUserVehicleChange}>
+                    <SelectTrigger data-testid="select-vehicle">
+                      <SelectValue placeholder={t("vehicle.selectHint")} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {userVehicles.map((uv) => (
+                        <SelectItem key={uv.id} value={String(uv.id)} data-testid={`vehicle-option-${uv.id}`}>
+                          {uv.nickname || (uv.evVehicle ? (isArabic ? `${uv.evVehicle.brandAr} ${uv.evVehicle.modelAr}` : `${uv.evVehicle.brand} ${uv.evVehicle.model}`) : `${t("vehicle.unknown")}`)}
+                          {uv.isDefault && ` ★`}
+                        </SelectItem>
+                      ))}
+                      {isLoggedIn && (
+                        <SelectItem value="add_new" data-testid="add-new-vehicle">
+                          <span className="flex items-center gap-1">
+                            <Plus className="w-3 h-3" />
+                            {t("vehicle.addNew")}
+                          </span>
+                        </SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
+                  {selectedUserVehicle?.evVehicle && (
+                    <div className="text-xs text-muted-foreground flex gap-3">
+                      <span>{selectedUserVehicle.evVehicle.batteryCapacityKwh} kWh</span>
+                      <span>{selectedUserVehicle.evVehicle.chargerType}</span>
+                    </div>
+                  )}
+                  {!isLoggedIn && userVehicles.length === 0 && (
+                    <p className="text-xs text-muted-foreground">{t("vehicle.loginToSave")}</p>
+                  )}
+                </div>
+              )}
               <div className="space-y-2">
                 <Label htmlFor="batteryStart" className="flex items-center gap-2">
                   <Battery className="w-4 h-4" />

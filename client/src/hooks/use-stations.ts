@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, buildUrl } from "@shared/routes";
-import type { InsertStation, InsertReport, ChargingSession, EvVehicle } from "@shared/schema";
+import type { InsertStation, InsertReport, ChargingSession, EvVehicle, UserVehicleWithDetails, InsertUserVehicle } from "@shared/schema";
 import { z } from "zod";
 
 // --- Stations Hooks ---
@@ -189,7 +189,7 @@ export function useActiveSession(stationId: number) {
 export function useStartChargingSession() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (data: { stationId: number; vehicleId?: number; batteryStartPercent?: number }) => {
+    mutationFn: async (data: { stationId: number; userVehicleId?: number; batteryStartPercent?: number }) => {
       const res = await fetch(api.chargingSessions.start.path, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -260,5 +260,85 @@ export function useVehicle(id: number) {
       return res.json() as Promise<EvVehicle>;
     },
     enabled: !!id && !isNaN(id),
+  });
+}
+
+// --- User Vehicles Hooks ---
+
+export function useUserVehicles() {
+  return useQuery({
+    queryKey: [api.userVehicles.list.path],
+    queryFn: async () => {
+      const res = await fetch(api.userVehicles.list.path, { credentials: "include" });
+      if (!res.ok) {
+        if (res.status === 401) return []; // Not logged in
+        throw new Error("Failed to fetch user vehicles");
+      }
+      return res.json() as Promise<UserVehicleWithDetails[]>;
+    },
+  });
+}
+
+export function useCreateUserVehicle() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: Omit<InsertUserVehicle, "userId">) => {
+      const res = await fetch(api.userVehicles.create.path, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+        credentials: "include",
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Failed to add vehicle");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [api.userVehicles.list.path] });
+    },
+  });
+}
+
+export function useDeleteUserVehicle() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (vehicleId: number) => {
+      const url = buildUrl(api.userVehicles.delete.path, { id: vehicleId });
+      const res = await fetch(url, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Failed to delete vehicle");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [api.userVehicles.list.path] });
+    },
+  });
+}
+
+export function useSetDefaultUserVehicle() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (vehicleId: number) => {
+      const url = buildUrl(api.userVehicles.setDefault.path, { id: vehicleId });
+      const res = await fetch(url, {
+        method: "POST",
+        credentials: "include",
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Failed to set default vehicle");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [api.userVehicles.list.path] });
+    },
   });
 }

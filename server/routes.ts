@@ -147,7 +147,7 @@ export async function registerRoutes(
       }
       
       // Create charging session first, then update availability
-      const session = await storage.startChargingSession(input.stationId, input.batteryStartPercent, input.vehicleId, userId);
+      const session = await storage.startChargingSession(input.stationId, input.batteryStartPercent, input.userVehicleId, userId);
       
       try {
         await storage.updateStationAvailability(input.stationId, available - 1);
@@ -241,6 +241,101 @@ export async function registerRoutes(
       return res.status(404).json({ message: "Vehicle not found" });
     }
     res.json(vehicle);
+  });
+
+  // User Vehicles (protected - requires login)
+  app.get(api.userVehicles.list.path, isAuthenticated, async (req: any, res) => {
+    const userId = req.user?.claims?.sub;
+    const vehicles = await storage.getUserVehicles(userId);
+    res.json(vehicles);
+  });
+
+  app.get(api.userVehicles.get.path, isAuthenticated, async (req: any, res) => {
+    const vehicle = await storage.getUserVehicle(Number(req.params.id));
+    if (!vehicle) {
+      return res.status(404).json({ message: "Vehicle not found" });
+    }
+    const userId = req.user?.claims?.sub;
+    if (vehicle.userId !== userId) {
+      return res.status(403).json({ message: "Not authorized" });
+    }
+    res.json(vehicle);
+  });
+
+  app.post(api.userVehicles.create.path, isAuthenticated, async (req: any, res) => {
+    try {
+      const input = api.userVehicles.create.input.parse(req.body);
+      const userId = req.user?.claims?.sub;
+      const vehicle = await storage.createUserVehicle({ ...input, userId });
+      res.status(201).json(vehicle);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({
+          message: err.errors[0].message,
+          field: err.errors[0].path.join('.'),
+        });
+      }
+      throw err;
+    }
+  });
+
+  app.patch(api.userVehicles.update.path, isAuthenticated, async (req: any, res) => {
+    try {
+      const input = api.userVehicles.update.input.parse(req.body);
+      const vehicleId = Number(req.params.id);
+      const userId = req.user?.claims?.sub;
+      
+      const existing = await storage.getUserVehicle(vehicleId);
+      if (!existing) {
+        return res.status(404).json({ message: "Vehicle not found" });
+      }
+      if (existing.userId !== userId) {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+      
+      const vehicle = await storage.updateUserVehicle(vehicleId, input);
+      res.json(vehicle);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({
+          message: err.errors[0].message,
+          field: err.errors[0].path.join('.'),
+        });
+      }
+      throw err;
+    }
+  });
+
+  app.delete(api.userVehicles.delete.path, isAuthenticated, async (req: any, res) => {
+    const vehicleId = Number(req.params.id);
+    const userId = req.user?.claims?.sub;
+    
+    const existing = await storage.getUserVehicle(vehicleId);
+    if (!existing) {
+      return res.status(404).json({ message: "Vehicle not found" });
+    }
+    if (existing.userId !== userId) {
+      return res.status(403).json({ message: "Not authorized" });
+    }
+    
+    await storage.deleteUserVehicle(vehicleId);
+    res.json({ success: true });
+  });
+
+  app.post(api.userVehicles.setDefault.path, isAuthenticated, async (req: any, res) => {
+    const vehicleId = Number(req.params.id);
+    const userId = req.user?.claims?.sub;
+    
+    const existing = await storage.getUserVehicle(vehicleId);
+    if (!existing) {
+      return res.status(404).json({ message: "Vehicle not found" });
+    }
+    if (existing.userId !== userId) {
+      return res.status(403).json({ message: "Not authorized" });
+    }
+    
+    await storage.setDefaultUserVehicle(userId, vehicleId);
+    res.json({ success: true });
   });
 
   return httpServer;
