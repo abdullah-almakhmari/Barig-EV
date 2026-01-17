@@ -4,6 +4,32 @@ import { storage } from "./storage";
 import { api } from "@shared/routes";
 import { z } from "zod";
 import { setupAuth, registerAuthRoutes, isAuthenticated } from "./replit_integrations/auth";
+import rateLimit from "express-rate-limit";
+
+// Rate limiters for different endpoints
+const generalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // 100 requests per 15 minutes
+  message: { message: "Too many requests, please try again later" },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const createLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 10, // 10 creates per hour
+  message: { message: "Too many creation requests, please try again later" },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const reportLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 20, // 20 reports per hour
+  message: { message: "Too many reports, please try again later" },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 export async function registerRoutes(
   httpServer: Server,
@@ -13,6 +39,9 @@ export async function registerRoutes(
   // Setup authentication (must be before other routes)
   await setupAuth(app);
   registerAuthRoutes(app);
+  
+  // Apply general rate limiting to all API routes
+  app.use("/api", generalLimiter);
   
   // Seed database on startup
   await storage.seed();
@@ -41,10 +70,11 @@ export async function registerRoutes(
     res.json(station);
   });
 
-  app.post(api.stations.create.path, async (req, res) => {
+  app.post(api.stations.create.path, createLimiter, isAuthenticated, async (req: any, res) => {
     try {
       const input = api.stations.create.input.parse(req.body);
-      const station = await storage.createStation(input);
+      const userId = req.user?.claims?.sub;
+      const station = await storage.createStation({ ...input, addedByUserId: userId });
       res.status(201).json(station);
     } catch (err) {
       if (err instanceof z.ZodError) {
@@ -101,15 +131,16 @@ export async function registerRoutes(
     });
   });
 
-  app.post(api.reports.create.path, async (req, res) => {
+  app.post(api.reports.create.path, reportLimiter, isAuthenticated, async (req: any, res) => {
     try {
       const input = api.reports.create.input.parse(req.body);
+      const userId = req.user?.claims?.sub;
       // Verify station exists
       const station = await storage.getStation(input.stationId);
       if (!station) {
         return res.status(404).json({ message: "Station not found" });
       }
-      const report = await storage.createReport(input);
+      const report = await storage.createReport({ ...input, userId });
       
       // Update station status based on report
       if (input.status === "NOT_WORKING") {

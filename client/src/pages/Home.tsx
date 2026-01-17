@@ -8,11 +8,15 @@ import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SEO } from "@/components/SEO";
+
+const STATIONS_PER_PAGE = 12;
 
 export default function Home() {
   const { t } = useTranslation();
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("ALL");
+  const [visibleCount, setVisibleCount] = useState(STATIONS_PER_PAGE);
   
   const { data: stations, isLoading, error } = useStations({ 
     search, 
@@ -42,6 +46,7 @@ export default function Home() {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
+      <SEO />
       {/* Hero / Filter Section */}
       <div className="rounded-3xl bg-gradient-to-br from-emerald-900 to-primary p-6 text-white shadow-xl shadow-emerald-900/10">
         <h1 className="text-2xl sm:text-3xl font-bold mb-2">{t("hero.title")}</h1>
@@ -91,15 +96,26 @@ export default function Home() {
         
         <TabsContent value="list" className="mt-0">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {stationList.map((station) => (
+            {stationList.slice(0, visibleCount).map((station) => (
               <StationCard key={station.id} station={station} />
             ))}
             {stationList.length === 0 && (
               <div className="col-span-full py-20 text-center text-muted-foreground">
-                No stations found matching your search.
+                {t("station.noResults")}
               </div>
             )}
           </div>
+          {stationList.length > visibleCount && (
+            <div className="flex justify-center mt-6">
+              <Button 
+                variant="outline" 
+                onClick={() => setVisibleCount(prev => prev + STATIONS_PER_PAGE)}
+                data-testid="button-show-more"
+              >
+                {t("common.showMore")} ({stationList.length - visibleCount} {t("common.remaining")})
+              </Button>
+            </div>
+          )}
         </TabsContent>
       </Tabs>
     </div>

@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { ReportDialog } from "@/components/ReportDialog";
 import { ChargingSessionDialog } from "@/components/ChargingSessionDialog";
 import { formatDistanceToNow } from "date-fns";
+import { SEO } from "@/components/SEO";
 
 export default function StationDetails() {
   const [, params] = useRoute("/station/:id");
@@ -27,6 +28,7 @@ export default function StationDetails() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 pb-20">
+      <SEO title={name} description={`${name} - ${city}`} />
       {/* Header Card */}
       <div className="bg-card rounded-3xl p-6 sm:p-8 border shadow-lg shadow-black/5 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-primary/10 to-transparent rounded-bl-full -mr-16 -mt-16 pointer-events-none" />

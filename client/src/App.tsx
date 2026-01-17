@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { LanguageProvider } from "@/components/LanguageContext";
 import { Header } from "@/components/Header";
+import { HelmetProvider } from "react-helmet-async";
 
 // Pages
 import Home from "@/pages/Home";
@@ -29,19 +30,21 @@ function Router() {
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <LanguageProvider>
-        <TooltipProvider>
-          <div className="min-h-screen bg-background flex flex-col font-body">
-            <Header />
-            <main className="flex-1 container mx-auto px-4 py-6">
-              <Router />
-            </main>
-          </div>
-          <Toaster />
-        </TooltipProvider>
-      </LanguageProvider>
-    </QueryClientProvider>
+    <HelmetProvider>
+      <QueryClientProvider client={queryClient}>
+        <LanguageProvider>
+          <TooltipProvider>
+            <div className="min-h-screen bg-background flex flex-col font-body">
+              <Header />
+              <main className="flex-1 container mx-auto px-4 py-6">
+                <Router />
+              </main>
+            </div>
+            <Toaster />
+          </TooltipProvider>
+        </LanguageProvider>
+      </QueryClientProvider>
+    </HelmetProvider>
   );
 }
 

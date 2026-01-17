@@ -86,6 +86,8 @@ const resources = {
       "add.selectLocation": "Select Location on Map",
       "add.clickToSelect": "Click on the map to select location",
       "common.confirm": "Confirm",
+      "common.showMore": "Show More",
+      "common.remaining": "remaining",
       "nearby.title": "Stations Near You",
       "nearby.detecting": "Detecting your location...",
       "nearby.permissionDenied": "Location access denied. Please enable location services.",
@@ -111,6 +113,7 @@ const resources = {
       "auth.login": "Login",
       "auth.logout": "Logout",
       "auth.loginRequired": "Please login to continue",
+      "station.noResults": "No stations found matching your search.",
     }
   },
   ar: {
@@ -196,6 +199,8 @@ const resources = {
       "add.selectLocation": "اختر الموقع على الخريطة",
       "add.clickToSelect": "انقر على الخريطة لتحديد الموقع",
       "common.confirm": "تأكيد",
+      "common.showMore": "عرض المزيد",
+      "common.remaining": "متبقي",
       "nearby.title": "المحطات القريبة منك",
       "nearby.detecting": "جاري تحديد موقعك...",
       "nearby.permissionDenied": "تم رفض الوصول للموقع. يرجى تفعيل خدمات الموقع.",
@@ -221,6 +226,7 @@ const resources = {
       "auth.login": "تسجيل الدخول",
       "auth.logout": "تسجيل الخروج",
       "auth.loginRequired": "يرجى تسجيل الدخول للمتابعة",
+      "station.noResults": "لم يتم العثور على محطات مطابقة لبحثك.",
     }
   }
 };

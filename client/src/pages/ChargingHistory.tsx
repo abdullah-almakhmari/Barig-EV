@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { formatDistanceToNow, format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { Link } from "wouter";
+import { SEO } from "@/components/SEO";
 
 export default function ChargingHistory() {
   const { t } = useTranslation();
@@ -38,6 +39,7 @@ export default function ChargingHistory() {
 
   return (
     <div className="max-w-4xl mx-auto pb-20">
+      <SEO title={t("charging.history")} />
       <div className="flex items-center gap-3 mb-6">
         <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
           <BatteryCharging className="w-6 h-6 text-primary" />

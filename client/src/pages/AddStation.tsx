@@ -15,6 +15,7 @@ import { Loader2, PlusCircle, MapPin, Navigation, Home, Building2, Phone } from 
 import { Textarea } from "@/components/ui/textarea";
 import { useState } from "react";
 import { MapPicker } from "@/components/MapPicker";
+import { SEO } from "@/components/SEO";
 
 // Extend schema for form validation if needed (e.g. string to number coercion happens in hook)
 const formSchema = insertStationSchema.extend({
@@ -110,6 +111,7 @@ export default function AddStation() {
 
   return (
     <div className="max-w-2xl mx-auto pb-20">
+      <SEO title={t("add.title")} />
       <div className="mb-8">
         <h1 className="text-3xl font-bold mb-2">{t("add.title")}</h1>
         <p className="text-muted-foreground">Contribute to the network by adding a new charging point.</p>

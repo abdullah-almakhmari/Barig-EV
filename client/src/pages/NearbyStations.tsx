@@ -7,6 +7,7 @@ import { useLanguage } from "@/components/LanguageContext";
 import { Loader2, MapPin, Navigation, RefreshCw, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
+import { SEO } from "@/components/SEO";
 
 function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const R = 6371;
@@ -96,6 +97,7 @@ export default function NearbyStations() {
 
   return (
     <div className="container mx-auto px-4 py-6">
+      <SEO title={t("nearby.title")} />
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">

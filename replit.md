@@ -99,3 +99,14 @@ The `shared/` directory contains code used by both frontend and backend:
 - Old /api/stations/:id/start-charging and /api/stations/:id/stop-charging endpoints deprecated (return 410 Gone)
 - Allows multiple concurrent sessions per station based on available chargers
 - Known MVP limitation: Some race conditions possible under high concurrency; rollback logic handles most failure cases
+
+### Launch Readiness (January 2026)
+- **Authentication required**: Adding stations and reports now requires user login (prevents spam)
+- **Rate limiting**: API endpoints protected with express-rate-limit:
+  - General: 100 requests per 15 minutes
+  - Station creation: 10 per hour
+  - Reports: 20 per hour
+- **SEO**: All pages have meta tags (title, description, Open Graph, Twitter)
+- **Pagination**: Station list shows 12 items with "Show More" button
+- **RTL/Arabic**: Full support with document direction switching
+- **Database storage**: PostgreSQL on Neon (serverless), data persists across deployments

@@ -25,6 +25,7 @@ export const stations = pgTable("stations", {
   stationType: text("station_type").default("PUBLIC"),
   contactPhone: text("contact_phone"),
   contactWhatsapp: text("contact_whatsapp"),
+  addedByUserId: varchar("added_by_user_id"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
