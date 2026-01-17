@@ -80,6 +80,33 @@ export async function registerRoutes(
     }
   });
 
+  app.post(api.stations.startCharging.path, async (req, res) => {
+    const station = await storage.getStation(Number(req.params.id));
+    if (!station) {
+      return res.status(404).json({ message: "Station not found" });
+    }
+    const available = station.availableChargers ?? 0;
+    if (available <= 0) {
+      return res.status(400).json({ message: "No available chargers" });
+    }
+    const updated = await storage.updateStationAvailability(Number(req.params.id), available - 1);
+    res.json(updated);
+  });
+
+  app.post(api.stations.stopCharging.path, async (req, res) => {
+    const station = await storage.getStation(Number(req.params.id));
+    if (!station) {
+      return res.status(404).json({ message: "Station not found" });
+    }
+    const available = station.availableChargers ?? 0;
+    const total = station.chargerCount ?? 1;
+    if (available >= total) {
+      return res.status(400).json({ message: "All chargers already available" });
+    }
+    const updated = await storage.updateStationAvailability(Number(req.params.id), available + 1);
+    res.json(updated);
+  });
+
   app.post(api.reports.create.path, async (req, res) => {
     try {
       const input = api.reports.create.input.parse(req.body);

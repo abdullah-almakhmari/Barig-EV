@@ -65,6 +65,24 @@ export const api = {
         404: errorSchemas.notFound,
       },
     },
+    startCharging: {
+      method: 'POST' as const,
+      path: '/api/stations/:id/start-charging',
+      responses: {
+        200: z.custom<typeof stations.$inferSelect>(),
+        400: errorSchemas.validation,
+        404: errorSchemas.notFound,
+      },
+    },
+    stopCharging: {
+      method: 'POST' as const,
+      path: '/api/stations/:id/stop-charging',
+      responses: {
+        200: z.custom<typeof stations.$inferSelect>(),
+        400: errorSchemas.validation,
+        404: errorSchemas.notFound,
+      },
+    },
   },
   reports: {
     create: {

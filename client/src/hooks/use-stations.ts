@@ -113,3 +113,47 @@ export function useCreateReport() {
     },
   });
 }
+
+export function useStartCharging() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (stationId: number) => {
+      const url = buildUrl(api.stations.startCharging.path, { id: stationId });
+      const res = await fetch(url, {
+        method: api.stations.startCharging.method,
+        credentials: "include",
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Failed to start charging");
+      }
+      return res.json();
+    },
+    onSuccess: (_, stationId) => {
+      queryClient.invalidateQueries({ queryKey: [api.stations.get.path, stationId] });
+      queryClient.invalidateQueries({ queryKey: [api.stations.list.path] });
+    },
+  });
+}
+
+export function useStopCharging() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (stationId: number) => {
+      const url = buildUrl(api.stations.stopCharging.path, { id: stationId });
+      const res = await fetch(url, {
+        method: api.stations.stopCharging.method,
+        credentials: "include",
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Failed to stop charging");
+      }
+      return res.json();
+    },
+    onSuccess: (_, stationId) => {
+      queryClient.invalidateQueries({ queryKey: [api.stations.get.path, stationId] });
+      queryClient.invalidateQueries({ queryKey: [api.stations.list.path] });
+    },
+  });
+}
