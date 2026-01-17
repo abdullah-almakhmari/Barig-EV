@@ -3,7 +3,7 @@ import type { Server } from "http";
 import { storage } from "./storage";
 import { api } from "@shared/routes";
 import { z } from "zod";
-import { setupAuth, registerAuthRoutes, isAuthenticated } from "./replit_integrations/auth";
+import { setupAuth, isAuthenticated } from "./auth";
 import rateLimit from "express-rate-limit";
 
 // Rate limiters for different endpoints
@@ -38,7 +38,6 @@ export async function registerRoutes(
   
   // Setup authentication (must be before other routes)
   await setupAuth(app);
-  registerAuthRoutes(app);
   
   // Apply general rate limiting to all API routes
   app.use("/api", generalLimiter);
@@ -73,7 +72,7 @@ export async function registerRoutes(
   app.post(api.stations.create.path, createLimiter, isAuthenticated, async (req: any, res) => {
     try {
       const input = api.stations.create.input.parse(req.body);
-      const userId = req.user?.claims?.sub;
+      const userId = req.user?.id;
       const station = await storage.createStation({ ...input, addedByUserId: userId });
       res.status(201).json(station);
     } catch (err) {
@@ -134,7 +133,7 @@ export async function registerRoutes(
   app.post(api.reports.create.path, reportLimiter, isAuthenticated, async (req: any, res) => {
     try {
       const input = api.reports.create.input.parse(req.body);
-      const userId = req.user?.claims?.sub;
+      const userId = req.user?.id;
       // Verify station exists
       const station = await storage.getStation(input.stationId);
       if (!station) {
@@ -165,7 +164,7 @@ export async function registerRoutes(
   app.post(api.chargingSessions.start.path, isAuthenticated, async (req: any, res) => {
     try {
       const input = api.chargingSessions.start.input.parse(req.body);
-      const userId = req.user?.claims?.sub;
+      const userId = req.user?.id;
       const station = await storage.getStation(input.stationId);
       if (!station) {
         return res.status(404).json({ message: "Station not found" });
@@ -204,7 +203,7 @@ export async function registerRoutes(
     try {
       const input = api.chargingSessions.end.input.parse(req.body);
       const sessionId = Number(req.params.id);
-      const userId = req.user?.claims?.sub;
+      const userId = req.user?.id;
       
       // Check if session exists and is active before ending
       const existingSession = await storage.getSessionById(sessionId);
@@ -248,7 +247,7 @@ export async function registerRoutes(
 
   app.get(api.chargingSessions.list.path, isAuthenticated, async (req: any, res) => {
     const stationId = req.query.stationId ? Number(req.query.stationId) : undefined;
-    const userId = req.user?.claims?.sub;
+    const userId = req.user?.id;
     // Return only sessions for the current user
     const sessions = await storage.getChargingSessions(stationId, userId);
     res.json(sessions);
@@ -276,7 +275,7 @@ export async function registerRoutes(
 
   // User Vehicles (protected - requires login)
   app.get(api.userVehicles.list.path, isAuthenticated, async (req: any, res) => {
-    const userId = req.user?.claims?.sub;
+    const userId = req.user?.id;
     const vehicles = await storage.getUserVehicles(userId);
     res.json(vehicles);
   });
@@ -286,7 +285,7 @@ export async function registerRoutes(
     if (!vehicle) {
       return res.status(404).json({ message: "Vehicle not found" });
     }
-    const userId = req.user?.claims?.sub;
+    const userId = req.user?.id;
     if (vehicle.userId !== userId) {
       return res.status(403).json({ message: "Not authorized" });
     }
@@ -296,7 +295,7 @@ export async function registerRoutes(
   app.post(api.userVehicles.create.path, isAuthenticated, async (req: any, res) => {
     try {
       const input = api.userVehicles.create.input.parse(req.body);
-      const userId = req.user?.claims?.sub;
+      const userId = req.user?.id;
       const vehicle = await storage.createUserVehicle({ ...input, userId });
       res.status(201).json(vehicle);
     } catch (err) {
@@ -314,7 +313,7 @@ export async function registerRoutes(
     try {
       const input = api.userVehicles.update.input.parse(req.body);
       const vehicleId = Number(req.params.id);
-      const userId = req.user?.claims?.sub;
+      const userId = req.user?.id;
       
       const existing = await storage.getUserVehicle(vehicleId);
       if (!existing) {
@@ -339,7 +338,7 @@ export async function registerRoutes(
 
   app.delete(api.userVehicles.delete.path, isAuthenticated, async (req: any, res) => {
     const vehicleId = Number(req.params.id);
-    const userId = req.user?.claims?.sub;
+    const userId = req.user?.id;
     
     const existing = await storage.getUserVehicle(vehicleId);
     if (!existing) {
@@ -355,7 +354,7 @@ export async function registerRoutes(
 
   app.post(api.userVehicles.setDefault.path, isAuthenticated, async (req: any, res) => {
     const vehicleId = Number(req.params.id);
-    const userId = req.user?.claims?.sub;
+    const userId = req.user?.id;
     
     const existing = await storage.getUserVehicle(vehicleId);
     if (!existing) {
