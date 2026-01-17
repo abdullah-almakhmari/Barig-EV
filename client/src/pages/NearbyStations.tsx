@@ -117,7 +117,7 @@ export default function NearbyStations() {
           {sortedStations.map((station) => (
             <Link key={station.id} href={`/station/${station.id}`}>
               <div className="relative cursor-pointer">
-                <StationCard station={station} variant="full" />
+                <StationCard station={station} variant="compact" />
                 <div className="absolute top-4 end-4 bg-primary/90 text-primary-foreground px-3 py-1 rounded-full text-sm font-medium shadow-lg">
                   {station.distance.toFixed(1)} {t("nearby.distance")}
                 </div>

@@ -101,6 +101,9 @@ const resources = {
       "vehicle.chargerType": "Charger Type",
       "vehicle.maxPower": "Max Charging Power",
       "vehicle.selectHint": "Select your EV to track charging",
+      "auth.login": "Login",
+      "auth.logout": "Logout",
+      "auth.loginRequired": "Please login to continue",
     }
   },
   ar: {
@@ -201,6 +204,9 @@ const resources = {
       "vehicle.chargerType": "نوع الشاحن",
       "vehicle.maxPower": "أقصى قوة شحن",
       "vehicle.selectHint": "اختر سيارتك الكهربائية لتتبع الشحن",
+      "auth.login": "تسجيل الدخول",
+      "auth.logout": "تسجيل الخروج",
+      "auth.loginRequired": "يرجى تسجيل الدخول للمتابعة",
     }
   }
 };

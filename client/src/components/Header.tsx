@@ -1,16 +1,25 @@
 import { useLanguage } from "./LanguageContext";
 import { useTranslation } from "react-i18next";
 import { Link, useLocation } from "wouter";
-import { MapPin, Plus, Languages, Zap, Navigation, History } from "lucide-react";
+import { MapPin, Plus, Languages, Zap, Navigation, History, LogIn, LogOut, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/use-auth";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export function Header() {
   const { language, setLanguage } = useLanguage();
   const { t } = useTranslation();
   const [location] = useLocation();
+  const { user, isLoading, isAuthenticated } = useAuth();
 
   const toggleLanguage = () => {
     setLanguage(language === "ar" ? "en" : "ar");
+  };
+
+  const getInitials = (firstName?: string | null, lastName?: string | null) => {
+    const first = firstName?.charAt(0) || "";
+    const last = lastName?.charAt(0) || "";
+    return (first + last).toUpperCase() || "U";
   };
 
   return (
@@ -76,10 +85,36 @@ export function Header() {
             variant="ghost"
             size="icon"
             onClick={toggleLanguage}
-            className="rounded-full hover:bg-accent/10 hover:text-accent transition-colors"
+            className="rounded-full"
+            data-testid="button-language"
           >
             <Languages className="w-5 h-5" />
           </Button>
+
+          {!isLoading && (
+            isAuthenticated ? (
+              <div className="flex items-center gap-2">
+                <Avatar className="w-8 h-8">
+                  <AvatarImage src={user?.profileImageUrl || undefined} />
+                  <AvatarFallback className="bg-primary/10 text-primary text-xs">
+                    {getInitials(user?.firstName, user?.lastName)}
+                  </AvatarFallback>
+                </Avatar>
+                <a href="/api/logout">
+                  <Button variant="ghost" size="icon" className="rounded-full" data-testid="button-logout">
+                    <LogOut className="w-5 h-5" />
+                  </Button>
+                </a>
+              </div>
+            ) : (
+              <a href="/api/login">
+                <Button variant="default" size="sm" className="gap-2" data-testid="button-login">
+                  <LogIn className="w-4 h-4" />
+                  <span className="hidden sm:inline">{t("auth.login")}</span>
+                </Button>
+              </a>
+            )
+          )}
         </nav>
       </div>
     </header>

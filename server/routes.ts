@@ -3,11 +3,16 @@ import type { Server } from "http";
 import { storage } from "./storage";
 import { api } from "@shared/routes";
 import { z } from "zod";
+import { setupAuth, registerAuthRoutes, isAuthenticated } from "./replit_integrations/auth";
 
 export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+  
+  // Setup authentication (must be before other routes)
+  await setupAuth(app);
+  registerAuthRoutes(app);
   
   // Seed database on startup
   await storage.seed();
@@ -125,10 +130,11 @@ export async function registerRoutes(
     }
   });
 
-  // Charging Sessions
-  app.post(api.chargingSessions.start.path, async (req, res) => {
+  // Charging Sessions (protected - requires login)
+  app.post(api.chargingSessions.start.path, isAuthenticated, async (req: any, res) => {
     try {
       const input = api.chargingSessions.start.input.parse(req.body);
+      const userId = req.user?.claims?.sub;
       const station = await storage.getStation(input.stationId);
       if (!station) {
         return res.status(404).json({ message: "Station not found" });
@@ -141,7 +147,7 @@ export async function registerRoutes(
       }
       
       // Create charging session first, then update availability
-      const session = await storage.startChargingSession(input.stationId, input.batteryStartPercent, input.vehicleId);
+      const session = await storage.startChargingSession(input.stationId, input.batteryStartPercent, input.vehicleId, userId);
       
       try {
         await storage.updateStationAvailability(input.stationId, available - 1);
@@ -163,15 +169,20 @@ export async function registerRoutes(
     }
   });
 
-  app.post(api.chargingSessions.end.path, async (req, res) => {
+  app.post(api.chargingSessions.end.path, isAuthenticated, async (req: any, res) => {
     try {
       const input = api.chargingSessions.end.input.parse(req.body);
       const sessionId = Number(req.params.id);
+      const userId = req.user?.claims?.sub;
       
       // Check if session exists and is active before ending
       const existingSession = await storage.getSessionById(sessionId);
       if (!existingSession) {
         return res.status(404).json({ message: "Session not found" });
+      }
+      // Verify the session belongs to this user
+      if (existingSession.userId && existingSession.userId !== userId) {
+        return res.status(403).json({ message: "Cannot end another user's session" });
       }
       if (!existingSession.isActive) {
         return res.status(400).json({ message: "Session already ended" });
@@ -204,9 +215,11 @@ export async function registerRoutes(
     }
   });
 
-  app.get(api.chargingSessions.list.path, async (req, res) => {
+  app.get(api.chargingSessions.list.path, isAuthenticated, async (req: any, res) => {
     const stationId = req.query.stationId ? Number(req.query.stationId) : undefined;
-    const sessions = await storage.getChargingSessions(stationId);
+    const userId = req.user?.claims?.sub;
+    // Return only sessions for the current user
+    const sessions = await storage.getChargingSessions(stationId, userId);
     res.json(sessions);
   });
 

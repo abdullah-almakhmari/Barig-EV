@@ -16,9 +16,9 @@ export interface IStorage {
   updateStationStatus(id: number, status: string): Promise<Station | undefined>;
   getReports(stationId: number): Promise<Report[]>;
   createReport(report: InsertReport): Promise<Report>;
-  startChargingSession(stationId: number, batteryStartPercent?: number, vehicleId?: number): Promise<ChargingSession>;
+  startChargingSession(stationId: number, batteryStartPercent?: number, vehicleId?: number, userId?: string): Promise<ChargingSession>;
   endChargingSession(sessionId: number, batteryEndPercent?: number, energyKwh?: number): Promise<ChargingSession | undefined>;
-  getChargingSessions(stationId?: number): Promise<ChargingSession[]>;
+  getChargingSessions(stationId?: number, userId?: string): Promise<ChargingSession[]>;
   getActiveSession(stationId: number): Promise<ChargingSession | undefined>;
   getSessionById(sessionId: number): Promise<ChargingSession | undefined>;
   deleteSession(sessionId: number): Promise<void>;
@@ -101,9 +101,10 @@ export class DatabaseStorage implements IStorage {
     return report;
   }
 
-  async startChargingSession(stationId: number, batteryStartPercent?: number, vehicleId?: number): Promise<ChargingSession> {
+  async startChargingSession(stationId: number, batteryStartPercent?: number, vehicleId?: number, userId?: string): Promise<ChargingSession> {
     const [session] = await db.insert(chargingSessions).values({
       stationId,
+      userId,
       vehicleId,
       batteryStartPercent,
       isActive: true,
@@ -134,11 +135,19 @@ export class DatabaseStorage implements IStorage {
     return updated;
   }
 
-  async getChargingSessions(stationId?: number): Promise<ChargingSession[]> {
+  async getChargingSessions(stationId?: number, userId?: string): Promise<ChargingSession[]> {
+    let conditions = [];
     if (stationId) {
+      conditions.push(eq(chargingSessions.stationId, stationId));
+    }
+    if (userId) {
+      conditions.push(eq(chargingSessions.userId, userId));
+    }
+    
+    if (conditions.length > 0) {
       return await db.select()
         .from(chargingSessions)
-        .where(eq(chargingSessions.stationId, stationId))
+        .where(and(...conditions))
         .orderBy(desc(chargingSessions.createdAt));
     }
     return await db.select()

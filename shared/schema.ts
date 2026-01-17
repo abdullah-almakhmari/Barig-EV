@@ -1,6 +1,9 @@
-import { pgTable, text, serial, integer, boolean, timestamp, real } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, real, varchar } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+
+// Export auth models (users and sessions tables)
+export * from "./models/auth";
 
 export const stations = pgTable("stations", {
   id: serial("id").primaryKey(),
@@ -28,6 +31,7 @@ export const stations = pgTable("stations", {
 export const reports = pgTable("reports", {
   id: serial("id").primaryKey(),
   stationId: integer("station_id").notNull(),
+  userId: varchar("user_id"), // Links to users table
   status: text("status").notNull(), // WORKING, NOT_WORKING
   reason: text("reason"), // BUSY, OUT_OF_SERVICE, ACCESS_ISSUE, NOT_FOUND
   createdAt: timestamp("created_at").defaultNow(),
@@ -36,6 +40,7 @@ export const reports = pgTable("reports", {
 export const chargingSessions = pgTable("charging_sessions", {
   id: serial("id").primaryKey(),
   stationId: integer("station_id").notNull(),
+  userId: varchar("user_id"), // Links to users table
   vehicleId: integer("vehicle_id"),
   startTime: timestamp("start_time").defaultNow(),
   endTime: timestamp("end_time"),

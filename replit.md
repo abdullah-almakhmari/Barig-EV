@@ -74,6 +74,20 @@ The `shared/` directory contains code used by both frontend and backend:
 
 ## Recent Changes
 
+### User Authentication (January 2026)
+- Added Replit Auth for user login/logout via Google, GitHub, Apple, or email
+- User data stored in PostgreSQL (users and sessions tables)
+- Protected routes: charging session start/end and history require login
+- Charging sessions and reports now linked to userId for per-user data
+- Header shows user avatar and logout button when logged in, login button when logged out
+- Auth files: server/replit_integrations/auth/, client/src/hooks/use-auth.ts
+
+### EV Vehicle Selection (January 2026)
+- Added evVehicles table with 20 popular GCC cars including BYD (Atto 3, Seal, Dolphin, Han, Tang), Tesla, Nissan, BMW, Mercedes, Audi, Porsche, Hyundai, Kia, VW, MG
+- Vehicle selection dropdown in charging session dialog with localStorage persistence
+- Bilingual vehicle names (Arabic/English) based on app language
+- Charging sessions linked to selected vehicle for improved tracking
+
 ### Charging Session Tracking (January 2026)
 - Added comprehensive charging session tracking with duration, energy (kWh), and battery percentage monitoring
 - New ChargingSessionDialog component for starting/ending sessions with energy input
