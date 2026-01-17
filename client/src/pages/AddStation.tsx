@@ -11,7 +11,8 @@ import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2, PlusCircle } from "lucide-react";
+import { Loader2, PlusCircle, MapPin, Navigation } from "lucide-react";
+import { useState } from "react";
 
 // Extend schema for form validation if needed (e.g. string to number coercion happens in hook)
 const formSchema = insertStationSchema.extend({
@@ -25,6 +26,7 @@ export default function AddStation() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const createStation = useCreateStation();
+  const [isGettingLocation, setIsGettingLocation] = useState(false);
 
   const form = useForm<InsertStation>({
     resolver: zodResolver(formSchema),
@@ -42,6 +44,39 @@ export default function AddStation() {
       status: "OPERATIONAL",
     },
   });
+
+  function getMyLocation() {
+    if (!navigator.geolocation) {
+      toast({
+        variant: "destructive",
+        title: t("common.error"),
+        description: t("add.locationNotSupported"),
+      });
+      return;
+    }
+
+    setIsGettingLocation(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        form.setValue("lat", position.coords.latitude);
+        form.setValue("lng", position.coords.longitude);
+        setIsGettingLocation(false);
+        toast({
+          title: t("add.locationSuccess"),
+          description: `${position.coords.latitude.toFixed(6)}, ${position.coords.longitude.toFixed(6)}`,
+        });
+      },
+      (error) => {
+        setIsGettingLocation(false);
+        toast({
+          variant: "destructive",
+          title: t("common.error"),
+          description: t("add.locationError"),
+        });
+      },
+      { enableHighAccuracy: true }
+    );
+  }
 
   async function onSubmit(data: InsertStation) {
     try {
@@ -188,33 +223,56 @@ export default function AddStation() {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-6">
-              <FormField
-                control={form.control}
-                name="lat"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Latitude</FormLabel>
-                    <FormControl>
-                      <Input type="number" step="any" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="lng"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Longitude</FormLabel>
-                    <FormControl>
-                      <Input type="number" step="any" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <FormLabel className="text-base font-semibold flex items-center gap-2">
+                  <MapPin className="h-4 w-4" />
+                  {t("add.location")}
+                </FormLabel>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={getMyLocation}
+                  disabled={isGettingLocation}
+                  className="gap-2"
+                  data-testid="button-use-my-location"
+                >
+                  {isGettingLocation ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Navigation className="h-4 w-4" />
+                  )}
+                  {t("add.useMyLocation")}
+                </Button>
+              </div>
+              <div className="grid grid-cols-2 gap-6">
+                <FormField
+                  control={form.control}
+                  name="lat"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t("add.latitude")}</FormLabel>
+                      <FormControl>
+                        <Input type="number" step="any" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="lng"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t("add.longitude")}</FormLabel>
+                      <FormControl>
+                        <Input type="number" step="any" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
             </div>
 
             <Button 
