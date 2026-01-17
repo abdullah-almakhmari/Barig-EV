@@ -11,6 +11,8 @@ export const stations = pgTable("stations", {
   lng: real("lng").notNull(),
   chargerType: text("charger_type").notNull(), // 'AC', 'DC', 'Both'
   powerKw: real("power_kw"),
+  chargerCount: integer("charger_count").default(1), // Total number of chargers
+  availableChargers: integer("available_chargers").default(1), // Number of available chargers
   isFree: boolean("is_free").default(true),
   priceText: text("price_text"),
   city: text("city").notNull(),

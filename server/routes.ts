@@ -57,6 +57,29 @@ export async function registerRoutes(
     res.json(reports);
   });
 
+  app.patch(api.stations.updateAvailability.path, async (req, res) => {
+    try {
+      const input = api.stations.updateAvailability.input.parse(req.body);
+      const station = await storage.getStation(Number(req.params.id));
+      if (!station) {
+        return res.status(404).json({ message: "Station not found" });
+      }
+      if (input.availableChargers > (station.chargerCount || 1)) {
+        return res.status(400).json({ message: "Available chargers cannot exceed total chargers" });
+      }
+      const updated = await storage.updateStationAvailability(Number(req.params.id), input.availableChargers);
+      res.json(updated);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({
+          message: err.errors[0].message,
+          field: err.errors[0].path.join('.'),
+        });
+      }
+      throw err;
+    }
+  });
+
   app.post(api.reports.create.path, async (req, res) => {
     try {
       const input = api.reports.create.input.parse(req.body);

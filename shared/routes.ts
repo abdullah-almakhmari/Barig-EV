@@ -52,7 +52,19 @@ export const api = {
         200: z.array(z.custom<typeof reports.$inferSelect>()),
         404: errorSchemas.notFound,
       },
-    }
+    },
+    updateAvailability: {
+      method: 'PATCH' as const,
+      path: '/api/stations/:id/availability',
+      input: z.object({
+        availableChargers: z.number().min(0),
+      }),
+      responses: {
+        200: z.custom<typeof stations.$inferSelect>(),
+        400: errorSchemas.validation,
+        404: errorSchemas.notFound,
+      },
+    },
   },
   reports: {
     create: {

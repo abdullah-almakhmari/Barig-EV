@@ -10,6 +10,7 @@ export interface IStorage {
   getStations(filters?: { search?: string; city?: string; type?: string }): Promise<Station[]>;
   getStation(id: number): Promise<Station | undefined>;
   createStation(station: InsertStation): Promise<Station>;
+  updateStationAvailability(id: number, availableChargers: number): Promise<Station | undefined>;
   getReports(stationId: number): Promise<Report[]>;
   createReport(report: InsertReport): Promise<Report>;
   seed(): Promise<void>;
@@ -61,6 +62,14 @@ export class DatabaseStorage implements IStorage {
     return station;
   }
 
+  async updateStationAvailability(id: number, availableChargers: number): Promise<Station | undefined> {
+    const [updated] = await db.update(stations)
+      .set({ availableChargers })
+      .where(eq(stations.id, id))
+      .returning();
+    return updated;
+  }
+
   async getReports(stationId: number): Promise<Report[]> {
     return await db.select()
       .from(reports)
@@ -86,6 +95,8 @@ export class DatabaseStorage implements IStorage {
         lng: 58.475432,
         chargerType: "DC",
         powerKw: 50,
+        chargerCount: 4,
+        availableChargers: 2,
         isFree: false,
         priceText: "0.100 OMR/kWh",
         city: "Muscat",
@@ -101,6 +112,8 @@ export class DatabaseStorage implements IStorage {
         lng: 58.192345,
         chargerType: "DC",
         powerKw: 60,
+        chargerCount: 2,
+        availableChargers: 1,
         isFree: false,
         priceText: "0.120 OMR/kWh",
         city: "Muscat",
@@ -116,6 +129,8 @@ export class DatabaseStorage implements IStorage {
         lng: 58.391234,
         chargerType: "AC",
         powerKw: 22,
+        chargerCount: 6,
+        availableChargers: 4,
         isFree: true,
         priceText: "Free",
         city: "Muscat",
@@ -131,6 +146,8 @@ export class DatabaseStorage implements IStorage {
         lng: 58.245678,
         chargerType: "AC",
         powerKw: 11,
+        chargerCount: 4,
+        availableChargers: 0,
         isFree: true,
         priceText: "Free",
         city: "Muscat",
@@ -146,6 +163,8 @@ export class DatabaseStorage implements IStorage {
         lng: 56.746321,
         chargerType: "AC",
         powerKw: 7,
+        chargerCount: 2,
+        availableChargers: 2,
         isFree: true,
         priceText: "Free for guests",
         city: "Sohar",
@@ -161,6 +180,8 @@ export class DatabaseStorage implements IStorage {
         lng: 54.062341,
         chargerType: "AC",
         powerKw: 22,
+        chargerCount: 3,
+        availableChargers: 1,
         isFree: true,
         priceText: "Free",
         city: "Salalah",
@@ -176,6 +197,8 @@ export class DatabaseStorage implements IStorage {
         lng: 57.543210,
         chargerType: "DC",
         powerKw: 50,
+        chargerCount: 2,
+        availableChargers: 2,
         isFree: false,
         priceText: "0.100 OMR/kWh",
         city: "Nizwa",
@@ -191,6 +214,8 @@ export class DatabaseStorage implements IStorage {
         lng: 58.281234,
         chargerType: "AC",
         powerKw: 22,
+        chargerCount: 4,
+        availableChargers: 3,
         isFree: true,
         priceText: "Free",
         city: "Muscat",

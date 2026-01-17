@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { useLanguage } from "./LanguageContext";
 import { Station } from "@shared/schema";
-import { Zap, Battery, AlertTriangle, CheckCircle, Navigation } from "lucide-react";
+import { Zap, Battery, AlertTriangle, CheckCircle, Navigation, BatteryCharging } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
@@ -48,10 +48,23 @@ export function StationCard({ station, variant = "full" }: StationCardProps) {
 
       <div className="flex justify-between items-start mb-3 relative z-10">
         <div>
-          <Badge variant="outline" className={`mb-2 ${getStatusColor(station.status)}`}>
-            {getStatusIcon(station.status)}
-            {t(`station.status.${station.status?.toLowerCase()}`)}
-          </Badge>
+          <div className="flex items-center gap-2 mb-2 flex-wrap">
+            <Badge variant="outline" className={getStatusColor(station.status)}>
+              {getStatusIcon(station.status)}
+              {t(`station.status.${station.status?.toLowerCase()}`)}
+            </Badge>
+            <Badge 
+              variant="outline" 
+              className={`${
+                (station.availableChargers ?? 0) > 0 
+                  ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" 
+                  : "bg-red-500/10 text-red-600 border-red-500/20"
+              }`}
+            >
+              <BatteryCharging className="w-3 h-3 me-1" />
+              {station.availableChargers ?? 0}/{station.chargerCount ?? 1} {t("station.available")}
+            </Badge>
+          </div>
           <h3 className="font-bold text-lg leading-tight text-foreground">{name}</h3>
           <p className="text-sm text-muted-foreground mt-1 flex items-center">
             <Navigation className="w-3 h-3 me-1" />

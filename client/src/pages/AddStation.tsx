@@ -19,6 +19,8 @@ const formSchema = insertStationSchema.extend({
   lat: z.coerce.number(),
   lng: z.coerce.number(),
   powerKw: z.coerce.number().optional(),
+  chargerCount: z.coerce.number().min(1).optional(),
+  availableChargers: z.coerce.number().min(0).optional(),
 });
 
 export default function AddStation() {
@@ -40,6 +42,8 @@ export default function AddStation() {
       lng: 58.3829,
       chargerType: "AC",
       powerKw: 22,
+      chargerCount: 1,
+      availableChargers: 1,
       isFree: true,
       status: "OPERATIONAL",
     },
@@ -164,7 +168,7 @@ export default function AddStation() {
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                <FormField
                 control={form.control}
                 name="chargerType"
@@ -196,6 +200,36 @@ export default function AddStation() {
                     <FormLabel>Power (kW)</FormLabel>
                     <FormControl>
                       <Input type="number" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <FormField
+                control={form.control}
+                name="chargerCount"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t("add.chargerCount")}</FormLabel>
+                    <FormControl>
+                      <Input type="number" min="1" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="availableChargers"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t("add.availableChargers")}</FormLabel>
+                    <FormControl>
+                      <Input type="number" min="0" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
