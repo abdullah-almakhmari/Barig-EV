@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2, PlusCircle, MapPin, Navigation } from "lucide-react";
 import { useState } from "react";
+import { MapPicker } from "@/components/MapPicker";
 
 // Extend schema for form validation if needed (e.g. string to number coercion happens in hook)
 const formSchema = insertStationSchema.extend({
@@ -258,26 +259,40 @@ export default function AddStation() {
             </div>
 
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between flex-wrap gap-2">
                 <FormLabel className="text-base font-semibold flex items-center gap-2">
                   <MapPin className="h-4 w-4" />
                   {t("add.location")}
                 </FormLabel>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={getMyLocation}
-                  disabled={isGettingLocation}
-                  className="gap-2"
-                  data-testid="button-use-my-location"
-                >
-                  {isGettingLocation ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Navigation className="h-4 w-4" />
-                  )}
-                  {t("add.useMyLocation")}
-                </Button>
+                <div className="flex gap-2 flex-wrap">
+                  <MapPicker
+                    initialLat={form.getValues("lat")}
+                    initialLng={form.getValues("lng")}
+                    onConfirm={(lat, lng) => {
+                      form.setValue("lat", lat);
+                      form.setValue("lng", lng);
+                      toast({
+                        title: t("add.locationSuccess"),
+                        description: `${lat.toFixed(6)}, ${lng.toFixed(6)}`,
+                      });
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={getMyLocation}
+                    disabled={isGettingLocation}
+                    className="gap-2"
+                    data-testid="button-use-my-location"
+                  >
+                    {isGettingLocation ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Navigation className="h-4 w-4" />
+                    )}
+                    {t("add.useMyLocation")}
+                  </Button>
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-6">
                 <FormField

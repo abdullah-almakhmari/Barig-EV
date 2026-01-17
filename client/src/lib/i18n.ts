@@ -46,6 +46,10 @@ const resources = {
       "add.locationNotSupported": "Location not supported by your browser",
       "add.chargerCount": "Number of Chargers",
       "add.availableChargers": "Available Chargers",
+      "add.pickFromMap": "Pick from Map",
+      "add.selectLocation": "Select Location on Map",
+      "add.clickToSelect": "Click on the map to select location",
+      "common.confirm": "Confirm",
       "hero.title": "Find EV Charging Stations in Oman",
       "hero.subtitle": "Locate, report, and add charging points seamlessly.",
     }
@@ -93,6 +97,10 @@ const resources = {
       "add.locationNotSupported": "المتصفح لا يدعم تحديد الموقع",
       "add.chargerCount": "عدد الشواحن",
       "add.availableChargers": "الشواحن المتاحة",
+      "add.pickFromMap": "اختر من الخريطة",
+      "add.selectLocation": "اختر الموقع على الخريطة",
+      "add.clickToSelect": "انقر على الخريطة لتحديد الموقع",
+      "common.confirm": "تأكيد",
       "hero.title": "اعثر على محطات شحن المركبات الكهربائية في عمان",
       "hero.subtitle": "تحديد المواقع، الإبلاغ، وإضافة نقاط شحن بسهولة.",
     }
