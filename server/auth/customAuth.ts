@@ -158,6 +158,8 @@ export async function setupAuth(app: Express) {
     const baseUrl = process.env.APP_URL || 
       (process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : "");
     const callbackURL = baseUrl ? `${baseUrl}/api/auth/google/callback` : "/api/auth/google/callback";
+    
+    console.log("Google OAuth configured with callback URL:", callbackURL);
 
     passport.use(
       new GoogleStrategy(
