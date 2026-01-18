@@ -310,7 +310,7 @@ export default function AdminPanel() {
                           <>
                             <Button
                               size="sm"
-                              className="flex items-center gap-1 bg-green-600 hover:bg-green-700"
+                              className="flex items-center gap-1 bg-green-600"
                               onClick={() => updateApprovalMutation.mutate({ id: station.id, approvalStatus: "APPROVED" })}
                               disabled={updateApprovalMutation.isPending}
                               data-testid={`button-approve-${station.id}`}

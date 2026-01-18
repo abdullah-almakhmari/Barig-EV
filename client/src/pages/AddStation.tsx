@@ -94,12 +94,13 @@ export default function AddStation() {
 
   async function onSubmit(data: InsertStation) {
     try {
-      const newStation = await createStation.mutateAsync(data);
+      await createStation.mutateAsync(data);
       toast({
         title: t("add.successTitle"),
         description: t("add.successPending"),
       });
-      setLocation(`/station/${newStation.id}`);
+      // Redirect to home since pending stations are not publicly visible
+      setLocation("/");
     } catch (error) {
       toast({
         variant: "destructive",

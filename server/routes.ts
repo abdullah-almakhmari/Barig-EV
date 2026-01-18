@@ -72,6 +72,13 @@ export async function registerRoutes(
     if (!station) {
       return res.status(404).json({ message: "Station not found" });
     }
+    // Only show APPROVED stations to public (or null for legacy stations)
+    // PENDING and REJECTED stations should not be publicly accessible
+    const isApproved = station.approvalStatus === "APPROVED" || station.approvalStatus === null;
+    const isVisible = !station.isHidden;
+    if (!isApproved || !isVisible) {
+      return res.status(404).json({ message: "Station not found" });
+    }
     res.json(station);
   });
 
@@ -211,6 +218,13 @@ export async function registerRoutes(
       
       const station = await storage.getStation(stationId);
       if (!station) {
+        return res.status(404).json({ message: "Station not found" });
+      }
+      
+      // Only show verification summary for APPROVED stations
+      const isApproved = station.approvalStatus === "APPROVED" || station.approvalStatus === null;
+      const isVisible = !station.isHidden;
+      if (!isApproved || !isVisible) {
         return res.status(404).json({ message: "Station not found" });
       }
       
