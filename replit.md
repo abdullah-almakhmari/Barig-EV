@@ -103,6 +103,21 @@ The `shared/` directory contains code used by both frontend and backend:
 - Allows multiple concurrent sessions per station based on available chargers
 - Known MVP limitation: Some race conditions possible under high concurrency; rollback logic handles most failure cases
 
+### Community Verification (January 2026)
+- **Purpose**: Users can confirm station status (WORKING, NOT_WORKING, BUSY) to help the community
+- **Database**: stationVerifications table with stationId, userId, vote, createdAt
+- **Anti-spam**: One verification per user per station per 30 minutes (updates existing vote)
+- **Verification Summary**:
+  - Counts votes in last 30 minutes
+  - "Verified" if >= 2 votes for leading status
+  - "Strongly Verified" if >= 3 votes
+  - Shows leading status badge (Working/Not Working/Busy)
+- **API Endpoints**:
+  - POST /api/stations/:id/verify - Submit verification (requires auth)
+  - GET /api/stations/:id/verification-summary - Get summary (public)
+- **Frontend**: Community Verification card on station details with 3 confirmation buttons
+- **Bilingual Support**: Full Arabic/English translations
+
 ### Admin Panel (January 2026)
 - **User Roles**: Added role field to users (user/owner/admin)
 - **Admin Access**: Only users with role="admin" can access /admin route

@@ -229,7 +229,13 @@ export default function StationDetails() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => isAuthenticated ? submitVerification.mutate('WORKING') : toast({ title: t("verify.loginRequired"), variant: "destructive" })}
+            onClick={() => {
+              if (!isAuthenticated) {
+                toast({ title: t("verify.loginRequired"), variant: "destructive" });
+                return;
+              }
+              submitVerification.mutate('WORKING');
+            }}
             disabled={submitVerification.isPending}
             className="border-emerald-500 text-emerald-600 hover:bg-emerald-50"
             data-testid="button-verify-working"
@@ -240,7 +246,13 @@ export default function StationDetails() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => isAuthenticated ? submitVerification.mutate('NOT_WORKING') : toast({ title: t("verify.loginRequired"), variant: "destructive" })}
+            onClick={() => {
+              if (!isAuthenticated) {
+                toast({ title: t("verify.loginRequired"), variant: "destructive" });
+                return;
+              }
+              submitVerification.mutate('NOT_WORKING');
+            }}
             disabled={submitVerification.isPending}
             className="border-red-500 text-red-600 hover:bg-red-50"
             data-testid="button-verify-not-working"
@@ -251,7 +263,13 @@ export default function StationDetails() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => isAuthenticated ? submitVerification.mutate('BUSY') : toast({ title: t("verify.loginRequired"), variant: "destructive" })}
+            onClick={() => {
+              if (!isAuthenticated) {
+                toast({ title: t("verify.loginRequired"), variant: "destructive" });
+                return;
+              }
+              submitVerification.mutate('BUSY');
+            }}
             disabled={submitVerification.isPending}
             className="border-orange-500 text-orange-600 hover:bg-orange-50"
             data-testid="button-verify-busy"
