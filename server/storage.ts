@@ -364,12 +364,18 @@ export class DatabaseStorage implements IStorage {
       .where(and(
         eq(stationVerifications.stationId, stationId),
         gte(stationVerifications.createdAt, thirtyMinutesAgo)
-      ));
+      ))
+      .orderBy(desc(stationVerifications.createdAt));
     
     const working = recentVotes.filter(v => v.vote === 'WORKING').length;
     const notWorking = recentVotes.filter(v => v.vote === 'NOT_WORKING').length;
     const busy = recentVotes.filter(v => v.vote === 'BUSY').length;
     const totalVotes = recentVotes.length;
+    
+    // Get the most recent verification timestamp
+    const lastVerifiedAt = recentVotes.length > 0 && recentVotes[0].createdAt 
+      ? recentVotes[0].createdAt.toISOString() 
+      : null;
     
     // Determine leading vote
     let leadingVote: 'WORKING' | 'NOT_WORKING' | 'BUSY' | null = null;
@@ -391,7 +397,8 @@ export class DatabaseStorage implements IStorage {
       totalVotes,
       leadingVote,
       isVerified,
-      isStrongVerified
+      isStrongVerified,
+      lastVerifiedAt
     };
   }
 

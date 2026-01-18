@@ -141,4 +141,5 @@ export type VerificationSummary = {
   leadingVote: 'WORKING' | 'NOT_WORKING' | 'BUSY' | null;
   isVerified: boolean;
   isStrongVerified: boolean;
+  lastVerifiedAt: string | null; // ISO timestamp of most recent verification
 };
