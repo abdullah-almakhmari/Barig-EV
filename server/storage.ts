@@ -1,13 +1,14 @@
 import {
-  stations, reports, chargingSessions, evVehicles, userVehicles, users,
+  stations, reports, chargingSessions, evVehicles, userVehicles, users, stationVerifications,
   type Station, type InsertStation,
   type Report, type InsertReport,
   type ChargingSession, type InsertChargingSession,
   type EvVehicle, type InsertEvVehicle,
-  type UserVehicle, type InsertUserVehicle, type UserVehicleWithDetails
+  type UserVehicle, type InsertUserVehicle, type UserVehicleWithDetails,
+  type StationVerification, type VerificationSummary
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, ilike, or, ne } from "drizzle-orm";
+import { eq, desc, and, ilike, or, ne, gte, sql } from "drizzle-orm";
 
 export interface IStorage {
   getStations(filters?: { search?: string; city?: string; type?: string }): Promise<Station[]>;
@@ -38,6 +39,10 @@ export interface IStorage {
   updateUserVehicle(id: number, vehicle: Partial<InsertUserVehicle>): Promise<UserVehicle | undefined>;
   deleteUserVehicle(id: number): Promise<void>;
   setDefaultUserVehicle(userId: string, vehicleId: number): Promise<void>;
+  // Verification methods
+  submitVerification(stationId: number, userId: string, vote: string): Promise<StationVerification>;
+  getVerificationSummary(stationId: number): Promise<VerificationSummary>;
+  getUserRecentVerification(stationId: number, userId: string): Promise<StationVerification | undefined>;
   seed(): Promise<void>;
 }
 
@@ -312,6 +317,82 @@ export class DatabaseStorage implements IStorage {
   async setDefaultUserVehicle(userId: string, vehicleId: number): Promise<void> {
     await db.update(userVehicles).set({ isDefault: false, updatedAt: new Date() }).where(eq(userVehicles.userId, userId));
     await db.update(userVehicles).set({ isDefault: true, updatedAt: new Date() }).where(eq(userVehicles.id, vehicleId));
+  }
+
+  // Verification methods
+  async submitVerification(stationId: number, userId: string, vote: string): Promise<StationVerification> {
+    const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
+    
+    // Check if user already submitted a verification in the last 30 minutes
+    const existing = await this.getUserRecentVerification(stationId, userId);
+    
+    if (existing) {
+      // Update existing verification
+      const [updated] = await db.update(stationVerifications)
+        .set({ vote, createdAt: new Date() })
+        .where(eq(stationVerifications.id, existing.id))
+        .returning();
+      return updated;
+    }
+    
+    // Create new verification
+    const [verification] = await db.insert(stationVerifications)
+      .values({ stationId, userId, vote })
+      .returning();
+    return verification;
+  }
+
+  async getUserRecentVerification(stationId: number, userId: string): Promise<StationVerification | undefined> {
+    const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
+    const [verification] = await db.select()
+      .from(stationVerifications)
+      .where(and(
+        eq(stationVerifications.stationId, stationId),
+        eq(stationVerifications.userId, userId),
+        gte(stationVerifications.createdAt, thirtyMinutesAgo)
+      ))
+      .orderBy(desc(stationVerifications.createdAt))
+      .limit(1);
+    return verification;
+  }
+
+  async getVerificationSummary(stationId: number): Promise<VerificationSummary> {
+    const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
+    
+    const recentVotes = await db.select()
+      .from(stationVerifications)
+      .where(and(
+        eq(stationVerifications.stationId, stationId),
+        gte(stationVerifications.createdAt, thirtyMinutesAgo)
+      ));
+    
+    const working = recentVotes.filter(v => v.vote === 'WORKING').length;
+    const notWorking = recentVotes.filter(v => v.vote === 'NOT_WORKING').length;
+    const busy = recentVotes.filter(v => v.vote === 'BUSY').length;
+    const totalVotes = recentVotes.length;
+    
+    // Determine leading vote
+    let leadingVote: 'WORKING' | 'NOT_WORKING' | 'BUSY' | null = null;
+    const maxVotes = Math.max(working, notWorking, busy);
+    if (maxVotes > 0) {
+      if (working === maxVotes) leadingVote = 'WORKING';
+      else if (notWorking === maxVotes) leadingVote = 'NOT_WORKING';
+      else if (busy === maxVotes) leadingVote = 'BUSY';
+    }
+    
+    // Verified if >= 2 confirmations, strong if >= 3
+    const isVerified = maxVotes >= 2;
+    const isStrongVerified = maxVotes >= 3;
+    
+    return {
+      working,
+      notWorking,
+      busy,
+      totalVotes,
+      leadingVote,
+      isVerified,
+      isStrongVerified
+    };
   }
 
   async seed(): Promise<void> {
