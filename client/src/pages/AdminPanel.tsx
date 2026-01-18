@@ -39,11 +39,15 @@ export default function AdminPanel() {
   const { data: reports, isLoading: reportsLoading } = useQuery<AdminReport[]>({
     queryKey: ["/api/admin/reports"],
     enabled: user?.role === "admin",
+    refetchOnWindowFocus: true,
+    staleTime: 0,
   });
 
   const { data: stations, isLoading: stationsLoading } = useQuery<Station[]>({
     queryKey: ["/api/admin/stations"],
     enabled: user?.role === "admin",
+    refetchOnWindowFocus: true,
+    staleTime: 0,
   });
 
   const updateReportMutation = useMutation({

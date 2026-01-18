@@ -110,6 +110,10 @@ export function useCreateReport() {
       queryClient.invalidateQueries({ 
         queryKey: [api.stations.list.path] 
       });
+      // Invalidate admin reports cache so new reports appear in Admin Panel
+      queryClient.invalidateQueries({ 
+        queryKey: ["/api/admin/reports"] 
+      });
     },
   });
 }
