@@ -132,6 +132,7 @@ const resources = {
       "charging.atStation": "at",
       "charging.resume": "View Session",
       "charging.endNow": "End Now",
+      "charging.alreadyActive": "You already have an active charging session",
     }
   },
   ar: {
@@ -263,6 +264,7 @@ const resources = {
       "charging.atStation": "في",
       "charging.resume": "عرض الجلسة",
       "charging.endNow": "إنهاء الآن",
+      "charging.alreadyActive": "لديك جلسة شحن نشطة بالفعل",
     }
   }
 };

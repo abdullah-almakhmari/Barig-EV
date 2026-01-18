@@ -165,6 +165,13 @@ export async function registerRoutes(
     try {
       const input = api.chargingSessions.start.input.parse(req.body);
       const userId = req.user?.id;
+      
+      // Check if user already has an active session
+      const existingSession = await storage.getUserActiveSession(userId);
+      if (existingSession) {
+        return res.status(400).json({ message: "You already have an active charging session" });
+      }
+      
       const station = await storage.getStation(input.stationId);
       if (!station) {
         return res.status(404).json({ message: "Station not found" });
