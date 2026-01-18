@@ -15,6 +15,8 @@ declare global {
   namespace Express {
     interface User {
       id: string;
+      role?: string;
+      email?: string;
     }
   }
 }
@@ -186,7 +188,8 @@ export async function setupAuth(app: Express) {
     try {
       const user = await getUserById(id);
       if (user) {
-        cb(null, { id: user.id });
+        // Include role so isAdmin middleware can check it
+        cb(null, { id: user.id, role: user.role, email: user.email });
       } else {
         cb(null, false);
       }
