@@ -497,9 +497,12 @@ export async function registerRoutes(
   // Admin: Get all reports with station info
   app.get("/api/admin/reports", isAuthenticated, isAdmin, async (req: any, res) => {
     try {
+      console.log("[Admin] Fetching all reports for admin:", req.user?.email);
       const reports = await storage.getAllReportsWithDetails();
+      console.log("[Admin] Found", reports.length, "reports");
       res.json(reports);
     } catch (err) {
+      console.error("[Admin] Error fetching reports:", err);
       throw err;
     }
   });
