@@ -2,7 +2,7 @@ import { useRoute } from "wouter";
 import { useStation, useStationReports } from "@/hooks/use-stations";
 import { useTranslation } from "react-i18next";
 import { useLanguage } from "@/components/LanguageContext";
-import { Loader2, Navigation, Clock, ShieldCheck, MapPin, BatteryCharging, Home, Phone, MessageCircle, AlertTriangle, CheckCircle2, XCircle, Users } from "lucide-react";
+import { Loader2, Navigation, Clock, ShieldCheck, MapPin, BatteryCharging, Home, Phone, MessageCircle, AlertTriangle, CheckCircle2, XCircle, Users, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ReportDialog } from "@/components/ReportDialog";
@@ -14,6 +14,23 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import type { VerificationSummary } from "@shared/schema";
+
+// Helper function to format time ago
+function formatTimeAgo(isoString: string, t: (key: string, options?: any) => string): string {
+  const date = new Date(isoString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMinutes = Math.floor(diffMs / (1000 * 60));
+  
+  if (diffMinutes < 1) {
+    return t("verify.justNow");
+  } else if (diffMinutes < 60) {
+    return t("verify.minutesAgo", { count: diffMinutes });
+  } else {
+    const diffHours = Math.floor(diffMinutes / 60);
+    return t("verify.hoursAgo", { count: diffHours });
+  }
+}
 
 export default function StationDetails() {
   const [, params] = useRoute("/station/:id");
@@ -77,6 +94,44 @@ export default function StationDetails() {
               <Badge variant={station.status === "OPERATIONAL" ? "default" : "destructive"} className="px-3 py-1">
                 {t(`station.status.${station.status?.toLowerCase()}`)}
               </Badge>
+              {/* Prominent Community Verification Badge */}
+              {verificationSummary && verificationSummary.isVerified && verificationSummary.leadingVote === 'WORKING' ? (
+                <Badge 
+                  variant="secondary" 
+                  className={`px-3 py-1 ${verificationSummary.isStrongVerified ? 'bg-emerald-500 text-white border-emerald-600' : 'bg-emerald-100 text-emerald-700 border-emerald-200'}`}
+                  data-testid="badge-community-verified"
+                >
+                  <CheckCircle2 className="w-3 h-3 mr-1 rtl:ml-1 rtl:mr-0" />
+                  {t("verify.verifiedByCommunity", { count: verificationSummary.totalVotes })}
+                </Badge>
+              ) : verificationSummary && verificationSummary.isVerified && verificationSummary.leadingVote === 'NOT_WORKING' ? (
+                <Badge 
+                  variant="destructive" 
+                  className="px-3 py-1"
+                  data-testid="badge-community-not-working"
+                >
+                  <XCircle className="w-3 h-3 mr-1 rtl:ml-1 rtl:mr-0" />
+                  {t("verify.notWorking")}
+                </Badge>
+              ) : verificationSummary && verificationSummary.isVerified && verificationSummary.leadingVote === 'BUSY' ? (
+                <Badge 
+                  variant="secondary" 
+                  className="px-3 py-1 bg-orange-100 text-orange-700 border-orange-200"
+                  data-testid="badge-community-busy"
+                >
+                  <Clock className="w-3 h-3 mr-1 rtl:ml-1 rtl:mr-0" />
+                  {t("verify.busy")}
+                </Badge>
+              ) : (
+                <Badge 
+                  variant="outline" 
+                  className="px-3 py-1 text-muted-foreground border-dashed"
+                  data-testid="badge-not-verified"
+                >
+                  <ShieldAlert className="w-3 h-3 mr-1 rtl:ml-1 rtl:mr-0" />
+                  {t("verify.underReview")}
+                </Badge>
+              )}
               {station.trustLevel === "LOW" && (
                 <Badge variant="destructive" className="px-3 py-1 bg-yellow-100 text-yellow-700 border-yellow-200" data-testid="badge-low-trust">
                   <AlertTriangle className="w-3 h-3 mr-1" />
@@ -185,44 +240,56 @@ export default function StationDetails() {
           {t("verify.title")}
         </h3>
         
-        {/* Verification Summary */}
-        <div className="mb-4">
+        {/* Verification Summary with Time Context */}
+        <div className="mb-4 space-y-2">
           {verificationSummary && verificationSummary.totalVotes > 0 ? (
-            <div className="flex items-center gap-2 text-sm">
-              {verificationSummary.isStrongVerified ? (
-                <Badge variant="default" className="bg-emerald-500 hover:bg-emerald-600">
-                  <CheckCircle2 className="w-3 h-3 mr-1" />
-                  {t("verify.strongVerified", { count: verificationSummary.totalVotes })}
-                </Badge>
-              ) : verificationSummary.isVerified ? (
-                <Badge variant="secondary" className="bg-emerald-100 text-emerald-700">
-                  <CheckCircle2 className="w-3 h-3 mr-1" />
-                  {t("verify.verifiedBy", { count: verificationSummary.totalVotes })}
-                </Badge>
-              ) : (
-                <span className="text-muted-foreground">
-                  {t("verify.verifiedBy", { count: verificationSummary.totalVotes })}
-                </span>
+            <>
+              <div className="flex items-center gap-2 text-sm flex-wrap">
+                {verificationSummary.isStrongVerified ? (
+                  <Badge variant="default" className="bg-emerald-500 hover:bg-emerald-600">
+                    <CheckCircle2 className="w-3 h-3 mr-1" />
+                    {t("verify.strongVerified", { count: verificationSummary.totalVotes })}
+                  </Badge>
+                ) : verificationSummary.isVerified ? (
+                  <Badge variant="secondary" className="bg-emerald-100 text-emerald-700">
+                    <CheckCircle2 className="w-3 h-3 mr-1" />
+                    {t("verify.verifiedBy", { count: verificationSummary.totalVotes })}
+                  </Badge>
+                ) : (
+                  <span className="text-muted-foreground">
+                    {t("verify.verifiedBy", { count: verificationSummary.totalVotes })}
+                  </span>
+                )}
+                {verificationSummary.leadingVote && (
+                  <Badge 
+                    variant="outline"
+                    className={
+                      verificationSummary.leadingVote === 'WORKING' 
+                        ? 'border-emerald-500 text-emerald-600' 
+                        : verificationSummary.leadingVote === 'NOT_WORKING'
+                        ? 'border-red-500 text-red-600'
+                        : 'border-orange-500 text-orange-600'
+                    }
+                  >
+                    {t(`verify.${verificationSummary.leadingVote === 'WORKING' ? 'working' : verificationSummary.leadingVote === 'NOT_WORKING' ? 'notWorking' : 'busy'}`)}
+                  </Badge>
+                )}
+              </div>
+              {/* Time context */}
+              {verificationSummary.lastVerifiedAt && (
+                <p className="text-xs text-muted-foreground flex items-center gap-1">
+                  <Clock className="w-3 h-3" />
+                  {t("verify.lastConfirmed", { time: formatTimeAgo(verificationSummary.lastVerifiedAt, t) })}
+                </p>
               )}
-              {verificationSummary.leadingVote && (
-                <Badge 
-                  variant="outline"
-                  className={
-                    verificationSummary.leadingVote === 'WORKING' 
-                      ? 'border-emerald-500 text-emerald-600' 
-                      : verificationSummary.leadingVote === 'NOT_WORKING'
-                      ? 'border-red-500 text-red-600'
-                      : 'border-orange-500 text-orange-600'
-                  }
-                >
-                  {t(`verify.${verificationSummary.leadingVote === 'WORKING' ? 'working' : verificationSummary.leadingVote === 'NOT_WORKING' ? 'notWorking' : 'busy'}`)}
-                </Badge>
-              )}
-            </div>
+            </>
           ) : (
             <p className="text-muted-foreground text-sm">{t("verify.notRecentlyVerified")}</p>
           )}
         </div>
+        
+        {/* Micro-copy explanation */}
+        <p className="text-xs text-muted-foreground mb-4">{t("verify.helpOthers")}</p>
         
         {/* Verification Buttons */}
         <div className="flex flex-wrap gap-2">
