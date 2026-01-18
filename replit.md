@@ -197,3 +197,27 @@ The `shared/` directory contains code used by both frontend and backend:
   - Index on (user_id, event_type, station_id, reason, created_at) for efficient lookups
 - **Trust Logic File**: `server/trust/trustSystem.ts`
 - **Bilingual Support**: Full Arabic/English translations for badge
+
+### 5-Second Decision UX (January 2026)
+- **Purpose**: Users should know within 5 seconds if they should go to a station
+- **Primary Status Hero**: Large colored banner at top of StationDetails showing ONE clear status:
+  - Working (green) - station verified working within 30 minutes
+  - Busy (orange) - station verified busy within 30 minutes
+  - Not Working (red) - station verified not working within 30 minutes
+  - Not Recently Verified (gray) - no verification data or data older than 30 minutes
+- **Time Context**: Shows verification recency:
+  - Recent: "Verified X minutes ago" / "تم التحقق قبل X دقيقة"
+  - Stale: "Last confirmed X hours ago" / "آخر تأكيد قبل X ساعة"
+  - None: "No recent verification data" / "لا توجد بيانات تحقق حديثة"
+- **Recommendation Labels**:
+  - "Recommended now" / "موصى به الآن" (for Working status)
+  - "Not recommended currently" / "غير موصى به حالياً" (for other statuses)
+- **Trusted User Confirmation**: Shows "Confirmed by trusted users" when verification is strongly verified
+- **De-emphasized Details**: Station details and reports are now collapsible using HTML details/summary
+- **Map Markers**: Enhanced to show station priority visually:
+  - Best stations (fully available): Larger markers with pulse animation when user nearby
+  - Good stations (partially available): Medium green markers
+  - Busy stations (no availability): Smaller orange markers
+  - Offline stations: Smallest red markers
+- **Recency Threshold**: 30 minutes (same as verification window)
+- **Bilingual Support**: All UI text fully localized in Arabic and English
