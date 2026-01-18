@@ -316,9 +316,28 @@ ev_vehicles.id → user_vehicles.evVehicleId
 user_vehicles.id → charging_sessions.userVehicleId
 ```
 
-### Cascade Rules
+### Foreign Key Constraints (13 Total)
 
-**None defined** - No `ON DELETE CASCADE` or `ON UPDATE CASCADE` constraints exist in the schema. Orphan records may remain if parent records are deleted.
+| Table | Column | References | ON DELETE |
+|-------|--------|------------|-----------|
+| `reports` | `station_id` | `stations.id` | CASCADE |
+| `reports` | `user_id` | `users.id` | SET NULL |
+| `reports` | `reviewed_by` | `users.id` | SET NULL |
+| `user_vehicles` | `user_id` | `users.id` | CASCADE |
+| `user_vehicles` | `ev_vehicle_id` | `ev_vehicles.id` | RESTRICT |
+| `charging_sessions` | `station_id` | `stations.id` | CASCADE |
+| `charging_sessions` | `user_id` | `users.id` | SET NULL |
+| `charging_sessions` | `user_vehicle_id` | `user_vehicles.id` | SET NULL |
+| `station_verifications` | `station_id` | `stations.id` | CASCADE |
+| `station_verifications` | `user_id` | `users.id` | CASCADE |
+| `trust_events` | `user_id` | `users.id` | CASCADE |
+| `trust_events` | `station_id` | `stations.id` | SET NULL |
+| `stations` | `added_by_user_id` | `users.id` | SET NULL |
+
+**Cascade Behavior:**
+- Deleting a station cascades to its reports, sessions, and verifications
+- Deleting a user cascades to their vehicles, verifications, and trust events
+- Deleting a user sets their references to NULL in reports, sessions, and stations they added
 
 ---
 
@@ -400,7 +419,7 @@ user_vehicles.id → charging_sessions.userVehicleId
 
 ### Functional Issues
 
-1. **No FK Cascade Rules** - Deleting a station won't clean up related reports, sessions, or verifications. Manual cleanup required.
+1. ~~**No FK Cascade Rules**~~ - **RESOLVED (January 2026)** - 13 Foreign Key constraints now enforce referential integrity. See `DATABASE_INTEGRITY_MIGRATION.md` for details.
 
 2. **Google OAuth Callback URL** - Requires `APP_URL` environment variable to be set correctly for production. Uses `REPLIT_DEV_DOMAIN` for development.
 
