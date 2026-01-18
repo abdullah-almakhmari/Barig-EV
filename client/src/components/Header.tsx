@@ -1,7 +1,7 @@
 import { useLanguage } from "./LanguageContext";
 import { useTranslation } from "react-i18next";
 import { Link, useLocation } from "wouter";
-import { MapPin, Plus, Languages, Zap, Navigation, History, LogIn, LogOut, User } from "lucide-react";
+import { MapPin, Plus, Languages, Zap, Navigation, History, LogIn, LogOut, User, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -80,6 +80,19 @@ export function Header() {
           </Link>
 
           <div className="w-px h-6 bg-border mx-2" />
+
+          {user?.role === "admin" && (
+            <Link href="/admin">
+              <Button
+                variant={location === "/admin" ? "secondary" : "ghost"}
+                className="gap-2 font-medium"
+                data-testid="button-nav-admin"
+              >
+                <Shield className="w-4 h-4" />
+                <span className="hidden sm:inline">{t("admin.title")}</span>
+              </Button>
+            </Link>
+          )}
 
           <Button
             variant="ghost"
