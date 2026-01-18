@@ -91,11 +91,21 @@ export const chargingSessions = pgTable("charging_sessions", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Community verification votes for station status
+export const stationVerifications = pgTable("station_verifications", {
+  id: serial("id").primaryKey(),
+  stationId: integer("station_id").notNull(),
+  userId: varchar("user_id").notNull(),
+  vote: text("vote").notNull(), // 'WORKING', 'NOT_WORKING', 'BUSY'
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const insertStationSchema = createInsertSchema(stations).omit({ id: true, trustLevel: true, isHidden: true, createdAt: true, updatedAt: true });
 export const insertReportSchema = createInsertSchema(reports).omit({ id: true, reviewStatus: true, reviewedBy: true, reviewedAt: true, createdAt: true, updatedAt: true });
 export const insertChargingSessionSchema = createInsertSchema(chargingSessions).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertEvVehicleSchema = createInsertSchema(evVehicles).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertUserVehicleSchema = createInsertSchema(userVehicles).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertStationVerificationSchema = createInsertSchema(stationVerifications).omit({ id: true, createdAt: true });
 
 export type Station = typeof stations.$inferSelect;
 export type InsertStation = z.infer<typeof insertStationSchema>;
@@ -107,6 +117,8 @@ export type EvVehicle = typeof evVehicles.$inferSelect;
 export type InsertEvVehicle = z.infer<typeof insertEvVehicleSchema>;
 export type UserVehicle = typeof userVehicles.$inferSelect;
 export type InsertUserVehicle = z.infer<typeof insertUserVehicleSchema>;
+export type StationVerification = typeof stationVerifications.$inferSelect;
+export type InsertStationVerification = z.infer<typeof insertStationVerificationSchema>;
 
 export type StationWithReports = Station & {
   reports?: Report[];
@@ -119,4 +131,14 @@ export type UserVehicleWithDetails = UserVehicle & {
 export type ChargingSessionWithVehicle = ChargingSession & {
   vehicle?: EvVehicle;
   userVehicle?: UserVehicleWithDetails;
+};
+
+export type VerificationSummary = {
+  working: number;
+  notWorking: number;
+  busy: number;
+  totalVotes: number;
+  leadingVote: 'WORKING' | 'NOT_WORKING' | 'BUSY' | null;
+  isVerified: boolean;
+  isStrongVerified: boolean;
 };
