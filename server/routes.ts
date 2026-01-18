@@ -259,6 +259,19 @@ export async function registerRoutes(
     res.json(session || null);
   });
 
+  app.get("/api/charging-sessions/my-active", isAuthenticated, async (req: any, res) => {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    const session = await storage.getUserActiveSession(userId);
+    if (session) {
+      const station = await storage.getStation(session.stationId);
+      return res.json({ session, station });
+    }
+    res.json(null);
+  });
+
   // Vehicles
   app.get(api.vehicles.list.path, async (req, res) => {
     const vehicles = await storage.getVehicles();

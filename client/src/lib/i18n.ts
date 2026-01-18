@@ -128,6 +128,10 @@ const resources = {
       "auth.registerSuccess": "Registration successful",
       "auth.registerError": "Registration failed",
       "station.noResults": "No stations found matching your search.",
+      "charging.activeSessionBanner": "You have an active charging session",
+      "charging.atStation": "at",
+      "charging.resume": "View Session",
+      "charging.endNow": "End Now",
     }
   },
   ar: {
@@ -255,6 +259,10 @@ const resources = {
       "auth.registerSuccess": "تم إنشاء الحساب بنجاح",
       "auth.registerError": "فشل إنشاء الحساب",
       "station.noResults": "لم يتم العثور على محطات مطابقة لبحثك.",
+      "charging.activeSessionBanner": "لديك جلسة شحن نشطة",
+      "charging.atStation": "في",
+      "charging.resume": "عرض الجلسة",
+      "charging.endNow": "إنهاء الآن",
     }
   }
 };

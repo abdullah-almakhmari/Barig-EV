@@ -21,6 +21,7 @@ export interface IStorage {
   endChargingSession(sessionId: number, batteryEndPercent?: number, energyKwh?: number): Promise<ChargingSession | undefined>;
   getChargingSessions(stationId?: number, userId?: string): Promise<ChargingSession[]>;
   getActiveSession(stationId: number): Promise<ChargingSession | undefined>;
+  getUserActiveSession(userId: string): Promise<ChargingSession | undefined>;
   getSessionById(sessionId: number): Promise<ChargingSession | undefined>;
   deleteSession(sessionId: number): Promise<void>;
   getVehicles(): Promise<EvVehicle[]>;
@@ -168,6 +169,16 @@ export class DatabaseStorage implements IStorage {
       .from(chargingSessions)
       .where(and(
         eq(chargingSessions.stationId, stationId),
+        eq(chargingSessions.isActive, true)
+      ));
+    return session;
+  }
+
+  async getUserActiveSession(userId: string): Promise<ChargingSession | undefined> {
+    const [session] = await db.select()
+      .from(chargingSessions)
+      .where(and(
+        eq(chargingSessions.userId, userId),
         eq(chargingSessions.isActive, true)
       ));
     return session;

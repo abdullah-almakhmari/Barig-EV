@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { LanguageProvider } from "@/components/LanguageContext";
 import { Header } from "@/components/Header";
+import { ActiveSessionBanner } from "@/components/ActiveSessionBanner";
 import { HelmetProvider } from "react-helmet-async";
 
 // Pages
@@ -37,6 +38,7 @@ function App() {
         <LanguageProvider>
           <TooltipProvider>
             <div className="min-h-screen bg-background flex flex-col font-body">
+              <ActiveSessionBanner />
               <Header />
               <main className="flex-1 container mx-auto px-4 py-6">
                 <Router />
