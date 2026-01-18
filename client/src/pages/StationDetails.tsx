@@ -2,7 +2,7 @@ import { useRoute } from "wouter";
 import { useStation, useStationReports } from "@/hooks/use-stations";
 import { useTranslation } from "react-i18next";
 import { useLanguage } from "@/components/LanguageContext";
-import { Loader2, Navigation, Clock, ShieldCheck, MapPin, BatteryCharging, Home, Phone, MessageCircle, AlertTriangle, CheckCircle2, XCircle, Users, ShieldAlert } from "lucide-react";
+import { Loader2, Navigation, Clock, ShieldCheck, MapPin, BatteryCharging, Home, Phone, MessageCircle, AlertTriangle, CheckCircle2, XCircle, Users, ShieldAlert, ThumbsUp, ThumbsDown, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ReportDialog } from "@/components/ReportDialog";
@@ -16,7 +16,6 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import type { VerificationSummary } from "@shared/schema";
 
-// Helper function to format time ago
 function formatTimeAgo(isoString: string, t: (key: string, options?: any) => string): string {
   const date = new Date(isoString);
   const now = new Date();
@@ -33,6 +32,82 @@ function formatTimeAgo(isoString: string, t: (key: string, options?: any) => str
   }
 }
 
+type PrimaryStatus = 'WORKING' | 'BUSY' | 'NOT_WORKING' | 'NOT_RECENTLY_VERIFIED';
+
+const RECENCY_THRESHOLD_MS = 30 * 60 * 1000; // 30 minutes - same as verification window
+
+function isRecentlyVerified(lastVerifiedAt: string | null | undefined): boolean {
+  if (!lastVerifiedAt) return false;
+  const lastTime = new Date(lastVerifiedAt).getTime();
+  const now = Date.now();
+  return (now - lastTime) < RECENCY_THRESHOLD_MS;
+}
+
+function getPrimaryStatus(verificationSummary: VerificationSummary | undefined): PrimaryStatus {
+  if (!verificationSummary || verificationSummary.totalVotes === 0) {
+    return 'NOT_RECENTLY_VERIFIED';
+  }
+  
+  if (!isRecentlyVerified(verificationSummary.lastVerifiedAt)) {
+    return 'NOT_RECENTLY_VERIFIED';
+  }
+  
+  if (verificationSummary.leadingVote === 'WORKING') return 'WORKING';
+  if (verificationSummary.leadingVote === 'NOT_WORKING') return 'NOT_WORKING';
+  if (verificationSummary.leadingVote === 'BUSY') return 'BUSY';
+  return 'NOT_RECENTLY_VERIFIED';
+}
+
+function getStatusConfig(status: PrimaryStatus, t: (key: string) => string) {
+  switch (status) {
+    case 'WORKING':
+      return {
+        label: t("status.working"),
+        recommendation: t("status.recommendedNow"),
+        actionLabel: t("status.goHere"),
+        bgColor: 'bg-emerald-500',
+        textColor: 'text-white',
+        borderColor: 'border-emerald-600',
+        icon: CheckCircle2,
+        isRecommended: true,
+      };
+    case 'BUSY':
+      return {
+        label: t("status.busy"),
+        recommendation: t("status.notRecommended"),
+        actionLabel: t("status.tryAnother"),
+        bgColor: 'bg-orange-500',
+        textColor: 'text-white',
+        borderColor: 'border-orange-600',
+        icon: Clock,
+        isRecommended: false,
+      };
+    case 'NOT_WORKING':
+      return {
+        label: t("status.notWorking"),
+        recommendation: t("status.notRecommended"),
+        actionLabel: t("status.tryAnother"),
+        bgColor: 'bg-red-500',
+        textColor: 'text-white',
+        borderColor: 'border-red-600',
+        icon: XCircle,
+        isRecommended: false,
+      };
+    case 'NOT_RECENTLY_VERIFIED':
+    default:
+      return {
+        label: t("status.notRecentlyVerified"),
+        recommendation: t("status.noRecentData"),
+        actionLabel: null,
+        bgColor: 'bg-muted',
+        textColor: 'text-muted-foreground',
+        borderColor: 'border-border',
+        icon: ShieldAlert,
+        isRecommended: false,
+      };
+  }
+}
+
 export default function StationDetails() {
   const [, params] = useRoute("/station/:id");
   const id = params ? parseInt(params.id) : 0;
@@ -44,7 +119,6 @@ export default function StationDetails() {
   const { data: station, isLoading } = useStation(id);
   const { data: reports } = useStationReports(id);
   
-  // Verification summary
   const { data: verificationSummary } = useQuery<VerificationSummary>({
     queryKey: ['/api/stations', id, 'verification-summary'],
     queryFn: async () => {
@@ -55,7 +129,6 @@ export default function StationDetails() {
     enabled: id > 0,
   });
   
-  // Submit verification mutation
   const submitVerification = useMutation({
     mutationFn: async (vote: 'WORKING' | 'NOT_WORKING' | 'BUSY') => {
       return apiRequest('POST', `/api/stations/${id}/verify`, { vote });
@@ -81,110 +154,111 @@ export default function StationDetails() {
   const isAr = language === "ar";
   const name = isAr ? station.nameAr : station.name;
   const city = isAr ? station.cityAr : station.city;
+  
+  const primaryStatus = getPrimaryStatus(verificationSummary);
+  const statusConfig = getStatusConfig(primaryStatus, t);
+  const StatusIcon = statusConfig.icon;
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 pb-20">
+    <div className="max-w-4xl mx-auto space-y-4 pb-20">
       <SEO title={name} description={`${name} - ${city}`} />
-      {/* Header Card */}
-      <div className="bg-card rounded-3xl p-6 sm:p-8 border shadow-lg shadow-black/5 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-primary/10 to-transparent rounded-bl-full -mr-16 -mt-16 pointer-events-none" />
+      
+      {/* PRIMARY STATUS HERO - The 5-Second Decision Section */}
+      <div 
+        className={`rounded-3xl p-6 sm:p-8 ${statusConfig.bgColor} ${statusConfig.textColor} shadow-xl relative overflow-hidden`}
+        data-testid="status-hero"
+      >
+        <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-bl-full -mr-12 -mt-12 pointer-events-none" />
         
-        <div className="relative z-10 flex flex-col md:flex-row justify-between gap-6">
-          <div>
-            <div className="flex items-center gap-3 mb-2 flex-wrap">
-              <Badge variant={station.status === "OPERATIONAL" ? "default" : "destructive"} className="px-3 py-1">
-                {t(`station.status.${station.status?.toLowerCase()}`)}
-              </Badge>
-              {/* Prominent Community Verification Badge - only show when data loaded */}
-              {verificationSummary && (
-                verificationSummary.isVerified && verificationSummary.leadingVote === 'WORKING' ? (
-                  <Badge 
-                    variant="secondary" 
-                    className={`px-3 py-1 ${verificationSummary.isStrongVerified ? 'bg-emerald-500 text-white border-emerald-600' : 'bg-emerald-100 text-emerald-700 border-emerald-200'}`}
-                    data-testid="badge-community-verified"
-                  >
-                    <CheckCircle2 className="w-3 h-3 mr-1 rtl:ml-1 rtl:mr-0" />
-                    {t("verify.verifiedByCommunity", { count: verificationSummary.totalVotes })}
-                  </Badge>
-                ) : verificationSummary.isVerified && verificationSummary.leadingVote === 'NOT_WORKING' ? (
-                  <Badge 
-                    variant="destructive" 
-                    className="px-3 py-1"
-                    data-testid="badge-community-not-working"
-                  >
-                    <XCircle className="w-3 h-3 mr-1 rtl:ml-1 rtl:mr-0" />
-                    {t("verify.notWorking")}
-                  </Badge>
-                ) : verificationSummary.isVerified && verificationSummary.leadingVote === 'BUSY' ? (
-                  <Badge 
-                    variant="secondary" 
-                    className="px-3 py-1 bg-orange-100 text-orange-700 border-orange-200"
-                    data-testid="badge-community-busy"
-                  >
-                    <Clock className="w-3 h-3 mr-1 rtl:ml-1 rtl:mr-0" />
-                    {t("verify.busy")}
-                  </Badge>
-                ) : (
-                  <Badge 
-                    variant="outline" 
-                    className="px-3 py-1 text-muted-foreground border-dashed"
-                    data-testid="badge-not-verified"
-                  >
-                    <ShieldAlert className="w-3 h-3 mr-1 rtl:ml-1 rtl:mr-0" />
-                    {t("verify.underReview")}
-                  </Badge>
-                )
-              )}
+        <div className="relative z-10 text-center">
+          {/* Primary Status - BIGGEST text */}
+          <div className="flex items-center justify-center gap-3 mb-2">
+            <StatusIcon className="w-10 h-10 sm:w-12 sm:h-12" />
+            <h1 className="text-4xl sm:text-5xl font-black tracking-tight" data-testid="text-primary-status">
+              {statusConfig.label}
+            </h1>
+          </div>
+          
+          {/* Time Context */}
+          <div className="mb-4 opacity-90" data-testid="text-time-context">
+            {verificationSummary?.lastVerifiedAt ? (
+              <p className="text-lg flex items-center justify-center gap-2">
+                <Clock className="w-4 h-4" />
+                {isRecentlyVerified(verificationSummary.lastVerifiedAt) 
+                  ? t("status.verifiedAgo", { time: formatTimeAgo(verificationSummary.lastVerifiedAt, t) })
+                  : t("status.lastConfirmedAgo", { time: formatTimeAgo(verificationSummary.lastVerifiedAt, t) })
+                }
+              </p>
+            ) : (
+              <p className="text-lg">{t("status.noRecentData")}</p>
+            )}
+          </div>
+          
+          {/* Recommendation Label */}
+          <div 
+            className={`inline-flex items-center gap-2 px-4 py-2 rounded-full ${statusConfig.isRecommended ? 'bg-white/20' : 'bg-black/20'}`}
+            data-testid="badge-recommendation"
+          >
+            {statusConfig.isRecommended ? (
+              <ThumbsUp className="w-5 h-5" />
+            ) : (
+              <ThumbsDown className="w-5 h-5" />
+            )}
+            <span className="font-semibold text-lg">{statusConfig.recommendation}</span>
+          </div>
+          
+          {/* Trusted Users Confirmation - subtle */}
+          {verificationSummary && verificationSummary.isStrongVerified && (
+            <p className="mt-3 text-sm opacity-80 flex items-center justify-center gap-1" data-testid="text-trusted-confirmation">
+              <ShieldCheck className="w-4 h-4" />
+              {t("status.confirmedByTrusted")}
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* Station Name & Quick Actions - Secondary but visible */}
+      <div className="bg-card rounded-2xl p-5 border shadow-sm">
+        <div className="flex flex-col sm:flex-row justify-between gap-4">
+          <div className="flex-1">
+            <div className="flex items-center gap-2 mb-1 flex-wrap">
+              <h2 className="text-2xl font-bold text-foreground">{name}</h2>
               {station.trustLevel === "LOW" && (
-                <Badge variant="destructive" className="px-3 py-1 bg-yellow-100 text-yellow-700 border-yellow-200" data-testid="badge-low-trust">
+                <Badge variant="secondary" className="bg-yellow-100 text-yellow-700 text-xs" data-testid="badge-low-trust">
                   <AlertTriangle className="w-3 h-3 mr-1" />
                   {t("station.underReview")}
                 </Badge>
               )}
               {station.stationType === "HOME" && (
-                <Badge variant="secondary" className="px-3 py-1 bg-orange-100 text-orange-700 border-orange-200">
+                <Badge variant="secondary" className="bg-orange-100 text-orange-700 text-xs">
                   <Home className="w-3 h-3 mr-1" />
                   {t("station.type.home")}
                 </Badge>
               )}
-              <span className="text-muted-foreground text-sm font-medium tracking-wide uppercase">
-                {station.operator}
-              </span>
             </div>
-            
-            <h1 className="text-3xl sm:text-4xl font-extrabold mb-2 text-foreground tracking-tight">
-              {name}
-            </h1>
-            
-            <div className="flex items-center text-muted-foreground gap-2">
+            <div className="flex items-center text-muted-foreground gap-2 text-sm">
               <MapPin className="w-4 h-4" />
-              <p className="text-lg">{city}</p>
-            </div>
-            
-            <div className="mt-4 flex gap-2">
-              {station.chargerType.split(',').map(type => (
-                <Badge key={type} variant="secondary" className="text-xs border-primary/20 bg-primary/5 text-primary">
-                  {type.trim()}
-                </Badge>
-              ))}
-              <Badge variant="outline" className="text-xs">
-                {station.powerKw} kW
-              </Badge>
+              <span>{city}</span>
+              <span className="text-muted-foreground/50">•</span>
+              <span className="uppercase tracking-wide">{station.operator}</span>
             </div>
           </div>
 
-          <div className="flex flex-col gap-3 min-w-[160px]">
+          <div className="flex gap-2 flex-wrap">
             <Button 
-              className="w-full h-12 text-lg shadow-lg shadow-primary/20" 
+              size="lg"
+              className="shadow-lg shadow-primary/20" 
               onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${station.lat},${station.lng}`, '_blank')}
+              data-testid="button-navigate"
             >
               <Navigation className="mr-2 h-5 w-5 rtl:ml-2 rtl:mr-0" />
-              Navigate
+              {t("station.navigate")}
             </Button>
             {station.stationType === "HOME" && station.contactWhatsapp && (
               <Button 
                 variant="outline"
-                className="w-full border-green-500 text-green-600 hover:bg-green-50"
+                size="lg"
+                className="border-green-500 text-green-600 hover:bg-green-50"
                 onClick={() => window.open(`https://wa.me/${station.contactWhatsapp?.replace(/[^0-9]/g, '')}`, '_blank')}
                 data-testid="button-contact-whatsapp"
               >
@@ -195,6 +269,7 @@ export default function StationDetails() {
             {station.stationType === "HOME" && station.contactPhone && (
               <Button 
                 variant="outline"
+                size="lg"
                 onClick={() => window.open(`tel:${station.contactPhone}`, '_blank')}
                 data-testid="button-contact-phone"
               >
@@ -202,102 +277,58 @@ export default function StationDetails() {
                 {t("station.contact")}
               </Button>
             )}
-            <ReportDialog stationId={id} />
           </div>
         </div>
       </div>
 
-      {/* Charger Availability Card */}
-      <div className="bg-card rounded-2xl p-6 border shadow-sm">
-        <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
-          <BatteryCharging className="w-5 h-5 text-primary" />
-          {t("charging.title")}
-        </h3>
-        
-        <div className="grid grid-cols-3 gap-4 mb-6">
-          <div className="text-center p-4 bg-emerald-500/10 rounded-xl">
-            <div className="text-3xl font-bold text-emerald-600">{station.availableChargers ?? 0}</div>
-            <div className="text-sm text-muted-foreground mt-1">{t("charging.available")}</div>
-          </div>
-          <div className="text-center p-4 bg-orange-500/10 rounded-xl">
-            <div className="text-3xl font-bold text-orange-600">{(station.chargerCount ?? 0) - (station.availableChargers ?? 0)}</div>
-            <div className="text-sm text-muted-foreground mt-1">{t("charging.occupied")}</div>
-          </div>
-          <div className="text-center p-4 bg-muted/50 rounded-xl">
-            <div className="text-3xl font-bold text-foreground">{station.chargerCount ?? 0}</div>
-            <div className="text-sm text-muted-foreground mt-1">{t("charging.total")}</div>
-          </div>
-        </div>
-
-        <ChargingSessionDialog 
-          stationId={id}
-          availableChargers={station.availableChargers ?? 0}
-          totalChargers={station.chargerCount ?? 1}
-        />
-      </div>
-
-      {/* Community Verification Card */}
-      <div className="bg-card rounded-2xl p-6 border shadow-sm">
-        <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
-          <Users className="w-5 h-5 text-primary" />
-          {t("verify.title")}
-        </h3>
-        
-        {/* Verification Summary with Time Context */}
-        <div className="mb-4 space-y-2">
-          {verificationSummary && verificationSummary.totalVotes > 0 ? (
-            <>
-              <div className="flex items-center gap-2 text-sm flex-wrap">
-                {verificationSummary.isStrongVerified ? (
-                  <Badge variant="default" className="bg-emerald-500 hover:bg-emerald-600">
-                    <CheckCircle2 className="w-3 h-3 mr-1" />
-                    {t("verify.strongVerified", { count: verificationSummary.totalVotes })}
-                  </Badge>
-                ) : verificationSummary.isVerified ? (
-                  <Badge variant="secondary" className="bg-emerald-100 text-emerald-700">
-                    <CheckCircle2 className="w-3 h-3 mr-1" />
-                    {t("verify.verifiedBy", { count: verificationSummary.totalVotes })}
-                  </Badge>
-                ) : (
-                  <span className="text-muted-foreground">
-                    {t("verify.verifiedBy", { count: verificationSummary.totalVotes })}
-                  </span>
-                )}
-                {verificationSummary.leadingVote && (
-                  <Badge 
-                    variant="outline"
-                    className={
-                      verificationSummary.leadingVote === 'WORKING' 
-                        ? 'border-emerald-500 text-emerald-600' 
-                        : verificationSummary.leadingVote === 'NOT_WORKING'
-                        ? 'border-red-500 text-red-600'
-                        : 'border-orange-500 text-orange-600'
-                    }
-                  >
-                    {t(`verify.${verificationSummary.leadingVote === 'WORKING' ? 'working' : verificationSummary.leadingVote === 'NOT_WORKING' ? 'notWorking' : 'busy'}`)}
-                  </Badge>
-                )}
+      {/* Charger Availability - Compact */}
+      <div className="bg-card rounded-2xl p-5 border shadow-sm">
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <div className="flex items-center gap-6">
+            <div className="flex items-center gap-2">
+              <BatteryCharging className="w-5 h-5 text-primary" />
+              <span className="font-semibold">{t("charging.title")}</span>
+            </div>
+            <div className="flex gap-4">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-emerald-600">{station.availableChargers ?? 0}</div>
+                <div className="text-xs text-muted-foreground">{t("charging.available")}</div>
               </div>
-              {/* Time context */}
-              {verificationSummary.lastVerifiedAt && (
-                <p className="text-xs text-muted-foreground flex items-center gap-1">
-                  <Clock className="w-3 h-3" />
-                  {t("verify.lastConfirmed", { time: formatTimeAgo(verificationSummary.lastVerifiedAt, t) })}
-                </p>
-              )}
-            </>
-          ) : (
-            <p className="text-muted-foreground text-sm">{t("verify.notRecentlyVerified")}</p>
-          )}
+              <div className="text-center">
+                <div className="text-2xl font-bold text-orange-600">{(station.chargerCount ?? 0) - (station.availableChargers ?? 0)}</div>
+                <div className="text-xs text-muted-foreground">{t("charging.occupied")}</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-muted-foreground">{station.chargerCount ?? 0}</div>
+                <div className="text-xs text-muted-foreground">{t("charging.total")}</div>
+              </div>
+            </div>
+          </div>
+          <ChargingSessionDialog 
+            stationId={id}
+            availableChargers={station.availableChargers ?? 0}
+            totalChargers={station.chargerCount ?? 1}
+          />
         </div>
-        
-        {/* Micro-copy explanation with trusted user badge */}
+      </div>
+
+      {/* Community Verification - Quick Actions */}
+      <div className="bg-card rounded-2xl p-5 border shadow-sm">
         <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-          <p className="text-xs text-muted-foreground">{t("verify.helpOthers")}</p>
+          <div className="flex items-center gap-2">
+            <Users className="w-5 h-5 text-primary" />
+            <span className="font-semibold">{t("verify.title")}</span>
+            {verificationSummary && verificationSummary.totalVotes > 0 && (
+              <span className="text-sm text-muted-foreground">
+                ({verificationSummary.totalVotes} {t("verify.verifiedBy", { count: verificationSummary.totalVotes }).split(' ').slice(-2).join(' ')})
+              </span>
+            )}
+          </div>
           {isAuthenticated && <TrustedUserBadge trustLevel={user?.userTrustLevel} />}
         </div>
         
-        {/* Verification Buttons */}
+        <p className="text-sm text-muted-foreground mb-3">{t("verify.helpOthers")}</p>
+        
         <div className="flex flex-wrap gap-2">
           <Button
             variant="outline"
@@ -350,60 +381,77 @@ export default function StationDetails() {
             <Clock className="w-4 h-4 mr-1 rtl:ml-1 rtl:mr-0" />
             {t("verify.confirmBusy")}
           </Button>
+          <ReportDialog stationId={id} />
         </div>
       </div>
 
-      {/* Info Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-card rounded-2xl p-6 border shadow-sm">
-          <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
-            <ShieldCheck className="w-5 h-5 text-primary" />
-            Station Status
-          </h3>
-          <div className="space-y-4">
-            <div className="flex justify-between py-2 border-b border-dashed">
-              <span className="text-muted-foreground">Power Output</span>
-              <span className="font-mono font-medium">{station.powerKw} kW</span>
-            </div>
-            <div className="flex justify-between py-2 border-b border-dashed">
-              <span className="text-muted-foreground">Connector Type</span>
-              <span className="font-medium">{station.chargerType}</span>
-            </div>
-            <div className="flex justify-between py-2 border-b border-dashed">
-              <span className="text-muted-foreground">Pricing</span>
-              <span className="font-medium text-emerald-600">
-                {station.isFree ? t("station.price.free") : station.priceText || t("station.price.paid")}
-              </span>
+      {/* Station Details - De-emphasized, collapsible feel */}
+      <details className="group bg-card rounded-2xl border shadow-sm">
+        <summary className="cursor-pointer p-5 flex items-center justify-between hover:bg-muted/50 rounded-2xl transition-colors">
+          <div className="flex items-center gap-2">
+            <Zap className="w-5 h-5 text-primary" />
+            <span className="font-semibold">{t("station.stationDetails")}</span>
+          </div>
+          <span className="text-muted-foreground text-sm group-open:hidden">{t("station.tapToExpand")}</span>
+        </summary>
+        <div className="px-5 pb-5 space-y-3 border-t">
+          <div className="flex justify-between py-2 border-b border-dashed">
+            <span className="text-muted-foreground">{t("station.powerOutput")}</span>
+            <span className="font-mono font-medium">{station.powerKw} kW</span>
+          </div>
+          <div className="flex justify-between py-2 border-b border-dashed">
+            <span className="text-muted-foreground">{t("station.connectorType")}</span>
+            <div className="flex gap-1 flex-wrap justify-end">
+              {station.chargerType.split(',').map(type => (
+                <Badge key={type} variant="secondary" className="text-xs">
+                  {type.trim()}
+                </Badge>
+              ))}
             </div>
           </div>
+          <div className="flex justify-between py-2 border-b border-dashed">
+            <span className="text-muted-foreground">{t("station.pricing")}</span>
+            <span className="font-medium text-emerald-600">
+              {station.isFree ? t("station.price.free") : station.priceText || t("station.price.paid")}
+            </span>
+          </div>
+          <div className="flex justify-between py-2">
+            <span className="text-muted-foreground">{t("station.statusLabel")}</span>
+            <Badge variant={station.status === "OPERATIONAL" ? "default" : "destructive"}>
+              {t(`station.status.${station.status?.toLowerCase()}`)}
+            </Badge>
+          </div>
         </div>
+      </details>
 
-        <div className="bg-card rounded-2xl p-6 border shadow-sm">
-          <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
-            <Clock className="w-5 h-5 text-accent" />
-            Recent Reports
-          </h3>
-          <div className="space-y-4 max-h-[200px] overflow-y-auto pr-2 custom-scrollbar">
-            {reports && reports.length > 0 ? (
-              reports.map((report) => (
-                <div key={report.id} className="flex items-start gap-3 p-3 bg-muted/30 rounded-xl">
-                  <div className={`w-2 h-2 rounded-full mt-2 shrink-0 ${report.status === 'WORKING' ? 'bg-emerald-500' : 'bg-red-500'}`} />
-                  <div>
-                    <p className="font-medium text-sm">
-                      {report.status === 'WORKING' ? t("station.report.working") : t("station.report.broken")}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {formatDistanceToNow(new Date(report.createdAt!), { addSuffix: true })}
-                    </p>
-                  </div>
+      {/* Recent Reports - De-emphasized */}
+      {reports && reports.length > 0 && (
+        <details className="group bg-card rounded-2xl border shadow-sm">
+          <summary className="cursor-pointer p-5 flex items-center justify-between hover:bg-muted/50 rounded-2xl transition-colors">
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="w-5 h-5 text-muted-foreground" />
+              <span className="font-semibold text-muted-foreground">{t("station.recentReports")}</span>
+              <Badge variant="outline" className="text-xs">{reports.length}</Badge>
+            </div>
+            <span className="text-muted-foreground text-sm group-open:hidden">{t("station.tapToExpand")}</span>
+          </summary>
+          <div className="px-5 pb-5 space-y-2 border-t max-h-[200px] overflow-y-auto">
+            {reports.map((report) => (
+              <div key={report.id} className="flex items-start gap-3 p-3 bg-muted/30 rounded-xl">
+                <div className={`w-2 h-2 rounded-full mt-2 shrink-0 ${report.status === 'WORKING' ? 'bg-emerald-500' : 'bg-red-500'}`} />
+                <div>
+                  <p className="font-medium text-sm">
+                    {report.status === 'WORKING' ? t("station.report.working") : t("station.report.broken")}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {formatDistanceToNow(new Date(report.createdAt!), { addSuffix: true })}
+                  </p>
                 </div>
-              ))
-            ) : (
-              <p className="text-muted-foreground text-sm italic">No reports yet.</p>
-            )}
+              </div>
+            ))}
           </div>
-        </div>
-      </div>
+        </details>
+      )}
     </div>
   );
 }

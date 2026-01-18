@@ -3,16 +3,15 @@ import { Station } from "@shared/schema";
 import { StationCard } from "./StationCard";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Navigation, Loader2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-// Fix Leaflet icons
 import icon from "leaflet/dist/images/marker-icon.png";
 import iconShadow from "leaflet/dist/images/marker-shadow.png";
 
-let DefaultIcon = L.icon({
+const DefaultIcon = L.icon({
   iconUrl: icon,
   shadowUrl: iconShadow,
   iconSize: [25, 41],
@@ -21,27 +20,80 @@ let DefaultIcon = L.icon({
 
 L.Marker.prototype.options.icon = DefaultIcon;
 
-// Custom Icons based on availability status
-const createCustomIcon = (station: Station) => {
-  let color: string;
+type StationPriority = 'best' | 'good' | 'busy' | 'offline';
+
+function getStationPriority(station: Station): StationPriority {
+  if (station.status === "OFFLINE") return 'offline';
+  const available = station.availableChargers ?? 0;
+  const total = station.chargerCount ?? 1;
+  if (available === 0) return 'busy';
+  if (available === total) return 'best';
+  return 'good';
+}
+
+function createCustomIcon(station: Station, isBestNearby: boolean = false) {
+  const priority = getStationPriority(station);
   
-  if (station.status === "OFFLINE") {
-    color = '#ef4444'; // Red - offline
-  } else if ((station.availableChargers ?? 0) > 0) {
-    color = '#10b981'; // Green - available
-  } else {
-    color = '#f97316'; // Orange - in use
+  let color: string;
+  let size: number;
+  let pulseAnimation = '';
+  let shadowSize: string;
+  
+  switch (priority) {
+    case 'best':
+      color = '#10b981';
+      size = isBestNearby ? 24 : 18;
+      shadowSize = isBestNearby ? '0 4px 12px rgba(16, 185, 129, 0.5)' : '0 4px 6px rgba(0,0,0,0.3)';
+      if (isBestNearby) {
+        pulseAnimation = 'animation: pulse 2s infinite;';
+      }
+      break;
+    case 'good':
+      color = '#22c55e';
+      size = 16;
+      shadowSize = '0 4px 6px rgba(0,0,0,0.3)';
+      break;
+    case 'busy':
+      color = '#f97316';
+      size = 14;
+      shadowSize = '0 3px 4px rgba(0,0,0,0.2)';
+      break;
+    case 'offline':
+    default:
+      color = '#ef4444';
+      size = 12;
+      shadowSize = '0 2px 3px rgba(0,0,0,0.2)';
+      break;
   }
+  
+  const pulseKeyframes = isBestNearby ? `
+    <style>
+      @keyframes pulse {
+        0%, 100% { transform: scale(1); opacity: 1; }
+        50% { transform: scale(1.1); opacity: 0.9; }
+      }
+    </style>
+  ` : '';
   
   return L.divIcon({
     className: 'custom-div-icon',
-    html: `<div style="background-color: ${color}; width: 16px; height: 16px; border-radius: 50%; border: 3px solid white; box-shadow: 0 4px 6px rgba(0,0,0,0.3);"></div>`,
-    iconSize: [16, 16],
-    iconAnchor: [8, 8],
+    html: `
+      ${pulseKeyframes}
+      <div style="
+        background-color: ${color}; 
+        width: ${size}px; 
+        height: ${size}px; 
+        border-radius: 50%; 
+        border: ${isBestNearby ? '4px' : '3px'} solid white; 
+        box-shadow: ${shadowSize};
+        ${pulseAnimation}
+      "></div>
+    `,
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
   });
-};
+}
 
-// User location marker icon
 const userLocationIcon = L.divIcon({
   className: 'user-location-icon',
   html: `<div style="background-color: #3b82f6; width: 14px; height: 14px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 0 2px #3b82f6, 0 4px 8px rgba(0,0,0,0.3);"></div>`,
@@ -49,7 +101,6 @@ const userLocationIcon = L.divIcon({
   iconAnchor: [7, 7],
 });
 
-// Component to fit bounds to all stations
 function FitBoundsToStations({ stations }: { stations: Station[] }) {
   const map = useMap();
   
@@ -65,7 +116,6 @@ function FitBoundsToStations({ stations }: { stations: Station[] }) {
   return null;
 }
 
-// LocateControl component to handle location button
 function LocateControl({ 
   onLocationFound 
 }: { 
@@ -118,6 +168,18 @@ function LocateControl({
   );
 }
 
+function getDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = 
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLng / 2) * Math.sin(dLng / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
 interface StationMapProps {
   stations: Station[];
 }
@@ -129,6 +191,35 @@ export function StationMap({ stations }: StationMapProps) {
   const handleLocationFound = (lat: number, lng: number) => {
     setUserLocation([lat, lng]);
   };
+
+  const bestNearbyStationId = useMemo(() => {
+    if (!userLocation) return null;
+    
+    const availableStations = stations.filter(
+      s => s.status !== "OFFLINE" && (s.availableChargers ?? 0) > 0
+    );
+    
+    if (availableStations.length === 0) return null;
+    
+    const stationsWithDistance = availableStations.map(s => ({
+      station: s,
+      distance: getDistance(userLocation[0], userLocation[1], s.lat, s.lng),
+      priority: getStationPriority(s),
+    }));
+    
+    stationsWithDistance.sort((a, b) => {
+      if (a.priority === 'best' && b.priority !== 'best') return -1;
+      if (a.priority !== 'best' && b.priority === 'best') return 1;
+      return a.distance - b.distance;
+    });
+    
+    const bestStation = stationsWithDistance[0];
+    if (bestStation && bestStation.distance <= 50) {
+      return bestStation.station.id;
+    }
+    
+    return null;
+  }, [stations, userLocation]);
 
   return (
     <div className="h-full w-full rounded-2xl overflow-hidden border border-border shadow-inner bg-muted/20 relative">
@@ -167,7 +258,8 @@ export function StationMap({ stations }: StationMapProps) {
           <Marker 
             key={station.id} 
             position={[station.lat, station.lng]}
-            icon={createCustomIcon(station)}
+            icon={createCustomIcon(station, station.id === bestNearbyStationId)}
+            zIndexOffset={station.id === bestNearbyStationId ? 1000 : 0}
           >
             <Popup>
               <div dir={document.documentElement.dir} className="w-full">
