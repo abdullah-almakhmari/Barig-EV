@@ -27,6 +27,7 @@ export const stations = pgTable("stations", {
   contactPhone: text("contact_phone"),
   contactWhatsapp: text("contact_whatsapp"),
   addedByUserId: varchar("added_by_user_id"),
+  isHidden: boolean("is_hidden").default(false),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -37,6 +38,9 @@ export const reports = pgTable("reports", {
   userId: varchar("user_id"),
   status: text("status").notNull(),
   reason: text("reason"),
+  reviewStatus: text("review_status").default("open"),
+  reviewedBy: varchar("reviewed_by"),
+  reviewedAt: timestamp("reviewed_at"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -87,8 +91,8 @@ export const chargingSessions = pgTable("charging_sessions", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-export const insertStationSchema = createInsertSchema(stations).omit({ id: true, trustLevel: true, createdAt: true, updatedAt: true });
-export const insertReportSchema = createInsertSchema(reports).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertStationSchema = createInsertSchema(stations).omit({ id: true, trustLevel: true, isHidden: true, createdAt: true, updatedAt: true });
+export const insertReportSchema = createInsertSchema(reports).omit({ id: true, reviewStatus: true, reviewedBy: true, reviewedAt: true, createdAt: true, updatedAt: true });
 export const insertChargingSessionSchema = createInsertSchema(chargingSessions).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertEvVehicleSchema = createInsertSchema(evVehicles).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertUserVehicleSchema = createInsertSchema(userVehicles).omit({ id: true, createdAt: true, updatedAt: true });

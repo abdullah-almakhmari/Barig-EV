@@ -23,6 +23,7 @@ export const users = pgTable("users", {
   provider: varchar("provider").default("local"),
   providerId: varchar("provider_id"),
   emailVerified: boolean("email_verified").default(false),
+  role: varchar("role").default("user"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
