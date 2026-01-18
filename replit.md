@@ -77,3 +77,22 @@ Preferred communication style: Simple, everyday language.
 - **Non-blocking**: Does not require login, skippable instantly
 - **Component**: `client/src/components/Onboarding.tsx`
 - **Bilingual Support**: Full Arabic/English with RTL support
+
+### Progressive Web App (PWA) - January 2026
+- **Purpose**: Enable app installation on mobile devices without app store
+- **Features**:
+  - Installable on Android/iOS home screen
+  - Works offline with cached data
+  - Arabic-first manifest with RTL support
+  - Custom app icon with lightning bolt branding
+  - Background caching of map tiles (OpenStreetMap)
+  - NetworkFirst caching for API with offline fallback
+- **Files**:
+  - `client/public/manifest.json` - PWA manifest (Arabic)
+  - `client/public/sw.js` - Service worker with caching strategies
+  - `client/public/icons/` - App icons (72-512px)
+- **Cache Strategy**:
+  - Map tiles: CacheFirst (max 200 tiles, 30 day TTL)
+  - Fonts: CacheFirst (static, no expiry)
+  - API data: NetworkFirst with offline fallback (max 50 entries)
+- **Installation**: Visit site on mobile → Browser menu → "Add to Home Screen"
