@@ -103,6 +103,27 @@ The `shared/` directory contains code used by both frontend and backend:
 - Allows multiple concurrent sessions per station based on available chargers
 - Known MVP limitation: Some race conditions possible under high concurrency; rollback logic handles most failure cases
 
+### Admin Panel (January 2026)
+- **User Roles**: Added role field to users (user/owner/admin)
+- **Admin Access**: Only users with role="admin" can access /admin route
+- **Frontend Protection**: AdminPanel redirects non-admin users to home
+- **Backend Protection**: All /api/admin/* endpoints check isAuthenticated + isAdmin middleware, return 403 for non-admins
+- **Reports Management**:
+  - View all reports with station name, reason, reporter email, created date
+  - Admin actions: Mark as resolved, rejected, or confirmed (keeps station under review)
+  - Review status tracked with reviewedBy and reviewedAt timestamps
+- **Stations Management**:
+  - View all stations including hidden ones
+  - Hide/Archive stations (isHidden field) - hidden stations don't appear on map for normal users
+  - Restore hidden stations
+- **Admin Endpoints**:
+  - GET /api/admin/reports - All reports with details
+  - PATCH /api/admin/reports/:id/review - Update review status
+  - GET /api/admin/stations - All stations including hidden
+  - PATCH /api/admin/stations/:id/visibility - Hide/restore station
+- **Creating Admin User**: Update user role directly in database: UPDATE users SET role = 'admin' WHERE email = 'your@email.com'
+- **Bilingual Support**: Full Arabic/English translations for admin panel
+
 ### Anti-Tampering System (January 2026)
 - **Authorization**: Only station owner OR user with active charging session can change charger status/availability
 - **Trust Level**: Stations have trustLevel field (NORMAL/LOW) - LOW shows "Under Review" badge
