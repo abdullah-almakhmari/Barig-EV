@@ -12,6 +12,11 @@ import {
   getUserTrustLevel
 } from "./trust/trustSystem";
 import { 
+  calculateTrustScore, 
+  getTrustScoreLabel, 
+  isTrustScoreEnabled 
+} from "./features/trustScore";
+import { 
   validateCsrf, 
   csrfTokenEndpoint, 
   verificationLimiter 
@@ -240,6 +245,45 @@ export async function registerRoutes(
       
       const summary = await storage.getVerificationSummary(stationId);
       res.json(summary);
+    } catch (err) {
+      throw err;
+    }
+  });
+
+  // Trust Score endpoint (feature-flagged)
+  app.get("/api/stations/:id/trust-score", async (req, res) => {
+    try {
+      // Feature flag check - returns 404 if disabled
+      if (!isTrustScoreEnabled()) {
+        return res.status(404).json({ message: "Feature not available" });
+      }
+
+      const stationId = Number(req.params.id);
+      
+      const station = await storage.getStation(stationId);
+      if (!station) {
+        return res.status(404).json({ message: "Station not found" });
+      }
+      
+      // Only show trust score for APPROVED visible stations
+      const isApproved = station.approvalStatus === "APPROVED" || station.approvalStatus === null;
+      const isVisible = !station.isHidden;
+      if (!isApproved || !isVisible) {
+        return res.status(404).json({ message: "Station not found" });
+      }
+      
+      const trustScore = await calculateTrustScore(stationId);
+      if (!trustScore) {
+        return res.status(404).json({ message: "Trust score not available" });
+      }
+
+      const label = getTrustScoreLabel(trustScore.score);
+      
+      res.json({
+        score: trustScore.score,
+        label,
+        components: trustScore.components,
+      });
     } catch (err) {
       throw err;
     }

@@ -45,5 +45,6 @@ integrations = ["javascript_log_in_with_replit:2.0.0"]
 
 [userenv.development]
 APP_URL = "APP_URL=https://file-helper--almakhmari001.replit.app"
+TRUST_SCORE_ENABLED = "false"
 
 [userenv.shared]

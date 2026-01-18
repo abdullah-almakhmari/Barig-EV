@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { ReportDialog } from "@/components/ReportDialog";
 import { ChargingSessionDialog } from "@/components/ChargingSessionDialog";
 import { TrustedUserBadge } from "@/components/TrustedUserBadge";
+import { TrustScoreBadge } from "@/components/TrustScoreBadge";
 import { formatDistanceToNow } from "date-fns";
 import { SEO } from "@/components/SEO";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -241,6 +242,11 @@ export default function StationDetails() {
               <span>{city}</span>
               <span className="text-muted-foreground/50">•</span>
               <span className="uppercase tracking-wide">{station.operator}</span>
+            </div>
+            
+            {/* Trust Score Badge - Feature Flagged */}
+            <div className="mt-2">
+              <TrustScoreBadge stationId={id} />
             </div>
           </div>
 
