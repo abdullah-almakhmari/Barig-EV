@@ -2,7 +2,7 @@ import { useRoute } from "wouter";
 import { useStation, useStationReports } from "@/hooks/use-stations";
 import { useTranslation } from "react-i18next";
 import { useLanguage } from "@/components/LanguageContext";
-import { Loader2, Navigation, Clock, ShieldCheck, MapPin, BatteryCharging, Home, Phone, MessageCircle } from "lucide-react";
+import { Loader2, Navigation, Clock, ShieldCheck, MapPin, BatteryCharging, Home, Phone, MessageCircle, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ReportDialog } from "@/components/ReportDialog";
@@ -39,6 +39,12 @@ export default function StationDetails() {
               <Badge variant={station.status === "OPERATIONAL" ? "default" : "destructive"} className="px-3 py-1">
                 {t(`station.status.${station.status?.toLowerCase()}`)}
               </Badge>
+              {station.trustLevel === "LOW" && (
+                <Badge variant="destructive" className="px-3 py-1 bg-yellow-100 text-yellow-700 border-yellow-200" data-testid="badge-low-trust">
+                  <AlertTriangle className="w-3 h-3 mr-1" />
+                  {t("station.underReview")}
+                </Badge>
+              )}
               {station.stationType === "HOME" && (
                 <Badge variant="secondary" className="px-3 py-1 bg-orange-100 text-orange-700 border-orange-200">
                   <Home className="w-3 h-3 mr-1" />

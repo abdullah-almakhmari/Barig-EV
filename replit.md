@@ -103,6 +103,16 @@ The `shared/` directory contains code used by both frontend and backend:
 - Allows multiple concurrent sessions per station based on available chargers
 - Known MVP limitation: Some race conditions possible under high concurrency; rollback logic handles most failure cases
 
+### Anti-Tampering System (January 2026)
+- **Authorization**: Only station owner OR user with active charging session can change charger status/availability
+- **Trust Level**: Stations have trustLevel field (NORMAL/LOW) - LOW shows "Under Review" badge
+- **Report Threshold**: Stations with 3+ user reports automatically get trustLevel=LOW
+- **Protected Endpoints**: PATCH /api/stations/:id/availability requires auth + ownership/session check
+- **Owner-Only Status**: PATCH /api/stations/:id/status for owner to change OPERATIONAL/MAINTENANCE/OFFLINE
+- **Normal Users**: Can only submit reports (not directly change station status)
+- **Validation**: Status updates use Zod validation with enum for allowed values
+- **Error Messages**: Clear 403 errors explaining users can report instead of change status
+
 ### Launch Readiness (January 2026)
 - **Authentication required**: Adding stations and reports now requires user login (prevents spam)
 - **Rate limiting**: API endpoints protected with express-rate-limit:

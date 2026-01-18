@@ -91,17 +91,32 @@ export async function registerRoutes(
     res.json(reports);
   });
 
-  app.patch(api.stations.updateAvailability.path, async (req, res) => {
+  app.patch(api.stations.updateAvailability.path, isAuthenticated, async (req: any, res) => {
     try {
       const input = api.stations.updateAvailability.input.parse(req.body);
-      const station = await storage.getStation(Number(req.params.id));
+      const stationId = Number(req.params.id);
+      const userId = req.user?.id;
+      
+      const station = await storage.getStation(stationId);
       if (!station) {
         return res.status(404).json({ message: "Station not found" });
       }
+      
+      // Authorization: Only station owner OR user with active session can update
+      const isOwner = station.addedByUserId === userId;
+      const activeSession = await storage.getActiveSession(stationId);
+      const hasActiveSession = activeSession && activeSession.userId === userId;
+      
+      if (!isOwner && !hasActiveSession) {
+        return res.status(403).json({ 
+          message: "You are not allowed to change this charger status, but you can report it." 
+        });
+      }
+      
       if (input.availableChargers > (station.chargerCount || 1)) {
         return res.status(400).json({ message: "Available chargers cannot exceed total chargers" });
       }
-      const updated = await storage.updateStationAvailability(Number(req.params.id), input.availableChargers);
+      const updated = await storage.updateStationAvailability(stationId, input.availableChargers);
       res.json(updated);
     } catch (err) {
       if (err instanceof z.ZodError) {
@@ -110,6 +125,41 @@ export async function registerRoutes(
           field: err.errors[0].path.join('.'),
         });
       }
+      throw err;
+    }
+  });
+  
+  // Update station status (owner only)
+  const statusUpdateSchema = z.object({
+    status: z.enum(["OPERATIONAL", "MAINTENANCE", "OFFLINE"])
+  });
+  
+  app.patch("/api/stations/:id/status", isAuthenticated, async (req: any, res) => {
+    try {
+      const parsed = statusUpdateSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ message: "Invalid status. Must be OPERATIONAL, MAINTENANCE, or OFFLINE" });
+      }
+      
+      const { status } = parsed.data;
+      const stationId = Number(req.params.id);
+      const userId = req.user?.id;
+      
+      const station = await storage.getStation(stationId);
+      if (!station) {
+        return res.status(404).json({ message: "Station not found" });
+      }
+      
+      // Authorization: Only station owner can change status
+      if (station.addedByUserId !== userId) {
+        return res.status(403).json({ 
+          message: "You are not allowed to change this charger status, but you can report it." 
+        });
+      }
+      
+      const updated = await storage.updateStationStatus(stationId, status);
+      res.json(updated);
+    } catch (err) {
       throw err;
     }
   });
@@ -141,11 +191,10 @@ export async function registerRoutes(
       }
       const report = await storage.createReport({ ...input, userId });
       
-      // Update station status based on report
-      if (input.status === "NOT_WORKING") {
-        await storage.updateStationStatus(input.stationId, "OFFLINE");
-      } else if (input.status === "WORKING") {
-        await storage.updateStationStatus(input.stationId, "OPERATIONAL");
+      // Check report count and flag station if 3+ reports
+      const reportCount = await storage.getReportCountByStation(input.stationId);
+      if (reportCount >= 3 && station.trustLevel !== "LOW") {
+        await storage.updateStationTrustLevel(input.stationId, "LOW");
       }
       
       res.status(201).json(report);

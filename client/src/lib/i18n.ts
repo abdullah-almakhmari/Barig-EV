@@ -110,6 +110,10 @@ const resources = {
       "vehicle.addedDesc": "Your vehicle has been added to your garage",
       "vehicle.loginToSave": "Log in to save your vehicles",
       "vehicle.unknown": "Unknown Vehicle",
+      "vehicle.other": "Other",
+      "vehicle.enterCustomName": "Enter vehicle name",
+      "station.underReview": "Under Review",
+      "station.notAuthorized": "You are not allowed to change this charger status, but you can report it.",
       "auth.login": "Login",
       "auth.logout": "Logout",
       "auth.loginRequired": "Please login to continue",
@@ -133,8 +137,6 @@ const resources = {
       "charging.resume": "View Session",
       "charging.endNow": "End Now",
       "charging.alreadyActive": "You already have an active charging session",
-      "vehicle.other": "Other",
-      "vehicle.enterCustomName": "Enter vehicle name",
     }
   },
   ar: {
@@ -244,6 +246,10 @@ const resources = {
       "vehicle.addedDesc": "تمت إضافة سيارتك إلى كراجك",
       "vehicle.loginToSave": "سجل دخولك لحفظ سياراتك",
       "vehicle.unknown": "سيارة غير معروفة",
+      "vehicle.other": "أخرى",
+      "vehicle.enterCustomName": "أدخل اسم السيارة",
+      "station.underReview": "قيد المراجعة",
+      "station.notAuthorized": "لا يمكنك تغيير حالة هذا الشاحن، لكن يمكنك الإبلاغ عنه.",
       "auth.login": "تسجيل الدخول",
       "auth.logout": "تسجيل الخروج",
       "auth.loginRequired": "يرجى تسجيل الدخول للمتابعة",
@@ -267,8 +273,6 @@ const resources = {
       "charging.resume": "عرض الجلسة",
       "charging.endNow": "إنهاء الآن",
       "charging.alreadyActive": "لديك جلسة شحن نشطة بالفعل",
-      "vehicle.other": "أخرى",
-      "vehicle.enterCustomName": "أدخل اسم السيارة",
     }
   }
 };

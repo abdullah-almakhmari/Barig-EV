@@ -87,7 +87,7 @@ export const chargingSessions = pgTable("charging_sessions", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-export const insertStationSchema = createInsertSchema(stations).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertStationSchema = createInsertSchema(stations).omit({ id: true, trustLevel: true, createdAt: true, updatedAt: true });
 export const insertReportSchema = createInsertSchema(reports).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertChargingSessionSchema = createInsertSchema(chargingSessions).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertEvVehicleSchema = createInsertSchema(evVehicles).omit({ id: true, createdAt: true, updatedAt: true });
