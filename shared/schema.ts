@@ -28,6 +28,7 @@ export const stations = pgTable("stations", {
   contactWhatsapp: text("contact_whatsapp"),
   addedByUserId: varchar("added_by_user_id"),
   isHidden: boolean("is_hidden").default(false),
+  approvalStatus: text("approval_status").default("APPROVED"), // PENDING, APPROVED, REJECTED
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -112,7 +113,7 @@ export const trustEvents = pgTable("trust_events", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-export const insertStationSchema = createInsertSchema(stations).omit({ id: true, trustLevel: true, isHidden: true, createdAt: true, updatedAt: true });
+export const insertStationSchema = createInsertSchema(stations).omit({ id: true, trustLevel: true, isHidden: true, approvalStatus: true, createdAt: true, updatedAt: true });
 export const insertReportSchema = createInsertSchema(reports).omit({ id: true, reviewStatus: true, reviewedBy: true, reviewedAt: true, createdAt: true, updatedAt: true });
 export const insertChargingSessionSchema = createInsertSchema(chargingSessions).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertEvVehicleSchema = createInsertSchema(evVehicles).omit({ id: true, createdAt: true, updatedAt: true });

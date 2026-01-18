@@ -96,8 +96,8 @@ export default function AddStation() {
     try {
       const newStation = await createStation.mutateAsync(data);
       toast({
-        title: "Success",
-        description: "Station added successfully!",
+        title: t("add.successTitle"),
+        description: t("add.successPending"),
       });
       setLocation(`/station/${newStation.id}`);
     } catch (error) {

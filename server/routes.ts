@@ -79,7 +79,7 @@ export async function registerRoutes(
     try {
       const input = api.stations.create.input.parse(req.body);
       const userId = req.user?.id;
-      const station = await storage.createStation({ ...input, addedByUserId: userId });
+      const station = await storage.createStation({ ...input, addedByUserId: userId }, true);
       res.status(201).json(station);
     } catch (err) {
       if (err instanceof z.ZodError) {
@@ -600,6 +600,31 @@ export async function registerRoutes(
       const userId = req.params.id;
       const level = await getUserTrustLevel(userId);
       res.json({ trustLevel: level });
+    } catch (err) {
+      throw err;
+    }
+  });
+
+  // Admin: Approve or Reject station
+  const approvalStatusSchema = z.object({
+    approvalStatus: z.enum(["APPROVED", "REJECTED"])
+  });
+
+  app.patch("/api/admin/stations/:id/approval", isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const parsed = approvalStatusSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ message: "Invalid approval status" });
+      }
+      
+      const stationId = Number(req.params.id);
+      const station = await storage.updateStationApprovalStatus(stationId, parsed.data.approvalStatus);
+      if (!station) {
+        return res.status(404).json({ message: "Station not found" });
+      }
+      
+      console.log(`[Admin] Station ${stationId} ${parsed.data.approvalStatus} by ${req.user?.email}`);
+      res.json(station);
     } catch (err) {
       throw err;
     }

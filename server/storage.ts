@@ -13,11 +13,12 @@ import { eq, desc, and, ilike, or, ne, gte, sql } from "drizzle-orm";
 export interface IStorage {
   getStations(filters?: { search?: string; city?: string; type?: string }): Promise<Station[]>;
   getStation(id: number): Promise<Station | undefined>;
-  createStation(station: InsertStation): Promise<Station>;
+  createStation(station: InsertStation, isUserSubmitted?: boolean): Promise<Station>;
   updateStationAvailability(id: number, availableChargers: number): Promise<Station | undefined>;
   updateStationStatus(id: number, status: string): Promise<Station | undefined>;
   updateStationTrustLevel(id: number, trustLevel: string): Promise<Station | undefined>;
   updateStationVisibility(id: number, isHidden: boolean): Promise<Station | undefined>;
+  updateStationApprovalStatus(id: number, approvalStatus: string): Promise<Station | undefined>;
   getAllStationsForAdmin(): Promise<Station[]>;
   getReports(stationId: number): Promise<Report[]>;
   getReportCountByStation(stationId: number): Promise<number>;
@@ -59,6 +60,9 @@ export class DatabaseStorage implements IStorage {
 
     // Always exclude hidden stations for public API
     conditions.push(or(eq(stations.isHidden, false), eq(stations.isHidden, null as any)));
+    
+    // Only show APPROVED stations to public (or null for legacy stations)
+    conditions.push(or(eq(stations.approvalStatus, "APPROVED"), eq(stations.approvalStatus, null as any)));
 
     if (filters?.search) {
       const searchLower = `%${filters.search.toLowerCase()}%`;
@@ -93,8 +97,11 @@ export class DatabaseStorage implements IStorage {
     return station;
   }
 
-  async createStation(insertStation: InsertStation): Promise<Station> {
-    const [station] = await db.insert(stations).values(insertStation).returning();
+  async createStation(insertStation: InsertStation, isUserSubmitted: boolean = false): Promise<Station> {
+    const [station] = await db.insert(stations).values({
+      ...insertStation,
+      approvalStatus: isUserSubmitted ? "PENDING" : "APPROVED"
+    }).returning();
     return station;
   }
 
@@ -125,6 +132,14 @@ export class DatabaseStorage implements IStorage {
   async updateStationVisibility(id: number, isHidden: boolean): Promise<Station | undefined> {
     const [updated] = await db.update(stations)
       .set({ isHidden, updatedAt: new Date() })
+      .where(eq(stations.id, id))
+      .returning();
+    return updated;
+  }
+
+  async updateStationApprovalStatus(id: number, approvalStatus: string): Promise<Station | undefined> {
+    const [updated] = await db.update(stations)
+      .set({ approvalStatus, updatedAt: new Date() })
       .where(eq(stations.id, id))
       .returning();
     return updated;

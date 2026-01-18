@@ -77,6 +77,20 @@ export default function AdminPanel() {
     },
   });
 
+  const updateApprovalMutation = useMutation({
+    mutationFn: async ({ id, approvalStatus }: { id: number; approvalStatus: string }) => {
+      return await apiRequest("PATCH", `/api/admin/stations/${id}/approval`, { approvalStatus });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/stations"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/stations"] });
+      toast({ title: t("admin.approvalUpdated") });
+    },
+    onError: () => {
+      toast({ title: t("common.error"), variant: "destructive" });
+    },
+  });
+
   if (authLoading) {
     return (
       <div className="flex h-[80vh] items-center justify-center">
@@ -235,8 +249,19 @@ export default function AdminPanel() {
             </Card>
           ) : (
             <div className="space-y-4">
-              {stations.map((station) => (
-                <Card key={station.id} className={station.isHidden ? "opacity-60" : ""} data-testid={`card-station-${station.id}`}>
+              {/* Show PENDING stations first */}
+              {stations
+                .sort((a, b) => {
+                  if (a.approvalStatus === "PENDING" && b.approvalStatus !== "PENDING") return -1;
+                  if (a.approvalStatus !== "PENDING" && b.approvalStatus === "PENDING") return 1;
+                  return 0;
+                })
+                .map((station) => (
+                <Card 
+                  key={station.id} 
+                  className={`${station.isHidden || station.approvalStatus === "REJECTED" ? "opacity-60" : ""} ${station.approvalStatus === "PENDING" ? "border-yellow-500 border-2" : ""}`} 
+                  data-testid={`card-station-${station.id}`}
+                >
                   <CardContent className="py-4">
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                       <div className="flex-1">
@@ -244,6 +269,25 @@ export default function AdminPanel() {
                           <span className="font-semibold text-lg">
                             {isArabic ? station.nameAr : station.name}
                           </span>
+                          {/* Approval Status Badges */}
+                          {station.approvalStatus === "PENDING" && (
+                            <Badge className="bg-yellow-500 text-white flex items-center gap-1">
+                              <AlertTriangle className="w-3 h-3" />
+                              {t("admin.pending")}
+                            </Badge>
+                          )}
+                          {station.approvalStatus === "APPROVED" && (
+                            <Badge className="bg-green-500 text-white flex items-center gap-1">
+                              <Check className="w-3 h-3" />
+                              {t("admin.approved")}
+                            </Badge>
+                          )}
+                          {station.approvalStatus === "REJECTED" && (
+                            <Badge variant="destructive" className="flex items-center gap-1">
+                              <X className="w-3 h-3" />
+                              {t("admin.rejected")}
+                            </Badge>
+                          )}
                           {station.isHidden && (
                             <Badge variant="destructive" className="flex items-center gap-1">
                               <EyeOff className="w-3 h-3" />
@@ -260,31 +304,60 @@ export default function AdminPanel() {
                           {isArabic ? station.cityAr : station.city} • {station.chargerType} • {station.status}
                         </div>
                       </div>
-                      <div className="flex gap-2">
-                        {station.isHidden ? (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="flex items-center gap-1"
-                            onClick={() => updateVisibilityMutation.mutate({ id: station.id, isHidden: false })}
-                            disabled={updateVisibilityMutation.isPending}
-                            data-testid={`button-restore-${station.id}`}
-                          >
-                            <Eye className="w-4 h-4" />
-                            {t("admin.restore")}
-                          </Button>
-                        ) : (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="flex items-center gap-1 text-destructive hover:text-destructive"
-                            onClick={() => updateVisibilityMutation.mutate({ id: station.id, isHidden: true })}
-                            disabled={updateVisibilityMutation.isPending}
-                            data-testid={`button-hide-${station.id}`}
-                          >
-                            <EyeOff className="w-4 h-4" />
-                            {t("admin.hide")}
-                          </Button>
+                      <div className="flex gap-2 flex-wrap">
+                        {/* Approval Actions - Show for PENDING stations */}
+                        {station.approvalStatus === "PENDING" && (
+                          <>
+                            <Button
+                              size="sm"
+                              className="flex items-center gap-1 bg-green-600 hover:bg-green-700"
+                              onClick={() => updateApprovalMutation.mutate({ id: station.id, approvalStatus: "APPROVED" })}
+                              disabled={updateApprovalMutation.isPending}
+                              data-testid={`button-approve-${station.id}`}
+                            >
+                              <Check className="w-4 h-4" />
+                              {t("admin.approve")}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              className="flex items-center gap-1"
+                              onClick={() => updateApprovalMutation.mutate({ id: station.id, approvalStatus: "REJECTED" })}
+                              disabled={updateApprovalMutation.isPending}
+                              data-testid={`button-reject-${station.id}`}
+                            >
+                              <X className="w-4 h-4" />
+                              {t("admin.rejectStation")}
+                            </Button>
+                          </>
+                        )}
+                        {/* Visibility Actions - Show for already approved/rejected */}
+                        {station.approvalStatus !== "PENDING" && (
+                          station.isHidden ? (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="flex items-center gap-1"
+                              onClick={() => updateVisibilityMutation.mutate({ id: station.id, isHidden: false })}
+                              disabled={updateVisibilityMutation.isPending}
+                              data-testid={`button-restore-${station.id}`}
+                            >
+                              <Eye className="w-4 h-4" />
+                              {t("admin.restore")}
+                            </Button>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="flex items-center gap-1 text-destructive hover:text-destructive"
+                              onClick={() => updateVisibilityMutation.mutate({ id: station.id, isHidden: true })}
+                              disabled={updateVisibilityMutation.isPending}
+                              data-testid={`button-hide-${station.id}`}
+                            >
+                              <EyeOff className="w-4 h-4" />
+                              {t("admin.hide")}
+                            </Button>
+                          )
                         )}
                       </div>
                     </div>
