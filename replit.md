@@ -166,3 +166,28 @@ The `shared/` directory contains code used by both frontend and backend:
 - **Pagination**: Station list shows 12 items with "Show More" button
 - **RTL/Arabic**: Full support with document direction switching
 - **Database storage**: PostgreSQL on Neon (serverless), data persists across deployments
+
+### User Trust & Loyalty System (January 2026)
+- **Purpose**: Professional trust system to improve data reliability and reduce abuse - NOT gamification
+- **Database Fields** (users table):
+  - `trustScore` (INT, default 0) - Internal score, never shown to users
+  - `userTrustLevel` (VARCHAR: NEW/NORMAL/TRUSTED, default NEW) - Determines badge visibility
+- **Trust Levels**:
+  - NEW: trustScore < 5 (default for new users)
+  - NORMAL: trustScore 5-9 (reliable users)
+  - TRUSTED: trustScore ≥ 10 (highly reliable users, shows badge)
+- **Score Increases**:
+  - +1: User's verification matches community leading status (≥3 confirmations in 30 min)
+  - +2: User's report reason confirmed by ≥2 others within 24 hours
+- **Score Decreases**:
+  - -1: User contradicts community consensus ≥3 times within 24 hours
+- **Trust Logic File**: `server/trust/trustSystem.ts`
+- **Frontend UX**:
+  - NO visible scores, points, leaderboards, or gamification
+  - Only TRUSTED users see subtle badge: "Trusted User" / "مستخدم موثوق"
+  - Badge appears in verification section on StationDetails page
+  - Component: `client/src/components/TrustedUserBadge.tsx`
+- **API Endpoint**:
+  - GET /api/users/:id/trust-level - Returns user's trust level for badge display
+- **Idempotency**: In-memory tracking prevents repeated rewards/penalties within windows (resets on server restart - acceptable for MVP, would need database persistence for production)
+- **Bilingual Support**: Full Arabic/English translations for badge

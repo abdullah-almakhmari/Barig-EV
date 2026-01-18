@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { boolean, index, jsonb, pgTable, timestamp, varchar } from "drizzle-orm/pg-core";
+import { boolean, index, integer, jsonb, pgTable, timestamp, varchar } from "drizzle-orm/pg-core";
 
 // Session storage table for express-session
 export const sessions = pgTable(
@@ -11,6 +11,9 @@ export const sessions = pgTable(
   },
   (table) => [index("IDX_session_expire").on(table.expire)]
 );
+
+// User trust levels for the Trust & Loyalty system
+export type UserTrustLevel = "NEW" | "NORMAL" | "TRUSTED";
 
 // User storage table with custom auth support
 export const users = pgTable("users", {
@@ -24,6 +27,8 @@ export const users = pgTable("users", {
   providerId: varchar("provider_id"),
   emailVerified: boolean("email_verified").default(false),
   role: varchar("role").default("user"),
+  trustScore: integer("trust_score").default(0),
+  userTrustLevel: varchar("user_trust_level").default("NEW"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

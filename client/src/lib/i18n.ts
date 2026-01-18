@@ -180,6 +180,7 @@ const resources = {
       "verify.minutesAgo": "{{count}} min",
       "verify.hoursAgo": "{{count}} hr",
       "verify.justNow": "just now",
+      "trust.trustedUser": "Trusted User",
     }
   },
   ar: {
@@ -359,6 +360,7 @@ const resources = {
       "verify.minutesAgo": "{{count}} دقيقة",
       "verify.hoursAgo": "{{count}} ساعة",
       "verify.justNow": "الآن",
+      "trust.trustedUser": "مستخدم موثوق",
     }
   }
 };

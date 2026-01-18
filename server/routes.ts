@@ -5,6 +5,12 @@ import { api } from "@shared/routes";
 import { z } from "zod";
 import { setupAuth, isAuthenticated } from "./auth";
 import rateLimit from "express-rate-limit";
+import { 
+  checkAndRewardVerificationConsensus, 
+  checkAndPenalizeContradictions,
+  checkAndRewardReportConsensus,
+  getUserTrustLevel
+} from "./trust/trustSystem";
 
 // Rate limiters for different endpoints
 const generalLimiter = rateLimit({
@@ -188,6 +194,11 @@ export async function registerRoutes(
       const verification = await storage.submitVerification(stationId, userId, vote);
       const summary = await storage.getVerificationSummary(stationId);
       
+      // Trust system: check if user's vote matches consensus
+      checkAndRewardVerificationConsensus(stationId, userId, vote).catch(() => {});
+      // Trust system: check for contradictions
+      checkAndPenalizeContradictions(userId).catch(() => {});
+      
       res.status(201).json({ verification, summary });
     } catch (err) {
       throw err;
@@ -241,6 +252,11 @@ export async function registerRoutes(
       const reportCount = await storage.getReportCountByStation(input.stationId);
       if (reportCount >= 3 && station.trustLevel !== "LOW") {
         await storage.updateStationTrustLevel(input.stationId, "LOW");
+      }
+      
+      // Trust system: check if report matches consensus
+      if (input.reason) {
+        checkAndRewardReportConsensus(input.stationId, userId, input.reason).catch(() => {});
       }
       
       res.status(201).json(report);
@@ -573,6 +589,17 @@ export async function registerRoutes(
       const stationId = Number(req.params.id);
       const count = await storage.getReportCountByStation(stationId);
       res.json({ count });
+    } catch (err) {
+      throw err;
+    }
+  });
+
+  // Get user trust level for badge display
+  app.get("/api/users/:id/trust-level", async (req, res) => {
+    try {
+      const userId = req.params.id;
+      const level = await getUserTrustLevel(userId);
+      res.json({ trustLevel: level });
     } catch (err) {
       throw err;
     }

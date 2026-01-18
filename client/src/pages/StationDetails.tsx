@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ReportDialog } from "@/components/ReportDialog";
 import { ChargingSessionDialog } from "@/components/ChargingSessionDialog";
+import { TrustedUserBadge } from "@/components/TrustedUserBadge";
 import { formatDistanceToNow } from "date-fns";
 import { SEO } from "@/components/SEO";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -290,8 +291,11 @@ export default function StationDetails() {
           )}
         </div>
         
-        {/* Micro-copy explanation */}
-        <p className="text-xs text-muted-foreground mb-4">{t("verify.helpOthers")}</p>
+        {/* Micro-copy explanation with trusted user badge */}
+        <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+          <p className="text-xs text-muted-foreground">{t("verify.helpOthers")}</p>
+          {isAuthenticated && <TrustedUserBadge trustLevel={user?.userTrustLevel} />}
+        </div>
         
         {/* Verification Buttons */}
         <div className="flex flex-wrap gap-2">
