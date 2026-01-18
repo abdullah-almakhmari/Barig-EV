@@ -2,22 +2,60 @@ import { useRoute } from "wouter";
 import { useStation, useStationReports } from "@/hooks/use-stations";
 import { useTranslation } from "react-i18next";
 import { useLanguage } from "@/components/LanguageContext";
-import { Loader2, Navigation, Clock, ShieldCheck, MapPin, BatteryCharging, Home, Phone, MessageCircle, AlertTriangle } from "lucide-react";
+import { Loader2, Navigation, Clock, ShieldCheck, MapPin, BatteryCharging, Home, Phone, MessageCircle, AlertTriangle, CheckCircle2, XCircle, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ReportDialog } from "@/components/ReportDialog";
 import { ChargingSessionDialog } from "@/components/ChargingSessionDialog";
 import { formatDistanceToNow } from "date-fns";
 import { SEO } from "@/components/SEO";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
+import type { VerificationSummary } from "@shared/schema";
 
 export default function StationDetails() {
   const [, params] = useRoute("/station/:id");
   const id = params ? parseInt(params.id) : 0;
   const { t } = useTranslation();
   const { language } = useLanguage();
+  const { toast } = useToast();
+  const { user, isAuthenticated } = useAuth();
   
   const { data: station, isLoading } = useStation(id);
   const { data: reports } = useStationReports(id);
+  
+  // Verification summary
+  const { data: verificationSummary } = useQuery<VerificationSummary>({
+    queryKey: ['/api/stations', id, 'verification-summary'],
+    queryFn: async () => {
+      const res = await fetch(`/api/stations/${id}/verification-summary`);
+      if (!res.ok) throw new Error('Failed to fetch verification summary');
+      return res.json();
+    },
+    enabled: id > 0,
+  });
+  
+  // Submit verification mutation
+  const submitVerification = useMutation({
+    mutationFn: async (vote: 'WORKING' | 'NOT_WORKING' | 'BUSY') => {
+      return apiRequest('POST', `/api/stations/${id}/verify`, { vote });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/stations', id, 'verification-summary'] });
+      toast({
+        title: t("verify.submitted"),
+        description: t("verify.submittedDesc"),
+      });
+    },
+    onError: () => {
+      toast({
+        title: t("common.error"),
+        variant: "destructive",
+      });
+    },
+  });
 
   if (isLoading) return <div className="flex justify-center p-20"><Loader2 className="animate-spin text-primary" /></div>;
   if (!station) return <div className="p-20 text-center">{t("common.error")}</div>;
@@ -138,6 +176,90 @@ export default function StationDetails() {
           availableChargers={station.availableChargers ?? 0}
           totalChargers={station.chargerCount ?? 1}
         />
+      </div>
+
+      {/* Community Verification Card */}
+      <div className="bg-card rounded-2xl p-6 border shadow-sm">
+        <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
+          <Users className="w-5 h-5 text-primary" />
+          {t("verify.title")}
+        </h3>
+        
+        {/* Verification Summary */}
+        <div className="mb-4">
+          {verificationSummary && verificationSummary.totalVotes > 0 ? (
+            <div className="flex items-center gap-2 text-sm">
+              {verificationSummary.isStrongVerified ? (
+                <Badge variant="default" className="bg-emerald-500 hover:bg-emerald-600">
+                  <CheckCircle2 className="w-3 h-3 mr-1" />
+                  {t("verify.strongVerified", { count: verificationSummary.totalVotes })}
+                </Badge>
+              ) : verificationSummary.isVerified ? (
+                <Badge variant="secondary" className="bg-emerald-100 text-emerald-700">
+                  <CheckCircle2 className="w-3 h-3 mr-1" />
+                  {t("verify.verifiedBy", { count: verificationSummary.totalVotes })}
+                </Badge>
+              ) : (
+                <span className="text-muted-foreground">
+                  {t("verify.verifiedBy", { count: verificationSummary.totalVotes })}
+                </span>
+              )}
+              {verificationSummary.leadingVote && (
+                <Badge 
+                  variant="outline"
+                  className={
+                    verificationSummary.leadingVote === 'WORKING' 
+                      ? 'border-emerald-500 text-emerald-600' 
+                      : verificationSummary.leadingVote === 'NOT_WORKING'
+                      ? 'border-red-500 text-red-600'
+                      : 'border-orange-500 text-orange-600'
+                  }
+                >
+                  {t(`verify.${verificationSummary.leadingVote === 'WORKING' ? 'working' : verificationSummary.leadingVote === 'NOT_WORKING' ? 'notWorking' : 'busy'}`)}
+                </Badge>
+              )}
+            </div>
+          ) : (
+            <p className="text-muted-foreground text-sm">{t("verify.notRecentlyVerified")}</p>
+          )}
+        </div>
+        
+        {/* Verification Buttons */}
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => isAuthenticated ? submitVerification.mutate('WORKING') : toast({ title: t("verify.loginRequired"), variant: "destructive" })}
+            disabled={submitVerification.isPending}
+            className="border-emerald-500 text-emerald-600 hover:bg-emerald-50"
+            data-testid="button-verify-working"
+          >
+            <CheckCircle2 className="w-4 h-4 mr-1 rtl:ml-1 rtl:mr-0" />
+            {t("verify.confirmWorking")}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => isAuthenticated ? submitVerification.mutate('NOT_WORKING') : toast({ title: t("verify.loginRequired"), variant: "destructive" })}
+            disabled={submitVerification.isPending}
+            className="border-red-500 text-red-600 hover:bg-red-50"
+            data-testid="button-verify-not-working"
+          >
+            <XCircle className="w-4 h-4 mr-1 rtl:ml-1 rtl:mr-0" />
+            {t("verify.confirmNotWorking")}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => isAuthenticated ? submitVerification.mutate('BUSY') : toast({ title: t("verify.loginRequired"), variant: "destructive" })}
+            disabled={submitVerification.isPending}
+            className="border-orange-500 text-orange-600 hover:bg-orange-50"
+            data-testid="button-verify-busy"
+          >
+            <Clock className="w-4 h-4 mr-1 rtl:ml-1 rtl:mr-0" />
+            {t("verify.confirmBusy")}
+          </Button>
+        </div>
       </div>
 
       {/* Info Grid */}
