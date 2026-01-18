@@ -112,10 +112,17 @@ The `shared/` directory contains code used by both frontend and backend:
   - "Verified" if >= 2 votes for leading status
   - "Strongly Verified" if >= 3 votes
   - Shows leading status badge (Working/Not Working/Busy)
+  - Includes lastVerifiedAt timestamp for time context
 - **API Endpoints**:
   - POST /api/stations/:id/verify - Submit verification (requires auth)
-  - GET /api/stations/:id/verification-summary - Get summary (public)
-- **Frontend**: Community Verification card on station details with 3 confirmation buttons
+  - GET /api/stations/:id/verification-summary - Get summary with lastVerifiedAt (public)
+- **Frontend UX**:
+  - Prominent verification badge near station title (immediately visible)
+  - Shows "Verified by community (X users)" when verified as Working
+  - Shows "Under review - not recently verified" when no recent votes
+  - Time context: "Last confirmed X min ago" below the verification summary
+  - Micro-copy: "Help other drivers by confirming the current charger status."
+  - Three colored buttons: Confirm Working (green), Confirm Not Working (red), Confirm Busy (orange)
 - **Bilingual Support**: Full Arabic/English translations
 
 ### Admin Panel (January 2026)
