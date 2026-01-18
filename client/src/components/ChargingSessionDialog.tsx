@@ -31,6 +31,8 @@ export function ChargingSessionDialog({ stationId, availableChargers, totalCharg
   const [selectedUserVehicleId, setSelectedUserVehicleId] = useState<string>("");
   const [showAddVehicle, setShowAddVehicle] = useState(false);
   const [selectedCatalogVehicleId, setSelectedCatalogVehicleId] = useState<string>("");
+  const [showOtherVehicle, setShowOtherVehicle] = useState(false);
+  const [customVehicleName, setCustomVehicleName] = useState("");
 
   const { data: activeSession, isLoading: loadingSession } = useActiveSession(stationId);
   const { data: userVehicles = [], isLoading: loadingUserVehicles } = useUserVehicles();
@@ -62,8 +64,14 @@ export function ChargingSessionDialog({ stationId, availableChargers, totalCharg
   const handleUserVehicleChange = (value: string) => {
     if (value === "add_new") {
       setShowAddVehicle(true);
+      setShowOtherVehicle(false);
+    } else if (value === "other") {
+      setShowOtherVehicle(true);
+      setShowAddVehicle(false);
+      setSelectedUserVehicleId("");
     } else {
       setSelectedUserVehicleId(value);
+      setShowOtherVehicle(false);
       localStorage.setItem(VEHICLE_STORAGE_KEY, value);
     }
   };
@@ -92,12 +100,15 @@ export function ChargingSessionDialog({ stationId, availableChargers, totalCharg
     try {
       await startSession.mutateAsync({
         stationId,
-        userVehicleId: selectedUserVehicleId ? Number(selectedUserVehicleId) : undefined,
+        userVehicleId: showOtherVehicle ? undefined : (selectedUserVehicleId ? Number(selectedUserVehicleId) : undefined),
+        customVehicleName: showOtherVehicle ? customVehicleName : undefined,
         batteryStartPercent: batteryStart ? Number(batteryStart) : undefined,
       });
       toast({ title: t("charging.sessionStarted"), description: t("charging.sessionStartedDesc") });
       setOpenStart(false);
       setBatteryStart("");
+      setCustomVehicleName("");
+      setShowOtherVehicle(false);
     } catch (error: any) {
       toast({ variant: "destructive", title: t("common.error"), description: error.message });
     }
@@ -300,6 +311,9 @@ export function ChargingSessionDialog({ stationId, availableChargers, totalCharg
                           {uv.isDefault && ` ★`}
                         </SelectItem>
                       ))}
+                      <SelectItem value="other" data-testid="other-vehicle">
+                        {t("vehicle.other")}
+                      </SelectItem>
                       {isLoggedIn && (
                         <SelectItem value="add_new" data-testid="add-new-vehicle">
                           <span className="flex items-center gap-1">
@@ -310,13 +324,23 @@ export function ChargingSessionDialog({ stationId, availableChargers, totalCharg
                       )}
                     </SelectContent>
                   </Select>
-                  {selectedUserVehicle?.evVehicle && (
+                  {selectedUserVehicle?.evVehicle && !showOtherVehicle && (
                     <div className="text-xs text-muted-foreground flex gap-3">
                       <span>{selectedUserVehicle.evVehicle.batteryCapacityKwh} kWh</span>
                       <span>{selectedUserVehicle.evVehicle.chargerType}</span>
                     </div>
                   )}
-                  {!isLoggedIn && userVehicles.length === 0 && (
+                  {showOtherVehicle && (
+                    <div className="space-y-2">
+                      <Input
+                        placeholder={t("vehicle.enterCustomName")}
+                        value={customVehicleName}
+                        onChange={(e) => setCustomVehicleName(e.target.value)}
+                        data-testid="input-custom-vehicle-name"
+                      />
+                    </div>
+                  )}
+                  {!isLoggedIn && userVehicles.length === 0 && !showOtherVehicle && (
                     <p className="text-xs text-muted-foreground">{t("vehicle.loginToSave")}</p>
                   )}
                 </div>

@@ -133,6 +133,8 @@ const resources = {
       "charging.resume": "View Session",
       "charging.endNow": "End Now",
       "charging.alreadyActive": "You already have an active charging session",
+      "vehicle.other": "Other",
+      "vehicle.enterCustomName": "Enter vehicle name",
     }
   },
   ar: {
@@ -265,6 +267,8 @@ const resources = {
       "charging.resume": "عرض الجلسة",
       "charging.endNow": "إنهاء الآن",
       "charging.alreadyActive": "لديك جلسة شحن نشطة بالفعل",
+      "vehicle.other": "أخرى",
+      "vehicle.enterCustomName": "أدخل اسم السيارة",
     }
   }
 };

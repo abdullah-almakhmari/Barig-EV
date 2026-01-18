@@ -17,7 +17,7 @@ export interface IStorage {
   updateStationStatus(id: number, status: string): Promise<Station | undefined>;
   getReports(stationId: number): Promise<Report[]>;
   createReport(report: InsertReport): Promise<Report>;
-  startChargingSession(stationId: number, batteryStartPercent?: number, userVehicleId?: number, userId?: string): Promise<ChargingSession>;
+  startChargingSession(stationId: number, batteryStartPercent?: number, userVehicleId?: number, userId?: string, customVehicleName?: string): Promise<ChargingSession>;
   endChargingSession(sessionId: number, batteryEndPercent?: number, energyKwh?: number): Promise<ChargingSession | undefined>;
   getChargingSessions(stationId?: number, userId?: string): Promise<ChargingSession[]>;
   getActiveSession(stationId: number): Promise<ChargingSession | undefined>;
@@ -109,11 +109,12 @@ export class DatabaseStorage implements IStorage {
     return report;
   }
 
-  async startChargingSession(stationId: number, batteryStartPercent?: number, userVehicleId?: number, userId?: string): Promise<ChargingSession> {
+  async startChargingSession(stationId: number, batteryStartPercent?: number, userVehicleId?: number, userId?: string, customVehicleName?: string): Promise<ChargingSession> {
     const [session] = await db.insert(chargingSessions).values({
       stationId,
       userId,
-      userVehicleId,
+      userVehicleId: customVehicleName ? null : userVehicleId,
+      customVehicleName,
       batteryStartPercent,
       isActive: true,
       startTime: new Date(),

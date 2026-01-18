@@ -102,6 +102,7 @@ export const api = {
       input: z.object({
         stationId: z.number(),
         userVehicleId: z.number().optional(),
+        customVehicleName: z.string().optional(),
         batteryStartPercent: z.number().min(0).max(100).optional(),
       }),
       responses: {

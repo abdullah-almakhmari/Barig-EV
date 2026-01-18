@@ -74,6 +74,7 @@ export const chargingSessions = pgTable("charging_sessions", {
   stationId: integer("station_id").notNull(),
   userId: varchar("user_id"),
   userVehicleId: integer("user_vehicle_id"),
+  customVehicleName: text("custom_vehicle_name"),
   startTime: timestamp("start_time").defaultNow(),
   endTime: timestamp("end_time"),
   durationMinutes: integer("duration_minutes"),

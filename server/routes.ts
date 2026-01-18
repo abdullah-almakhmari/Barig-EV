@@ -184,7 +184,7 @@ export async function registerRoutes(
       }
       
       // Create charging session first, then update availability
-      const session = await storage.startChargingSession(input.stationId, input.batteryStartPercent, input.userVehicleId, userId);
+      const session = await storage.startChargingSession(input.stationId, input.batteryStartPercent, input.userVehicleId, userId, input.customVehicleName);
       
       try {
         await storage.updateStationAvailability(input.stationId, available - 1);

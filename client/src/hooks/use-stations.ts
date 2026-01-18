@@ -189,7 +189,7 @@ export function useActiveSession(stationId: number) {
 export function useStartChargingSession() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (data: { stationId: number; userVehicleId?: number; batteryStartPercent?: number }) => {
+    mutationFn: async (data: { stationId: number; userVehicleId?: number; customVehicleName?: string; batteryStartPercent?: number }) => {
       const res = await fetch(api.chargingSessions.start.path, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
