@@ -1,5 +1,5 @@
 import {
-  stations, reports, chargingSessions, evVehicles, userVehicles,
+  stations, reports, chargingSessions, evVehicles, userVehicles, users,
   type Station, type InsertStation,
   type Report, type InsertReport,
   type ChargingSession, type InsertChargingSession,
@@ -7,7 +7,7 @@ import {
   type UserVehicle, type InsertUserVehicle, type UserVehicleWithDetails
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, ilike, or } from "drizzle-orm";
+import { eq, desc, and, ilike, or, ne } from "drizzle-orm";
 
 export interface IStorage {
   getStations(filters?: { search?: string; city?: string; type?: string }): Promise<Station[]>;
@@ -16,8 +16,12 @@ export interface IStorage {
   updateStationAvailability(id: number, availableChargers: number): Promise<Station | undefined>;
   updateStationStatus(id: number, status: string): Promise<Station | undefined>;
   updateStationTrustLevel(id: number, trustLevel: string): Promise<Station | undefined>;
+  updateStationVisibility(id: number, isHidden: boolean): Promise<Station | undefined>;
+  getAllStationsForAdmin(): Promise<Station[]>;
   getReports(stationId: number): Promise<Report[]>;
   getReportCountByStation(stationId: number): Promise<number>;
+  getAllReportsWithDetails(): Promise<ReportWithDetails[]>;
+  updateReportReviewStatus(id: number, reviewStatus: string, reviewedBy: string): Promise<Report | undefined>;
   createReport(report: InsertReport): Promise<Report>;
   startChargingSession(stationId: number, batteryStartPercent?: number, userVehicleId?: number, userId?: string, customVehicleName?: string): Promise<ChargingSession>;
   endChargingSession(sessionId: number, batteryEndPercent?: number, energyKwh?: number): Promise<ChargingSession | undefined>;
@@ -37,9 +41,19 @@ export interface IStorage {
   seed(): Promise<void>;
 }
 
+export type ReportWithDetails = Report & {
+  stationName?: string;
+  stationNameAr?: string;
+  reporterEmail?: string;
+  reportCount?: number;
+};
+
 export class DatabaseStorage implements IStorage {
   async getStations(filters?: { search?: string; city?: string; type?: string }): Promise<Station[]> {
     let conditions = [];
+
+    // Always exclude hidden stations for public API
+    conditions.push(or(eq(stations.isHidden, false), eq(stations.isHidden, null as any)));
 
     if (filters?.search) {
       const searchLower = `%${filters.search.toLowerCase()}%`;
@@ -66,11 +80,7 @@ export class DatabaseStorage implements IStorage {
       conditions.push(eq(stations.chargerType, filters.type));
     }
 
-    if (conditions.length > 0) {
-      return await db.select().from(stations).where(and(...conditions));
-    }
-
-    return await db.select().from(stations);
+    return await db.select().from(stations).where(and(...conditions));
   }
 
   async getStation(id: number): Promise<Station | undefined> {
@@ -107,6 +117,18 @@ export class DatabaseStorage implements IStorage {
     return updated;
   }
 
+  async updateStationVisibility(id: number, isHidden: boolean): Promise<Station | undefined> {
+    const [updated] = await db.update(stations)
+      .set({ isHidden, updatedAt: new Date() })
+      .where(eq(stations.id, id))
+      .returning();
+    return updated;
+  }
+
+  async getAllStationsForAdmin(): Promise<Station[]> {
+    return await db.select().from(stations).orderBy(desc(stations.createdAt));
+  }
+
   async getReports(stationId: number): Promise<Report[]> {
     return await db.select()
       .from(reports)
@@ -124,6 +146,40 @@ export class DatabaseStorage implements IStorage {
   async createReport(insertReport: InsertReport): Promise<Report> {
     const [report] = await db.insert(reports).values(insertReport).returning();
     return report;
+  }
+
+  async getAllReportsWithDetails(): Promise<ReportWithDetails[]> {
+    const allReports = await db.select().from(reports).orderBy(desc(reports.createdAt));
+    const result: ReportWithDetails[] = [];
+    
+    for (const report of allReports) {
+      const [station] = await db.select().from(stations).where(eq(stations.id, report.stationId));
+      const [user] = report.userId ? await db.select().from(users).where(eq(users.id, report.userId)) : [null];
+      const reportCount = await this.getReportCountByStation(report.stationId);
+      
+      result.push({
+        ...report,
+        stationName: station?.name,
+        stationNameAr: station?.nameAr,
+        reporterEmail: user?.email || undefined,
+        reportCount
+      });
+    }
+    
+    return result;
+  }
+
+  async updateReportReviewStatus(id: number, reviewStatus: string, reviewedBy: string): Promise<Report | undefined> {
+    const [updated] = await db.update(reports)
+      .set({ 
+        reviewStatus, 
+        reviewedBy, 
+        reviewedAt: new Date(),
+        updatedAt: new Date() 
+      })
+      .where(eq(reports.id, id))
+      .returning();
+    return updated;
   }
 
   async startChargingSession(stationId: number, batteryStartPercent?: number, userVehicleId?: number, userId?: string, customVehicleName?: string): Promise<ChargingSession> {

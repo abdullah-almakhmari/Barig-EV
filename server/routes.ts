@@ -437,5 +437,97 @@ export async function registerRoutes(
     res.json({ success: true });
   });
 
+  // Admin middleware
+  const isAdmin = (req: any, res: any, next: any) => {
+    if (!req.user) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    if (req.user.role !== "admin") {
+      return res.status(403).json({ message: "Forbidden: Admin access required" });
+    }
+    next();
+  };
+
+  // Admin: Get all reports with station info
+  app.get("/api/admin/reports", isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const reports = await storage.getAllReportsWithDetails();
+      res.json(reports);
+    } catch (err) {
+      throw err;
+    }
+  });
+
+  // Admin: Update report review status
+  const reviewStatusSchema = z.object({
+    reviewStatus: z.enum(["open", "resolved", "rejected", "confirmed"])
+  });
+
+  app.patch("/api/admin/reports/:id/review", isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const parsed = reviewStatusSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ message: "Invalid review status" });
+      }
+      
+      const reportId = Number(req.params.id);
+      const adminId = req.user?.id;
+      
+      const report = await storage.updateReportReviewStatus(reportId, parsed.data.reviewStatus, adminId);
+      if (!report) {
+        return res.status(404).json({ message: "Report not found" });
+      }
+      
+      res.json(report);
+    } catch (err) {
+      throw err;
+    }
+  });
+
+  // Admin: Get all stations (including hidden)
+  app.get("/api/admin/stations", isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const stations = await storage.getAllStationsForAdmin();
+      res.json(stations);
+    } catch (err) {
+      throw err;
+    }
+  });
+
+  // Admin: Hide/Restore station
+  const hideStationSchema = z.object({
+    isHidden: z.boolean()
+  });
+
+  app.patch("/api/admin/stations/:id/visibility", isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const parsed = hideStationSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ message: "Invalid visibility value" });
+      }
+      
+      const stationId = Number(req.params.id);
+      const station = await storage.updateStationVisibility(stationId, parsed.data.isHidden);
+      if (!station) {
+        return res.status(404).json({ message: "Station not found" });
+      }
+      
+      res.json(station);
+    } catch (err) {
+      throw err;
+    }
+  });
+
+  // Admin: Get report counts per station
+  app.get("/api/admin/stations/:id/report-count", isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const stationId = Number(req.params.id);
+      const count = await storage.getReportCountByStation(stationId);
+      res.json({ count });
+    } catch (err) {
+      throw err;
+    }
+  });
+
   return httpServer;
 }
