@@ -1,5 +1,23 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 
+let csrfToken: string | null = null;
+
+async function fetchCsrfToken(): Promise<string> {
+  if (csrfToken) return csrfToken;
+  
+  const res = await fetch("/api/csrf-token", { credentials: "include" });
+  if (res.ok) {
+    const data = await res.json();
+    csrfToken = data.csrfToken;
+    return csrfToken!;
+  }
+  throw new Error("Failed to fetch CSRF token");
+}
+
+export function clearCsrfToken() {
+  csrfToken = null;
+}
+
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
     const text = (await res.text()) || res.statusText;
@@ -12,9 +30,20 @@ export async function apiRequest(
   url: string,
   data?: unknown | undefined,
 ): Promise<Response> {
+  const headers: Record<string, string> = {};
+  
+  if (data) {
+    headers["Content-Type"] = "application/json";
+  }
+  
+  if (["POST", "PUT", "PATCH", "DELETE"].includes(method.toUpperCase())) {
+    const token = await fetchCsrfToken();
+    headers["x-csrf-token"] = token;
+  }
+  
   const res = await fetch(url, {
     method,
-    headers: data ? { "Content-Type": "application/json" } : {},
+    headers,
     body: data ? JSON.stringify(data) : undefined,
     credentials: "include",
   });

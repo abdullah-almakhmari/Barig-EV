@@ -11,27 +11,31 @@ import {
   checkAndRewardReportConsensus,
   getUserTrustLevel
 } from "./trust/trustSystem";
+import { 
+  validateCsrf, 
+  csrfTokenEndpoint, 
+  verificationLimiter 
+} from "./security";
 
-// Rate limiters for different endpoints
 const generalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // 100 requests per 15 minutes
+  windowMs: 15 * 60 * 1000,
+  max: 100,
   message: { message: "Too many requests, please try again later" },
   standardHeaders: true,
   legacyHeaders: false,
 });
 
 const createLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour
-  max: 10, // 10 creates per hour
+  windowMs: 60 * 60 * 1000,
+  max: 10,
   message: { message: "Too many creation requests, please try again later" },
   standardHeaders: true,
   legacyHeaders: false,
 });
 
 const reportLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour
-  max: 20, // 20 reports per hour
+  windowMs: 60 * 60 * 1000,
+  max: 20,
   message: { message: "Too many reports, please try again later" },
   standardHeaders: true,
   legacyHeaders: false,
@@ -47,6 +51,12 @@ export async function registerRoutes(
   
   // Apply general rate limiting to all API routes
   app.use("/api", generalLimiter);
+  
+  // CSRF token endpoint - must be before CSRF validation middleware
+  app.get("/api/csrf-token", csrfTokenEndpoint);
+  
+  // Apply CSRF validation to all state-changing API routes
+  app.use("/api", validateCsrf);
   
   // Seed database on startup
   await storage.seed();
@@ -182,7 +192,7 @@ export async function registerRoutes(
     vote: z.enum(["WORKING", "NOT_WORKING", "BUSY"])
   });
 
-  app.post("/api/stations/:id/verify", isAuthenticated, async (req: any, res) => {
+  app.post("/api/stations/:id/verify", verificationLimiter, isAuthenticated, async (req: any, res) => {
     try {
       const parsed = verificationSchema.safeParse(req.body);
       if (!parsed.success) {

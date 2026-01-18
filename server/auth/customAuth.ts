@@ -198,7 +198,9 @@ export async function setupAuth(app: Express) {
     }
   });
 
-  app.post("/api/auth/register", async (req: Request, res: Response) => {
+  const { authLimiter, registerLimiter } = await import("../security");
+
+  app.post("/api/auth/register", registerLimiter, async (req: Request, res: Response) => {
     try {
       const { email, password, firstName, lastName } = req.body;
 
@@ -236,7 +238,7 @@ export async function setupAuth(app: Express) {
     }
   });
 
-  app.post("/api/auth/login", (req: Request, res: Response, next: NextFunction) => {
+  app.post("/api/auth/login", authLimiter, (req: Request, res: Response, next: NextFunction) => {
     passport.authenticate("local", (err: any, user: Express.User | false, info: any) => {
       if (err) {
         return res.status(500).json({ message: "Login failed" });

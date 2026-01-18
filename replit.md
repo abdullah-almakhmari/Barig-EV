@@ -31,7 +31,11 @@ Preferred communication style: Simple, everyday language.
 - **Admin Panel**: Provides functionality for managing user-submitted reports and stations (approval, hiding/restoring). Access is restricted to admin users.
 - **Anti-Tampering & Trust System**: Implements authorization checks for station status changes (owner/active session only). A professional trust system tracks user reliability without gamification, influencing an internal `trustScore` and `userTrustLevel` (NEW/NORMAL/TRUSTED) to identify trusted contributors. This system includes logic for increasing/decreasing scores based on verification accuracy and report validation, ensuring idempotency with `trust_events` table.
 - **Station Approval Workflow**: All user-submitted stations require manual admin approval before becoming visible on the public map.
-- **Rate Limiting**: API endpoints are protected with `express-rate-limit`.
+- **Rate Limiting**: API endpoints are protected with `express-rate-limit` (auth: 10/15min, register: 5/hr, verifications: 30/15min).
+- **Security Hardening**:
+  - **CSRF Protection**: Double-submit cookie pattern via `x-csrf-token` header. Frontend auto-fetches token from `/api/csrf-token`.
+  - **Helmet**: Security headers (CSP, X-Frame-Options, etc.) configured for production.
+  - **Production Error Handling**: Sanitized error responses in production mode.
 
 ### Data Storage
 
