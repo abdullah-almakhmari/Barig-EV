@@ -15,7 +15,9 @@ export interface IStorage {
   createStation(station: InsertStation): Promise<Station>;
   updateStationAvailability(id: number, availableChargers: number): Promise<Station | undefined>;
   updateStationStatus(id: number, status: string): Promise<Station | undefined>;
+  updateStationTrustLevel(id: number, trustLevel: string): Promise<Station | undefined>;
   getReports(stationId: number): Promise<Report[]>;
+  getReportCountByStation(stationId: number): Promise<number>;
   createReport(report: InsertReport): Promise<Report>;
   startChargingSession(stationId: number, batteryStartPercent?: number, userVehicleId?: number, userId?: string, customVehicleName?: string): Promise<ChargingSession>;
   endChargingSession(sessionId: number, batteryEndPercent?: number, energyKwh?: number): Promise<ChargingSession | undefined>;
@@ -97,11 +99,26 @@ export class DatabaseStorage implements IStorage {
     return updated;
   }
 
+  async updateStationTrustLevel(id: number, trustLevel: string): Promise<Station | undefined> {
+    const [updated] = await db.update(stations)
+      .set({ trustLevel, updatedAt: new Date() })
+      .where(eq(stations.id, id))
+      .returning();
+    return updated;
+  }
+
   async getReports(stationId: number): Promise<Report[]> {
     return await db.select()
       .from(reports)
       .where(eq(reports.stationId, stationId))
       .orderBy(desc(reports.createdAt));
+  }
+
+  async getReportCountByStation(stationId: number): Promise<number> {
+    const reportsList = await db.select()
+      .from(reports)
+      .where(eq(reports.stationId, stationId));
+    return reportsList.length;
   }
 
   async createReport(insertReport: InsertReport): Promise<Report> {
