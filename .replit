@@ -44,4 +44,7 @@ integrations = ["javascript_log_in_with_replit:2.0.0"]
 [userenv]
 
 [userenv.development]
-APP_URL = "https://73f7d225-bb58-4b0b-9f4b-847285455920-00-143ped2zu27f0.riker.replit.dev"
+APP_URL = "APP_URL=https://file-helper--almakhmari001.replit.app"
+
+[userenv.shared]
+DATABASE_URL = "postgresql://neondb_owner:npg_rZHdhEWv3TQ2@ep-calm-sunset-ahshr7cz.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require"
