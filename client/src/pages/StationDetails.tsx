@@ -94,43 +94,45 @@ export default function StationDetails() {
               <Badge variant={station.status === "OPERATIONAL" ? "default" : "destructive"} className="px-3 py-1">
                 {t(`station.status.${station.status?.toLowerCase()}`)}
               </Badge>
-              {/* Prominent Community Verification Badge */}
-              {verificationSummary && verificationSummary.isVerified && verificationSummary.leadingVote === 'WORKING' ? (
-                <Badge 
-                  variant="secondary" 
-                  className={`px-3 py-1 ${verificationSummary.isStrongVerified ? 'bg-emerald-500 text-white border-emerald-600' : 'bg-emerald-100 text-emerald-700 border-emerald-200'}`}
-                  data-testid="badge-community-verified"
-                >
-                  <CheckCircle2 className="w-3 h-3 mr-1 rtl:ml-1 rtl:mr-0" />
-                  {t("verify.verifiedByCommunity", { count: verificationSummary.totalVotes })}
-                </Badge>
-              ) : verificationSummary && verificationSummary.isVerified && verificationSummary.leadingVote === 'NOT_WORKING' ? (
-                <Badge 
-                  variant="destructive" 
-                  className="px-3 py-1"
-                  data-testid="badge-community-not-working"
-                >
-                  <XCircle className="w-3 h-3 mr-1 rtl:ml-1 rtl:mr-0" />
-                  {t("verify.notWorking")}
-                </Badge>
-              ) : verificationSummary && verificationSummary.isVerified && verificationSummary.leadingVote === 'BUSY' ? (
-                <Badge 
-                  variant="secondary" 
-                  className="px-3 py-1 bg-orange-100 text-orange-700 border-orange-200"
-                  data-testid="badge-community-busy"
-                >
-                  <Clock className="w-3 h-3 mr-1 rtl:ml-1 rtl:mr-0" />
-                  {t("verify.busy")}
-                </Badge>
-              ) : (
-                <Badge 
-                  variant="outline" 
-                  className="px-3 py-1 text-muted-foreground border-dashed"
-                  data-testid="badge-not-verified"
-                >
-                  <ShieldAlert className="w-3 h-3 mr-1 rtl:ml-1 rtl:mr-0" />
-                  {t("verify.underReview")}
-                </Badge>
+              {/* Prominent Community Verification Badge - only show when data loaded */}
+              {verificationSummary && (
+                verificationSummary.isVerified && verificationSummary.leadingVote === 'WORKING' ? (
+                  <Badge 
+                    variant="secondary" 
+                    className={`px-3 py-1 ${verificationSummary.isStrongVerified ? 'bg-emerald-500 text-white border-emerald-600' : 'bg-emerald-100 text-emerald-700 border-emerald-200'}`}
+                    data-testid="badge-community-verified"
+                  >
+                    <CheckCircle2 className="w-3 h-3 mr-1 rtl:ml-1 rtl:mr-0" />
+                    {t("verify.verifiedByCommunity", { count: verificationSummary.totalVotes })}
+                  </Badge>
+                ) : verificationSummary.isVerified && verificationSummary.leadingVote === 'NOT_WORKING' ? (
+                  <Badge 
+                    variant="destructive" 
+                    className="px-3 py-1"
+                    data-testid="badge-community-not-working"
+                  >
+                    <XCircle className="w-3 h-3 mr-1 rtl:ml-1 rtl:mr-0" />
+                    {t("verify.notWorking")}
+                  </Badge>
+                ) : verificationSummary.isVerified && verificationSummary.leadingVote === 'BUSY' ? (
+                  <Badge 
+                    variant="secondary" 
+                    className="px-3 py-1 bg-orange-100 text-orange-700 border-orange-200"
+                    data-testid="badge-community-busy"
+                  >
+                    <Clock className="w-3 h-3 mr-1 rtl:ml-1 rtl:mr-0" />
+                    {t("verify.busy")}
+                  </Badge>
+                ) : (
+                  <Badge 
+                    variant="outline" 
+                    className="px-3 py-1 text-muted-foreground border-dashed"
+                    data-testid="badge-not-verified"
+                  >
+                    <ShieldAlert className="w-3 h-3 mr-1 rtl:ml-1 rtl:mr-0" />
+                    {t("verify.underReview")}
+                  </Badge>
+                )
               )}
               {station.trustLevel === "LOW" && (
                 <Badge variant="destructive" className="px-3 py-1 bg-yellow-100 text-yellow-700 border-yellow-200" data-testid="badge-low-trust">
