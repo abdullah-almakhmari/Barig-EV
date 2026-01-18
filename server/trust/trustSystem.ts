@@ -1,15 +1,11 @@
 import { db } from "../db";
-import { users, stationVerifications, reports, type UserTrustLevel } from "@shared/schema";
-import { eq, and, gte, sql } from "drizzle-orm";
+import { users, stationVerifications, reports, trustEvents, type UserTrustLevel } from "@shared/schema";
+import { eq, and, gte, sql, isNull } from "drizzle-orm";
 
 const TRUST_THRESHOLDS = {
   NEW: 5,
   NORMAL: 10,
 };
-
-const rewardedVerifications = new Map<string, number>();
-const rewardedReports = new Map<string, number>();
-const lastPenaltyTime = new Map<string, number>();
 
 const WINDOW_30_MIN = 30 * 60 * 1000;
 const WINDOW_24_HR = 24 * 60 * 60 * 1000;
@@ -20,27 +16,81 @@ function calculateTrustLevel(score: number): UserTrustLevel {
   return "NEW";
 }
 
-export async function updateUserTrustScore(userId: string, delta: number): Promise<void> {
-  const [user] = await db.select().from(users).where(eq(users.id, userId));
-  if (!user) return;
-
-  const currentScore = user.trustScore ?? 0;
-  const newScore = Math.max(0, currentScore + delta);
-  const newLevel = calculateTrustLevel(newScore);
-
-  await db
-    .update(users)
-    .set({
-      trustScore: newScore,
-      userTrustLevel: newLevel,
-      updatedAt: new Date(),
-    })
-    .where(eq(users.id, userId));
-}
-
 export async function getUserTrustLevel(userId: string): Promise<UserTrustLevel> {
   const [user] = await db.select().from(users).where(eq(users.id, userId));
   return (user?.userTrustLevel as UserTrustLevel) ?? "NEW";
+}
+
+async function tryAwardTrust(
+  userId: string,
+  eventType: string,
+  delta: number,
+  stationId: number | null,
+  reason: string | null,
+  windowMs: number
+): Promise<boolean> {
+  const windowStart = new Date(Date.now() - windowMs);
+
+  return await db.transaction(async (tx) => {
+    const [lockedUser] = await tx
+      .select()
+      .from(users)
+      .where(eq(users.id, userId))
+      .for("update");
+    
+    if (!lockedUser) return false;
+
+    const conditions = [
+      eq(trustEvents.userId, userId),
+      eq(trustEvents.eventType, eventType),
+      gte(trustEvents.createdAt, windowStart),
+    ];
+
+    if (stationId !== null) {
+      conditions.push(eq(trustEvents.stationId, stationId));
+    } else {
+      conditions.push(isNull(trustEvents.stationId));
+    }
+
+    if (reason !== null) {
+      conditions.push(eq(trustEvents.reason, reason));
+    } else {
+      conditions.push(isNull(trustEvents.reason));
+    }
+
+    const existing = await tx
+      .select()
+      .from(trustEvents)
+      .where(and(...conditions))
+      .limit(1);
+
+    if (existing.length > 0) {
+      return false;
+    }
+
+    await tx.insert(trustEvents).values({
+      userId,
+      eventType,
+      stationId,
+      reason,
+      delta,
+    });
+
+    const currentScore = lockedUser.trustScore ?? 0;
+    const newScore = Math.max(0, currentScore + delta);
+    const newLevel = calculateTrustLevel(newScore);
+
+    await tx
+      .update(users)
+      .set({
+        trustScore: newScore,
+        userTrustLevel: newLevel,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, userId));
+
+    return true;
+  });
 }
 
 export async function checkAndRewardVerificationConsensus(
@@ -48,14 +98,7 @@ export async function checkAndRewardVerificationConsensus(
   userId: string,
   userVote: string
 ): Promise<void> {
-  const now = Date.now();
-  const thirtyMinutesAgo = new Date(now - WINDOW_30_MIN);
-
-  const rewardKey = `${userId}:${stationId}:verification`;
-  const lastRewarded = rewardedVerifications.get(rewardKey);
-  if (lastRewarded && now - lastRewarded < WINDOW_30_MIN) {
-    return;
-  }
+  const thirtyMinutesAgo = new Date(Date.now() - WINDOW_30_MIN);
 
   const recentVerifications = await db
     .select()
@@ -75,19 +118,12 @@ export async function checkAndRewardVerificationConsensus(
   const leadingVote = Object.entries(voteCounts).sort((a, b) => b[1] - a[1])[0];
 
   if (leadingVote && leadingVote[1] >= 3 && leadingVote[0] === userVote) {
-    await updateUserTrustScore(userId, 1);
-    rewardedVerifications.set(rewardKey, now);
+    await tryAwardTrust(userId, "verification_reward", 1, stationId, null, WINDOW_30_MIN);
   }
 }
 
 export async function checkAndPenalizeContradictions(userId: string): Promise<void> {
-  const now = Date.now();
-  const twentyFourHoursAgo = new Date(now - WINDOW_24_HR);
-
-  const lastPenalty = lastPenaltyTime.get(userId);
-  if (lastPenalty && now - lastPenalty < WINDOW_24_HR) {
-    return;
-  }
+  const twentyFourHoursAgo = new Date(Date.now() - WINDOW_24_HR);
 
   const userVerifications = await db
     .select()
@@ -128,8 +164,7 @@ export async function checkAndPenalizeContradictions(userId: string): Promise<vo
   }
 
   if (contradictionCount >= 3) {
-    await updateUserTrustScore(userId, -1);
-    lastPenaltyTime.set(userId, now);
+    await tryAwardTrust(userId, "contradiction_penalty", -1, null, null, WINDOW_24_HR);
   }
 }
 
@@ -138,8 +173,7 @@ export async function checkAndRewardReportConsensus(
   userId: string,
   reason: string
 ): Promise<void> {
-  const now = Date.now();
-  const twentyFourHoursAgo = new Date(now - WINDOW_24_HR);
+  const twentyFourHoursAgo = new Date(Date.now() - WINDOW_24_HR);
 
   const recentReports = await db
     .select()
@@ -155,15 +189,7 @@ export async function checkAndRewardReportConsensus(
   if (recentReports.length >= 3) {
     for (const report of recentReports) {
       if (!report.userId) continue;
-      
-      const rewardKey = `${report.userId}:${stationId}:${reason}:report`;
-      const lastRewarded = rewardedReports.get(rewardKey);
-      if (lastRewarded && now - lastRewarded < WINDOW_24_HR) {
-        continue;
-      }
-      
-      await updateUserTrustScore(report.userId, 2);
-      rewardedReports.set(rewardKey, now);
+      await tryAwardTrust(report.userId, "report_reward", 2, stationId, reason, WINDOW_24_HR);
     }
   }
 }

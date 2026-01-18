@@ -100,12 +100,25 @@ export const stationVerifications = pgTable("station_verifications", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Trust events for idempotent rewards/penalties (persistent tracking)
+// Uses row-level locking + sliding window query for idempotency
+export const trustEvents = pgTable("trust_events", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull(),
+  eventType: text("event_type").notNull(), // 'verification_reward', 'report_reward', 'contradiction_penalty'
+  stationId: integer("station_id"), // null for user-level events like penalties
+  reason: text("reason"), // for report rewards, the report reason
+  delta: integer("delta").notNull(), // +1, +2, or -1
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const insertStationSchema = createInsertSchema(stations).omit({ id: true, trustLevel: true, isHidden: true, createdAt: true, updatedAt: true });
 export const insertReportSchema = createInsertSchema(reports).omit({ id: true, reviewStatus: true, reviewedBy: true, reviewedAt: true, createdAt: true, updatedAt: true });
 export const insertChargingSessionSchema = createInsertSchema(chargingSessions).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertEvVehicleSchema = createInsertSchema(evVehicles).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertUserVehicleSchema = createInsertSchema(userVehicles).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertStationVerificationSchema = createInsertSchema(stationVerifications).omit({ id: true, createdAt: true });
+export const insertTrustEventSchema = createInsertSchema(trustEvents).omit({ id: true, createdAt: true });
 
 export type Station = typeof stations.$inferSelect;
 export type InsertStation = z.infer<typeof insertStationSchema>;
@@ -119,6 +132,8 @@ export type UserVehicle = typeof userVehicles.$inferSelect;
 export type InsertUserVehicle = z.infer<typeof insertUserVehicleSchema>;
 export type StationVerification = typeof stationVerifications.$inferSelect;
 export type InsertStationVerification = z.infer<typeof insertStationVerificationSchema>;
+export type TrustEvent = typeof trustEvents.$inferSelect;
+export type InsertTrustEvent = z.infer<typeof insertTrustEventSchema>;
 
 export type StationWithReports = Station & {
   reports?: Report[];

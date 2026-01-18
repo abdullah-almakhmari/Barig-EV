@@ -189,5 +189,11 @@ The `shared/` directory contains code used by both frontend and backend:
   - Component: `client/src/components/TrustedUserBadge.tsx`
 - **API Endpoint**:
   - GET /api/users/:id/trust-level - Returns user's trust level for badge display
-- **Idempotency**: In-memory tracking prevents repeated rewards/penalties within windows (resets on server restart - acceptable for MVP, would need database persistence for production)
+- **Idempotency**: Database-backed `trust_events` table ensures rewards/penalties are truly one-per-window even after server restarts
+  - Table tracks: userId, eventType, stationId, reason, delta, createdAt
+  - Row-level locking (SELECT FOR UPDATE on user) serializes concurrent requests per user
+  - Sliding window query (createdAt >= now - windowMs) checks for existing events within transaction
+  - All trust updates use database transactions for consistency
+  - Index on (user_id, event_type, station_id, reason, created_at) for efficient lookups
+- **Trust Logic File**: `server/trust/trustSystem.ts`
 - **Bilingual Support**: Full Arabic/English translations for badge
