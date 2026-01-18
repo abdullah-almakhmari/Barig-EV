@@ -57,3 +57,19 @@ Preferred communication style: Simple, everyday language.
 - **Mapping**: Leaflet, OpenStreetMap.
 - **UI Components**: shadcn/ui, Radix UI.
 - **Build & Development**: Vite, esbuild.
+
+## Recent Features
+
+### First-Visit Onboarding (January 2026)
+- **Purpose**: Professional one-screen welcome for first-time visitors
+- **Display Logic**: Shows only on first visit (localStorage key: "bariq_onboarding_dismissed")
+- **Content**:
+  - Headline: "Find reliable EV charging stations"
+  - Problem statement: Why users need this app
+  - Trust section: Community-driven verification explanation
+  - 3 quick how-to bullet points
+- **Dismissal**: CTA button "Get started" / "ابدأ الآن" or X skip button
+- **Persistence**: Once dismissed, never shows again
+- **Non-blocking**: Does not require login, skippable instantly
+- **Component**: `client/src/components/Onboarding.tsx`
+- **Bilingual Support**: Full Arabic/English with RTL support

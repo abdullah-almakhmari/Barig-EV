@@ -210,6 +210,15 @@ const resources = {
       "station.statusLabel": "Status",
       "station.recentReports": "Recent Reports",
       "station.tapToExpand": "(tap to expand)",
+      "onboarding.headline": "Find reliable EV charging stations",
+      "onboarding.problem": "Stop wasting time on broken or busy chargers. Bariq shows you real-time station status verified by the community.",
+      "onboarding.trustTitle": "Data you can trust",
+      "onboarding.trustDesc": "Every station status is verified by real drivers. Our community-driven verification system ensures accurate, up-to-date information.",
+      "onboarding.howTo1": "Find stations on the map or search nearby",
+      "onboarding.howTo2": "Check real-time status before you go",
+      "onboarding.howTo3": "Help others by verifying station status",
+      "onboarding.getStarted": "Get started",
+      "onboarding.skip": "Skip",
     }
   },
   ar: {
@@ -419,6 +428,15 @@ const resources = {
       "station.statusLabel": "الحالة",
       "station.recentReports": "البلاغات الأخيرة",
       "station.tapToExpand": "(انقر للتوسيع)",
+      "onboarding.headline": "اعثر على محطات شحن موثوقة",
+      "onboarding.problem": "توقف عن إضاعة الوقت على الشواحن المعطلة أو المشغولة. بارق يُظهر لك حالة المحطات الفعلية والمُتحقق منها من المجتمع.",
+      "onboarding.trustTitle": "بيانات موثوقة",
+      "onboarding.trustDesc": "حالة كل محطة يتم التحقق منها من سائقين حقيقيين. نظام التحقق المجتمعي يضمن معلومات دقيقة ومُحدّثة.",
+      "onboarding.howTo1": "ابحث عن المحطات على الخريطة أو القريبة منك",
+      "onboarding.howTo2": "تحقق من الحالة الفعلية قبل الذهاب",
+      "onboarding.howTo3": "ساعد الآخرين بتأكيد حالة المحطات",
+      "onboarding.getStarted": "ابدأ الآن",
+      "onboarding.skip": "تخطي",
     }
   }
 };
