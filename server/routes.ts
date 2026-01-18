@@ -16,6 +16,12 @@ import {
   getTrustScoreLabel, 
   isTrustScoreEnabled 
 } from "./features/trustScore";
+import {
+  exportStationsCSV,
+  exportChargingSessionsCSV,
+  exportReportsCSV,
+  getAvailableDatasets
+} from "./admin/dataExport";
 import { 
   validateCsrf, 
   csrfTokenEndpoint, 
@@ -695,6 +701,44 @@ export async function registerRoutes(
       res.json(station);
     } catch (err) {
       throw err;
+    }
+  });
+
+  // ============ DATA EXPORT ENDPOINTS (Admin Only) ============
+  // For academic research / thesis data analysis
+  
+  // List available datasets
+  app.get("/api/admin/export", isAuthenticated, isAdmin, (_req, res) => {
+    res.json(getAvailableDatasets());
+  });
+
+  // Export stations dataset as CSV
+  app.get("/api/admin/export/stations", isAuthenticated, isAdmin, async (_req, res) => {
+    try {
+      await exportStationsCSV(res);
+    } catch (err) {
+      console.error("[Export] Stations export failed:", err);
+      res.status(500).json({ message: "Export failed" });
+    }
+  });
+
+  // Export charging sessions dataset as CSV
+  app.get("/api/admin/export/sessions", isAuthenticated, isAdmin, async (_req, res) => {
+    try {
+      await exportChargingSessionsCSV(res);
+    } catch (err) {
+      console.error("[Export] Sessions export failed:", err);
+      res.status(500).json({ message: "Export failed" });
+    }
+  });
+
+  // Export reports dataset as CSV
+  app.get("/api/admin/export/reports", isAuthenticated, isAdmin, async (_req, res) => {
+    try {
+      await exportReportsCSV(res);
+    } catch (err) {
+      console.error("[Export] Reports export failed:", err);
+      res.status(500).json({ message: "Export failed" });
     }
   });
 

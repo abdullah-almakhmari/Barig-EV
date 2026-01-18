@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Shield, FileWarning, MapPin, Check, X, AlertTriangle, Eye, EyeOff } from "lucide-react";
+import { Shield, FileWarning, MapPin, Check, X, AlertTriangle, Eye, EyeOff, Download, Database } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Redirect } from "wouter";
@@ -132,7 +132,7 @@ export default function AdminPanel() {
       </div>
 
       <Tabs defaultValue="reports" className="w-full">
-        <TabsList className="grid w-full sm:w-[400px] grid-cols-2 rounded-xl">
+        <TabsList className="grid w-full sm:w-[500px] grid-cols-3 rounded-xl">
           <TabsTrigger value="reports" className="rounded-lg flex items-center gap-2" data-testid="tab-reports">
             <FileWarning className="w-4 h-4" />
             {t("admin.reports")}
@@ -140,6 +140,10 @@ export default function AdminPanel() {
           <TabsTrigger value="stations" className="rounded-lg flex items-center gap-2" data-testid="tab-stations">
             <MapPin className="w-4 h-4" />
             {t("admin.stations")}
+          </TabsTrigger>
+          <TabsTrigger value="export" className="rounded-lg flex items-center gap-2" data-testid="tab-export">
+            <Database className="w-4 h-4" />
+            {isArabic ? "تصدير البيانات" : "Data Export"}
           </TabsTrigger>
         </TabsList>
 
@@ -366,6 +370,122 @@ export default function AdminPanel() {
               ))}
             </div>
           )}
+        </TabsContent>
+
+        <TabsContent value="export" className="mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Database className="w-5 h-5" />
+                {isArabic ? "تصدير البيانات للبحث الأكاديمي" : "Data Export for Academic Research"}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <p className="text-muted-foreground text-sm">
+                {isArabic 
+                  ? "تصدير مجموعات البيانات بصيغة CSV للتحليل الأكاديمي. جميع الملفات لا تتضمن بيانات شخصية للمستخدمين."
+                  : "Export datasets in CSV format for academic analysis. All exports exclude personally identifiable user information."}
+              </p>
+
+              <div className="grid gap-4 md:grid-cols-3">
+                <Card className="border-2 hover-elevate">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <MapPin className="w-4 h-4 text-primary" />
+                      {isArabic ? "محطات الشحن" : "Stations Dataset"}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <p className="text-xs text-muted-foreground">
+                      {isArabic
+                        ? "مواقع محطات الشحن مع درجات الثقة وإحصائيات النشاط"
+                        : "EV charging station locations with trust scores and activity counts"}
+                    </p>
+                    <div className="text-xs text-muted-foreground/80 font-mono bg-muted p-2 rounded">
+                      station_id, latitude, longitude, charger_type, power_kw, trust_score, total_reports, total_verifications, created_at
+                    </div>
+                    <Button 
+                      className="w-full" 
+                      variant="outline"
+                      onClick={() => window.open("/api/admin/export/stations", "_blank")}
+                      data-testid="button-export-stations"
+                    >
+                      <Download className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0" />
+                      {isArabic ? "تحميل CSV" : "Download CSV"}
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                <Card className="border-2 hover-elevate">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Shield className="w-4 h-4 text-green-600" />
+                      {isArabic ? "جلسات الشحن" : "Charging Sessions"}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <p className="text-xs text-muted-foreground">
+                      {isArabic
+                        ? "سجلات جلسات الشحن مع حسابات المدة"
+                        : "Charging session records with duration calculations"}
+                    </p>
+                    <div className="text-xs text-muted-foreground/80 font-mono bg-muted p-2 rounded">
+                      session_id, station_id, start_time, end_time, duration_minutes, created_at
+                    </div>
+                    <Button 
+                      className="w-full" 
+                      variant="outline"
+                      onClick={() => window.open("/api/admin/export/sessions", "_blank")}
+                      data-testid="button-export-sessions"
+                    >
+                      <Download className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0" />
+                      {isArabic ? "تحميل CSV" : "Download CSV"}
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                <Card className="border-2 hover-elevate">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <FileWarning className="w-4 h-4 text-orange-500" />
+                      {isArabic ? "البلاغات" : "Reports Dataset"}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <p className="text-xs text-muted-foreground">
+                      {isArabic
+                        ? "بلاغات المستخدمين عن حالة المحطات"
+                        : "User-submitted station status reports"}
+                    </p>
+                    <div className="text-xs text-muted-foreground/80 font-mono bg-muted p-2 rounded">
+                      report_id, station_id, report_reason, created_at, resolved
+                    </div>
+                    <Button 
+                      className="w-full" 
+                      variant="outline"
+                      onClick={() => window.open("/api/admin/export/reports", "_blank")}
+                      data-testid="button-export-reports"
+                    >
+                      <Download className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0" />
+                      {isArabic ? "تحميل CSV" : "Download CSV"}
+                    </Button>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <div className="bg-muted/50 rounded-lg p-4 text-sm">
+                <h4 className="font-semibold mb-2 flex items-center gap-2">
+                  <Shield className="w-4 h-4" />
+                  {isArabic ? "ملاحظات الخصوصية" : "Privacy Notes"}
+                </h4>
+                <ul className="text-muted-foreground space-y-1 text-xs">
+                  <li>• {isArabic ? "لا تتضمن معرفات المستخدمين أو عناوين البريد الإلكتروني" : "User IDs and email addresses are excluded"}</li>
+                  <li>• {isArabic ? "البيانات للقراءة فقط - لا يمكن تعديل قاعدة البيانات" : "Data is read-only - no database modifications"}</li>
+                  <li>• {isArabic ? "مناسبة للتحليل الأكاديمي والبحث العلمي" : "Suitable for academic analysis and research"}</li>
+                </ul>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>
