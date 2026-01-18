@@ -164,6 +164,52 @@ export async function registerRoutes(
     }
   });
 
+  // Community verification endpoints
+  const verificationSchema = z.object({
+    vote: z.enum(["WORKING", "NOT_WORKING", "BUSY"])
+  });
+
+  app.post("/api/stations/:id/verify", isAuthenticated, async (req: any, res) => {
+    try {
+      const parsed = verificationSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ message: "Invalid vote. Must be WORKING, NOT_WORKING, or BUSY" });
+      }
+      
+      const { vote } = parsed.data;
+      const stationId = Number(req.params.id);
+      const userId = req.user?.id;
+      
+      const station = await storage.getStation(stationId);
+      if (!station) {
+        return res.status(404).json({ message: "Station not found" });
+      }
+      
+      const verification = await storage.submitVerification(stationId, userId, vote);
+      const summary = await storage.getVerificationSummary(stationId);
+      
+      res.status(201).json({ verification, summary });
+    } catch (err) {
+      throw err;
+    }
+  });
+
+  app.get("/api/stations/:id/verification-summary", async (req, res) => {
+    try {
+      const stationId = Number(req.params.id);
+      
+      const station = await storage.getStation(stationId);
+      if (!station) {
+        return res.status(404).json({ message: "Station not found" });
+      }
+      
+      const summary = await storage.getVerificationSummary(stationId);
+      res.json(summary);
+    } catch (err) {
+      throw err;
+    }
+  });
+
   // Deprecated: Use /api/charging-sessions/start instead
   app.post(api.stations.startCharging.path, async (req, res) => {
     return res.status(410).json({ 
