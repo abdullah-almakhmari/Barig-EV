@@ -19,8 +19,12 @@ app.use(
         styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
         fontSrc: ["'self'", "https://fonts.gstatic.com"],
         imgSrc: ["'self'", "data:", "https:", "blob:"],
-        connectSrc: ["'self'", "https://*.tile.openstreetmap.org", "wss://*.replit.dev"],
-        frameAncestors: isDev ? ["'self'", "https://*.replit.dev", "https://*.replit.com"] : ["'self'"],
+        connectSrc: isDev 
+          ? ["'self'", "https://*.tile.openstreetmap.org", "wss:", "ws:"] 
+          : ["'self'", "https://*.tile.openstreetmap.org"],
+        frameAncestors: isDev 
+          ? ["'self'", "https://*.replit.dev", "https://*.replit.com", "https://replit.com"] 
+          : ["'self'"],
       },
     },
     crossOriginEmbedderPolicy: false,
