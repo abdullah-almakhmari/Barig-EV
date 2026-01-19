@@ -7,7 +7,8 @@ channel = "stable-24_05"
 
 [[ports]]
 localPort = 5000
-externalPort = 80
+externalPort = 443
+exposeLocalhost = true
 
 [env]
 PORT = "5000"
