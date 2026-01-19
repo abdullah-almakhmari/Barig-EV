@@ -49,10 +49,12 @@ async function createUser(userData: {
   passwordHash?: string;
   firstName?: string;
   lastName?: string;
+  phoneNumber?: string;
   profileImageUrl?: string;
   provider?: string;
   providerId?: string;
 }): Promise<User> {
+  const hasPhone = !!(userData.phoneNumber && userData.phoneNumber.trim());
   const [user] = await db
     .insert(users)
     .values({
@@ -60,6 +62,8 @@ async function createUser(userData: {
       passwordHash: userData.passwordHash,
       firstName: userData.firstName,
       lastName: userData.lastName,
+      phoneNumber: hasPhone ? userData.phoneNumber!.trim() : null,
+      phoneProvided: hasPhone,
       profileImageUrl: userData.profileImageUrl,
       provider: userData.provider || "local",
       providerId: userData.providerId,
@@ -202,7 +206,7 @@ export async function setupAuth(app: Express) {
 
   app.post("/api/auth/register", registerLimiter, async (req: Request, res: Response) => {
     try {
-      const { email, password, firstName, lastName } = req.body;
+      const { email, password, firstName, lastName, phoneNumber } = req.body;
 
       if (!email || !password) {
         return res.status(400).json({ message: "Email and password are required" });
@@ -210,6 +214,14 @@ export async function setupAuth(app: Express) {
 
       if (password.length < 8) {
         return res.status(400).json({ message: "Password must be at least 8 characters" });
+      }
+
+      // Validate phone number format if provided (optional field)
+      if (phoneNumber && phoneNumber.trim()) {
+        const phoneRegex = /^\+?[0-9]{7,15}$/;
+        if (!phoneRegex.test(phoneNumber.replace(/\s/g, ""))) {
+          return res.status(400).json({ message: "Invalid phone number format" });
+        }
       }
 
       const existingUser = await getUserByEmail(email);
@@ -223,6 +235,7 @@ export async function setupAuth(app: Express) {
         passwordHash,
         firstName,
         lastName,
+        phoneNumber: phoneNumber || undefined,
         provider: "local",
       });
 

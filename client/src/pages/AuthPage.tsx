@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Loader2, Mail, Lock, User } from "lucide-react";
+import { Loader2, Mail, Lock, User, Phone } from "lucide-react";
 import { SEO } from "@/components/SEO";
 import { useLanguage } from "@/components/LanguageContext";
 
@@ -26,6 +26,7 @@ export default function AuthPage() {
   const [registerPassword, setRegisterPassword] = useState("");
   const [registerFirstName, setRegisterFirstName] = useState("");
   const [registerLastName, setRegisterLastName] = useState("");
+  const [registerPhone, setRegisterPhone] = useState("");
 
   const loginMutation = useMutation({
     mutationFn: async (data: { email: string; password: string }) => {
@@ -42,7 +43,7 @@ export default function AuthPage() {
   });
 
   const registerMutation = useMutation({
-    mutationFn: async (data: { email: string; password: string; firstName?: string; lastName?: string }) => {
+    mutationFn: async (data: { email: string; password: string; firstName?: string; lastName?: string; phoneNumber?: string }) => {
       return apiRequest("POST", "/api/auth/register", data);
     },
     onSuccess: () => {
@@ -67,6 +68,7 @@ export default function AuthPage() {
       password: registerPassword,
       firstName: registerFirstName || undefined,
       lastName: registerLastName || undefined,
+      phoneNumber: registerPhone || undefined,
     });
   };
 
@@ -202,6 +204,25 @@ export default function AuthPage() {
                       />
                     </div>
                     <p className="text-xs text-muted-foreground">{t("auth.passwordHint")}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="register-phone">
+                      {t("auth.phoneNumber")} <span className="text-muted-foreground text-xs">({t("auth.optional")})</span>
+                    </Label>
+                    <div className="relative">
+                      <Phone className="absolute start-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="register-phone"
+                        type="tel"
+                        placeholder="+968 9XXXXXXX"
+                        value={registerPhone}
+                        onChange={(e) => setRegisterPhone(e.target.value)}
+                        className="ps-10"
+                        maxLength={16}
+                        data-testid="input-register-phone"
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground">{t("auth.phoneHint")}</p>
                   </div>
                   <Button
                     type="submit"
