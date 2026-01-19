@@ -96,3 +96,22 @@ Preferred communication style: Simple, everyday language.
   - Fonts: CacheFirst (static, no expiry)
   - API data: NetworkFirst with offline fallback (max 50 entries)
 - **Installation**: Visit site on mobile → Browser menu → "Add to Home Screen"
+
+### Mobile Map Interaction Control - January 2026
+- **Purpose**: Prevent accidental map movement during page scrolling on mobile devices
+- **Problem Solved**: Map was capturing touch gestures, causing accidental movement instead of smooth page scrolling
+- **Solution**: Uber/Google Maps-style interaction control
+- **Features**:
+  - Map dragging/touch/zoom disabled by default
+  - "Move map" button to enable map interaction
+  - "Lock map" button to disable interaction when done
+  - Fullscreen mode with auto-enabled interaction
+  - Page scrolling works smoothly by default
+- **State Management**:
+  - `isMapInteractionEnabled`: Controls whether map responds to touch
+  - `isFullscreen`: Controls fullscreen overlay mode
+- **Component**: `client/src/components/StationMap.tsx`
+- **Props Changed**: MapContainer now has `dragging={false}`, `touchZoom={false}`, `scrollWheelZoom={false}`, `doubleClickZoom={false}` by default
+- **New Controls**: 
+  - `MapInteractionControl` component toggles Leaflet interaction handlers
+  - Fullscreen toggle button (top-left corner)

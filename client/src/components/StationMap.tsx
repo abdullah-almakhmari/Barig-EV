@@ -3,9 +3,9 @@ import { Station } from "@shared/schema";
 import { StationCard } from "./StationCard";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { Navigation, Loader2 } from "lucide-react";
+import { Navigation, Loader2, Move, Lock, Maximize2, Minimize2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import icon from "leaflet/dist/images/marker-icon.png";
@@ -116,6 +116,55 @@ function FitBoundsToStations({ stations }: { stations: Station[] }) {
   return null;
 }
 
+function MapInteractionControl({ 
+  isInteractionEnabled,
+  onToggle 
+}: { 
+  isInteractionEnabled: boolean;
+  onToggle: () => void;
+}) {
+  const map = useMap();
+  const { t } = useTranslation();
+
+  useEffect(() => {
+    if (isInteractionEnabled) {
+      map.dragging.enable();
+      map.touchZoom.enable();
+      map.scrollWheelZoom.enable();
+      map.doubleClickZoom.enable();
+    } else {
+      map.dragging.disable();
+      map.touchZoom.disable();
+      map.scrollWheelZoom.disable();
+      map.doubleClickZoom.disable();
+    }
+  }, [map, isInteractionEnabled]);
+
+  return (
+    <div className="absolute bottom-4 start-4 z-[1000]">
+      <Button
+        size="sm"
+        variant={isInteractionEnabled ? "default" : "secondary"}
+        onClick={onToggle}
+        className="shadow-lg gap-2 text-xs font-medium"
+        data-testid="button-toggle-map-interaction"
+      >
+        {isInteractionEnabled ? (
+          <>
+            <Lock className="h-4 w-4" />
+            <span>{t("map.lockMap", "قفل الخريطة")}</span>
+          </>
+        ) : (
+          <>
+            <Move className="h-4 w-4" />
+            <span>{t("map.enableMovement", "تحريك الخريطة")}</span>
+          </>
+        )}
+      </Button>
+    </div>
+  );
+}
+
 function LocateControl({ 
   onLocationFound 
 }: { 
@@ -187,10 +236,26 @@ interface StationMapProps {
 export function StationMap({ stations }: StationMapProps) {
   const center: [number, number] = [23.5880, 58.3829];
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
+  const [isMapInteractionEnabled, setIsMapInteractionEnabled] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   const handleLocationFound = (lat: number, lng: number) => {
     setUserLocation([lat, lng]);
   };
+
+  const toggleMapInteraction = useCallback(() => {
+    setIsMapInteractionEnabled(prev => !prev);
+  }, []);
+
+  const toggleFullscreen = useCallback(() => {
+    setIsFullscreen(prev => {
+      const newValue = !prev;
+      if (newValue) {
+        setIsMapInteractionEnabled(true);
+      }
+      return newValue;
+    });
+  }, []);
 
   const bestNearbyStationId = useMemo(() => {
     if (!userLocation) return null;
@@ -221,14 +286,22 @@ export function StationMap({ stations }: StationMapProps) {
     return null;
   }, [stations, userLocation]);
 
+  const mapContainerClass = isFullscreen 
+    ? "fixed inset-0 z-50 bg-background" 
+    : "h-full w-full rounded-2xl overflow-hidden border border-border shadow-inner bg-muted/20 relative";
+
   return (
-    <div className="h-full w-full rounded-2xl overflow-hidden border border-border shadow-inner bg-muted/20 relative">
+    <div className={mapContainerClass}>
       <MapContainer 
         key={`map-${stations.length}`}
         center={center} 
         zoom={11} 
         style={{ height: "100%", width: "100%", zIndex: 0 }}
         zoomControl={false}
+        dragging={false}
+        touchZoom={false}
+        scrollWheelZoom={false}
+        doubleClickZoom={false}
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -237,6 +310,10 @@ export function StationMap({ stations }: StationMapProps) {
         
         <FitBoundsToStations stations={stations} />
         <LocateControl onLocationFound={handleLocationFound} />
+        <MapInteractionControl 
+          isInteractionEnabled={isMapInteractionEnabled} 
+          onToggle={toggleMapInteraction} 
+        />
 
         {userLocation && (
           <>
@@ -269,6 +346,22 @@ export function StationMap({ stations }: StationMapProps) {
           </Marker>
         ))}
       </MapContainer>
+      
+      <div className="absolute top-4 start-4 z-[1000]">
+        <Button
+          size="icon"
+          variant="secondary"
+          onClick={toggleFullscreen}
+          className="shadow-lg bg-background hover:bg-muted"
+          data-testid="button-toggle-fullscreen"
+        >
+          {isFullscreen ? (
+            <Minimize2 className="h-5 w-5" />
+          ) : (
+            <Maximize2 className="h-5 w-5" />
+          )}
+        </Button>
+      </div>
     </div>
   );
 }
