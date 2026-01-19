@@ -8,6 +8,8 @@ import { productionErrorHandler } from "./security";
 const app = express();
 const httpServer = createServer(app);
 
+const isDev = process.env.NODE_ENV !== "production";
+
 app.use(
   helmet({
     contentSecurityPolicy: {
@@ -17,11 +19,13 @@ app.use(
         styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
         fontSrc: ["'self'", "https://fonts.gstatic.com"],
         imgSrc: ["'self'", "data:", "https:", "blob:"],
-        connectSrc: ["'self'", "https://*.tile.openstreetmap.org"],
+        connectSrc: ["'self'", "https://*.tile.openstreetmap.org", "wss://*.replit.dev"],
+        frameAncestors: isDev ? ["'self'", "https://*.replit.dev", "https://*.replit.com"] : ["'self'"],
       },
     },
     crossOriginEmbedderPolicy: false,
     crossOriginResourcePolicy: { policy: "cross-origin" },
+    frameguard: isDev ? false : { action: "sameorigin" },
   }),
 );
 
