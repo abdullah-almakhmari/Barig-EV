@@ -40,11 +40,11 @@ function App() {
       <QueryClientProvider client={queryClient}>
         <LanguageProvider>
           <TooltipProvider>
-            <div className="min-h-screen bg-background flex flex-col font-body">
+            <div className="app-shell bg-background flex flex-col font-body">
               <Onboarding />
               <ActiveSessionBanner />
               <Header />
-              <main className="flex-1 container mx-auto px-4 py-6">
+              <main className="flex-1 container mx-auto px-4 py-4 overflow-y-auto">
                 <Router />
               </main>
             </div>
