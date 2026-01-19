@@ -12,23 +12,20 @@ const isDev = process.env.NODE_ENV !== "production";
 
 app.use(
   helmet({
-    contentSecurityPolicy: {
+    contentSecurityPolicy: isDev ? false : {
       directives: {
         defaultSrc: ["'self'"],
         scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
         styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
         fontSrc: ["'self'", "https://fonts.gstatic.com"],
         imgSrc: ["'self'", "data:", "https:", "blob:"],
-        connectSrc: isDev 
-          ? ["'self'", "https://*.tile.openstreetmap.org", "wss:", "ws:"] 
-          : ["'self'", "https://*.tile.openstreetmap.org"],
-        frameAncestors: isDev 
-          ? ["'self'", "https://*.replit.dev", "https://*.replit.com", "https://replit.com"] 
-          : ["'self'"],
+        connectSrc: ["'self'", "https://*.tile.openstreetmap.org"],
+        frameAncestors: ["'self'"],
       },
     },
     crossOriginEmbedderPolicy: false,
-    crossOriginResourcePolicy: { policy: "cross-origin" },
+    crossOriginResourcePolicy: false,
+    crossOriginOpenerPolicy: isDev ? false : { policy: "same-origin" },
     frameguard: isDev ? false : { action: "sameorigin" },
   }),
 );
