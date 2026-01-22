@@ -21,6 +21,7 @@ export interface IStorage {
   updateStationApprovalStatus(id: number, approvalStatus: string): Promise<Station | undefined>;
   getAllStationsForAdmin(): Promise<Station[]>;
   getReports(stationId: number): Promise<Report[]>;
+  getReportById(id: number): Promise<Report | undefined>;
   getReportCountByStation(stationId: number): Promise<number>;
   getAllReportsWithDetails(): Promise<ReportWithDetails[]>;
   updateReportReviewStatus(id: number, reviewStatus: string, reviewedBy: string): Promise<Report | undefined>;
@@ -154,6 +155,13 @@ export class DatabaseStorage implements IStorage {
       .from(reports)
       .where(eq(reports.stationId, stationId))
       .orderBy(desc(reports.createdAt));
+  }
+
+  async getReportById(id: number): Promise<Report | undefined> {
+    const [report] = await db.select()
+      .from(reports)
+      .where(eq(reports.id, id));
+    return report;
   }
 
   async getReportCountByStation(stationId: number): Promise<number> {

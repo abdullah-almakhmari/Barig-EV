@@ -612,9 +612,25 @@ export async function registerRoutes(
       const reportId = Number(req.params.id);
       const adminId = req.user?.id;
       
+      // Get the report first to check its status
+      const existingReport = await storage.getReportById(reportId);
+      if (!existingReport) {
+        return res.status(404).json({ message: "Report not found" });
+      }
+      
       const report = await storage.updateReportReviewStatus(reportId, parsed.data.reviewStatus, adminId);
       if (!report) {
         return res.status(404).json({ message: "Report not found" });
+      }
+      
+      // If confirming that a station is NOT working, update the station status to OFFLINE
+      if (parsed.data.reviewStatus === "confirmed" && existingReport.status === "NOT_WORKING") {
+        await storage.updateStationStatus(existingReport.stationId, "OFFLINE");
+      }
+      
+      // If resolving a report (station is fixed), update the station status back to ONLINE
+      if (parsed.data.reviewStatus === "resolved") {
+        await storage.updateStationStatus(existingReport.stationId, "ONLINE");
       }
       
       res.json(report);
