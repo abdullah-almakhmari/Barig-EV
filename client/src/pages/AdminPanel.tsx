@@ -113,7 +113,7 @@ export default function AdminPanel() {
       case "rejected":
         return <Badge className="bg-red-500">{t("admin.rejected")}</Badge>;
       case "confirmed":
-        if (reportStatus === "BROKEN") {
+        if (reportStatus === "NOT_WORKING" || reportStatus === "BROKEN") {
           return <Badge className="bg-red-500">{t("admin.confirmed")}</Badge>;
         }
         return <Badge className="bg-green-500">{t("admin.confirmed")}</Badge>;
