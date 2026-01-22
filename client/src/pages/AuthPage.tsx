@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, clearCsrfToken } from "@/lib/queryClient";
 import { Loader2, Mail, Lock, User, Phone } from "lucide-react";
 import { SEO } from "@/components/SEO";
 import { useLanguage } from "@/components/LanguageContext";
@@ -33,6 +33,7 @@ export default function AuthPage() {
       return apiRequest("POST", "/api/auth/login", data);
     },
     onSuccess: () => {
+      clearCsrfToken();
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       toast({ title: t("auth.loginSuccess") });
       setLocation("/");
@@ -47,6 +48,7 @@ export default function AuthPage() {
       return apiRequest("POST", "/api/auth/register", data);
     },
     onSuccess: () => {
+      clearCsrfToken();
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       toast({ title: t("auth.registerSuccess") });
       setLocation("/");

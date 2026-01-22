@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { SafeUser } from "@shared/models/auth";
+import { clearCsrfToken } from "@/lib/queryClient";
 
 async function fetchUser(): Promise<SafeUser | null> {
   const response = await fetch("/api/auth/user", {
@@ -22,6 +23,7 @@ async function logout(): Promise<void> {
     method: "POST",
     credentials: "include",
   });
+  clearCsrfToken();
   window.location.href = "/";
 }
 
