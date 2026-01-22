@@ -3,6 +3,7 @@ import { useStation, useStationReports } from "@/hooks/use-stations";
 import { useTranslation } from "react-i18next";
 import { useLanguage } from "@/components/LanguageContext";
 import { Loader2, Navigation, Clock, ShieldCheck, MapPin, BatteryCharging, Home, Phone, MessageCircle, AlertTriangle, CheckCircle2, XCircle, Users, ShieldAlert, ThumbsUp, ThumbsDown, Zap } from "lucide-react";
+import { api } from "@shared/routes";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ReportDialog } from "@/components/ReportDialog";
@@ -159,8 +160,9 @@ export default function StationDetails() {
       return apiRequest('PATCH', `/api/admin/stations/${id}/status`, { status });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/stations', id] });
-      queryClient.invalidateQueries({ queryKey: ['/api/stations'] });
+      queryClient.invalidateQueries({ queryKey: [api.stations.get.path, id] });
+      queryClient.invalidateQueries({ queryKey: ['/api/stations', id, 'verification-summary'] });
+      queryClient.invalidateQueries({ queryKey: [api.stations.list.path] });
       toast({
         title: language === "ar" ? "تم تحديث حالة المحطة" : "Station status updated",
       });
