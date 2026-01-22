@@ -227,6 +227,43 @@ export async function registerRoutes(
       // Trust system: check for contradictions
       checkAndPenalizeContradictions(userId).catch(() => {});
       
+      // Hybrid Community Verification System
+      // Auto-update station status based on votes
+      const userTrustLevel = await getUserTrustLevel(userId);
+      const isTrustedUser = userTrustLevel === "TRUSTED";
+      
+      // Priority 1: Trusted user votes - immediate effect based on THEIR vote
+      if (isTrustedUser) {
+        if (vote === 'NOT_WORKING') {
+          if (station.status !== 'OFFLINE') {
+            await storage.updateStationStatus(stationId, 'OFFLINE');
+          }
+        } else if (vote === 'WORKING') {
+          if (station.status !== 'OPERATIONAL') {
+            await storage.updateStationStatus(stationId, 'OPERATIONAL');
+          }
+        }
+        // BUSY from trusted user doesn't change station status
+      } 
+      // Priority 2: 3+ votes agree with clear consensus (majority)
+      else {
+        const { working, notWorking, busy } = summary;
+        
+        // NOT_WORKING has 3+ votes AND is strictly greater than other statuses
+        if (notWorking >= 3 && notWorking > working && notWorking > busy) {
+          if (station.status !== 'OFFLINE') {
+            await storage.updateStationStatus(stationId, 'OFFLINE');
+          }
+        }
+        // WORKING has 3+ votes AND is strictly greater than other statuses
+        else if (working >= 3 && working > notWorking && working > busy) {
+          if (station.status !== 'OPERATIONAL') {
+            await storage.updateStationStatus(stationId, 'OPERATIONAL');
+          }
+        }
+        // In case of tie or no clear consensus, don't change status
+      }
+      
       res.status(201).json({ verification, summary });
     } catch (err) {
       throw err;
