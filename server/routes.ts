@@ -679,6 +679,27 @@ export async function registerRoutes(
     }
   });
 
+  // Admin: Update station status (OPERATIONAL/OFFLINE)
+  app.patch("/api/admin/stations/:id/status", isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const stationId = Number(req.params.id);
+      const { status } = req.body;
+      
+      if (!["OPERATIONAL", "OFFLINE"].includes(status)) {
+        return res.status(400).json({ message: "Invalid status value" });
+      }
+      
+      const station = await storage.updateStationStatus(stationId, status);
+      if (!station) {
+        return res.status(404).json({ message: "Station not found" });
+      }
+      
+      res.json(station);
+    } catch (err) {
+      throw err;
+    }
+  });
+
   // Admin: Get report counts per station
   app.get("/api/admin/stations/:id/report-count", isAuthenticated, isAdmin, async (req: any, res) => {
     try {

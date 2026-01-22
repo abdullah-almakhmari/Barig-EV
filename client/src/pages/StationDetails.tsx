@@ -154,6 +154,27 @@ export default function StationDetails() {
     },
   });
 
+  const updateStationStatusMutation = useMutation({
+    mutationFn: async (status: 'OPERATIONAL' | 'OFFLINE') => {
+      return apiRequest('PATCH', `/api/admin/stations/${id}/status`, { status });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/stations', id] });
+      queryClient.invalidateQueries({ queryKey: ['/api/stations'] });
+      toast({
+        title: language === "ar" ? "تم تحديث حالة المحطة" : "Station status updated",
+      });
+    },
+    onError: () => {
+      toast({
+        title: t("common.error"),
+        variant: "destructive",
+      });
+    },
+  });
+
+  const isAdmin = user?.role === "admin";
+
   if (isLoading) return <div className="flex justify-center p-20"><Loader2 className="animate-spin text-primary" /></div>;
   if (!station) return <div className="p-20 text-center">{t("common.error")}</div>;
 
@@ -222,6 +243,40 @@ export default function StationDetails() {
           )}
         </div>
       </div>
+
+      {/* Admin Controls */}
+      {isAdmin && (
+        <div className="bg-card rounded-2xl p-4 border shadow-sm border-primary/30">
+          <div className="flex items-center gap-2 mb-3">
+            <ShieldAlert className="w-5 h-5 text-primary" />
+            <span className="font-semibold text-foreground">
+              {language === "ar" ? "تحكم الأدمن" : "Admin Controls"}
+            </span>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <Button
+              size="sm"
+              className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white"
+              onClick={() => updateStationStatusMutation.mutate('OPERATIONAL')}
+              disabled={updateStationStatusMutation.isPending || station.status === 'OPERATIONAL'}
+              data-testid="button-admin-set-working"
+            >
+              <CheckCircle2 className="w-4 h-4" />
+              {language === "ar" ? "تعيين كـ يعمل" : "Set as Working"}
+            </Button>
+            <Button
+              size="sm"
+              className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white"
+              onClick={() => updateStationStatusMutation.mutate('OFFLINE')}
+              disabled={updateStationStatusMutation.isPending || station.status === 'OFFLINE'}
+              data-testid="button-admin-set-not-working"
+            >
+              <XCircle className="w-4 h-4" />
+              {language === "ar" ? "تعيين كـ لا يعمل" : "Set as Not Working"}
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Station Name & Quick Actions - Secondary but visible */}
       <div className="bg-card rounded-2xl p-5 border shadow-sm">
