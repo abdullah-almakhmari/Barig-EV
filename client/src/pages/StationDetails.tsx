@@ -44,7 +44,12 @@ function isRecentlyVerified(lastVerifiedAt: string | null | undefined): boolean 
   return (now - lastTime) < RECENCY_THRESHOLD_MS;
 }
 
-function getPrimaryStatus(verificationSummary: VerificationSummary | undefined): PrimaryStatus {
+function getPrimaryStatus(verificationSummary: VerificationSummary | undefined, stationStatus?: string): PrimaryStatus {
+  // If station is marked as OFFLINE by admin, always show NOT_WORKING
+  if (stationStatus === 'OFFLINE') {
+    return 'NOT_WORKING';
+  }
+  
   if (!verificationSummary || verificationSummary.totalVotes === 0) {
     return 'NOT_RECENTLY_VERIFIED';
   }
@@ -156,7 +161,7 @@ export default function StationDetails() {
   const name = isAr ? station.nameAr : station.name;
   const city = isAr ? station.cityAr : station.city;
   
-  const primaryStatus = getPrimaryStatus(verificationSummary);
+  const primaryStatus = getPrimaryStatus(verificationSummary, station.status ?? undefined);
   const statusConfig = getStatusConfig(primaryStatus, t);
   const StatusIcon = statusConfig.icon;
 
