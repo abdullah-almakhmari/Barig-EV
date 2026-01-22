@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
@@ -5,7 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Shield, FileWarning, MapPin, Check, X, AlertTriangle, Eye, EyeOff, Download, Database } from "lucide-react";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Shield, FileWarning, MapPin, Check, X, AlertTriangle, Eye, EyeOff, Download, Database, ChevronDown } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Redirect } from "wouter";
@@ -49,6 +51,24 @@ export default function AdminPanel() {
     refetchOnWindowFocus: true,
     staleTime: 0,
   });
+
+  const groupedReports = useMemo(() => {
+    if (!reports) return [];
+    const grouped = reports.reduce((acc, report) => {
+      const key = report.stationId;
+      if (!acc[key]) {
+        acc[key] = {
+          stationId: report.stationId,
+          stationName: report.stationName,
+          stationNameAr: report.stationNameAr,
+          reports: [],
+        };
+      }
+      acc[key].reports.push(report);
+      return acc;
+    }, {} as Record<number, { stationId: number; stationName?: string; stationNameAr?: string; reports: AdminReport[] }>);
+    return Object.values(grouped);
+  }, [reports]);
 
   const updateReportMutation = useMutation({
     mutationFn: async ({ id, reviewStatus }: { id: number; reviewStatus: string }) => {
@@ -159,89 +179,116 @@ export default function AdminPanel() {
             <div className="flex justify-center py-12">
               <div className="animate-pulse h-8 w-32 bg-muted rounded" />
             </div>
-          ) : !reports || reports.length === 0 ? (
+          ) : groupedReports.length === 0 ? (
             <Card>
               <CardContent className="py-12 text-center text-muted-foreground">
                 {t("admin.noReports")}
               </CardContent>
             </Card>
           ) : (
-            <div className="space-y-4">
-              {reports.map((report) => (
-                <Card key={report.id} data-testid={`card-report-${report.id}`}>
-                  <CardHeader className="pb-2">
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                      <CardTitle className="text-lg">
-                        {isArabic ? report.stationNameAr : report.stationName}
-                      </CardTitle>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        {getReviewStatusBadge(report.reviewStatus, report.status)}
-                        <Badge variant="outline" className="flex items-center gap-1">
-                          <AlertTriangle className="w-3 h-3" />
-                          {report.reportCount} {t("admin.totalReports")}
-                        </Badge>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
-                        <div>
-                          <span className="text-muted-foreground">{t("admin.reason")}:</span>{" "}
-                          <span className="font-medium">{report.reason || report.status}</span>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">{t("admin.reportedBy")}:</span>{" "}
-                          <span className="font-medium">{report.reporterEmail || t("admin.anonymous")}</span>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">{t("admin.createdAt")}:</span>{" "}
-                          <span className="font-medium">
-                            {report.createdAt ? new Date(report.createdAt).toLocaleDateString(isArabic ? "ar-OM" : "en-US") : "-"}
-                          </span>
+            <Accordion type="multiple" className="space-y-4">
+              {groupedReports.map((group) => {
+                const openReports = group.reports.filter(r => r.reviewStatus === "open");
+                const hasOpenReports = openReports.length > 0;
+                
+                return (
+                  <AccordionItem 
+                    key={group.stationId} 
+                    value={`station-${group.stationId}`}
+                    className="border rounded-lg bg-card"
+                    data-testid={`accordion-station-${group.stationId}`}
+                  >
+                    <AccordionTrigger className="px-4 py-3 hover:no-underline">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 w-full text-start">
+                        <span className="font-semibold text-lg">
+                          {isArabic ? group.stationNameAr : group.stationName}
+                        </span>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {hasOpenReports && (
+                            <Badge className="bg-orange-500">
+                              {openReports.length} {isArabic ? "مفتوح" : "Open"}
+                            </Badge>
+                          )}
+                          <Badge variant="outline" className="flex items-center gap-1">
+                            <FileWarning className="w-3 h-3" />
+                            {group.reports.length} {t("admin.totalReports")}
+                          </Badge>
                         </div>
                       </div>
-                      
-                      {report.reviewStatus === "open" && (
-                        <div className="flex flex-wrap gap-2 pt-2">
-                          <Button
-                            size="sm"
-                            className="flex items-center gap-1 bg-green-500 hover:bg-green-600 text-white"
-                            onClick={() => updateReportMutation.mutate({ id: report.id, reviewStatus: "confirmed_working" })}
-                            disabled={updateReportMutation.isPending}
-                            data-testid={`button-confirm-working-${report.id}`}
+                    </AccordionTrigger>
+                    <AccordionContent className="px-4 pb-4">
+                      <div className="space-y-4 pt-2">
+                        {group.reports.map((report) => (
+                          <div 
+                            key={report.id} 
+                            className="border rounded-lg p-4 bg-muted/30"
+                            data-testid={`card-report-${report.id}`}
                           >
-                            <Check className="w-4 h-4" />
-                            {isArabic ? "تأكيد أنه يعمل" : "Confirm Working"}
-                          </Button>
-                          <Button
-                            size="sm"
-                            className="flex items-center gap-1 bg-red-500 hover:bg-red-600 text-white"
-                            onClick={() => updateReportMutation.mutate({ id: report.id, reviewStatus: "confirmed_broken" })}
-                            disabled={updateReportMutation.isPending}
-                            data-testid={`button-confirm-broken-${report.id}`}
-                          >
-                            <X className="w-4 h-4" />
-                            {isArabic ? "تأكيد أنه لا يعمل" : "Confirm Broken"}
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="flex items-center gap-1"
-                            onClick={() => updateReportMutation.mutate({ id: report.id, reviewStatus: "rejected" })}
-                            disabled={updateReportMutation.isPending}
-                            data-testid={`button-reject-${report.id}`}
-                          >
-                            <AlertTriangle className="w-4 h-4" />
-                            {t("admin.reject")}
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
+                              <div className="flex items-center gap-2">
+                                {getReviewStatusBadge(report.reviewStatus, report.status)}
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                              <div>
+                                <span className="text-muted-foreground">{t("admin.reason")}:</span>{" "}
+                                <span className="font-medium">{report.reason || report.status}</span>
+                              </div>
+                              <div>
+                                <span className="text-muted-foreground">{t("admin.reportedBy")}:</span>{" "}
+                                <span className="font-medium">{report.reporterEmail || t("admin.anonymous")}</span>
+                              </div>
+                              <div>
+                                <span className="text-muted-foreground">{t("admin.createdAt")}:</span>{" "}
+                                <span className="font-medium">
+                                  {report.createdAt ? new Date(report.createdAt).toLocaleDateString(isArabic ? "ar-OM" : "en-US") : "-"}
+                                </span>
+                              </div>
+                            </div>
+                            
+                            {report.reviewStatus === "open" && (
+                              <div className="flex flex-wrap gap-2 pt-3 mt-3 border-t">
+                                <Button
+                                  size="sm"
+                                  className="flex items-center gap-1 bg-green-500 hover:bg-green-600 text-white"
+                                  onClick={() => updateReportMutation.mutate({ id: report.id, reviewStatus: "confirmed_working" })}
+                                  disabled={updateReportMutation.isPending}
+                                  data-testid={`button-confirm-working-${report.id}`}
+                                >
+                                  <Check className="w-4 h-4" />
+                                  {isArabic ? "تأكيد أنه يعمل" : "Confirm Working"}
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  className="flex items-center gap-1 bg-red-500 hover:bg-red-600 text-white"
+                                  onClick={() => updateReportMutation.mutate({ id: report.id, reviewStatus: "confirmed_broken" })}
+                                  disabled={updateReportMutation.isPending}
+                                  data-testid={`button-confirm-broken-${report.id}`}
+                                >
+                                  <X className="w-4 h-4" />
+                                  {isArabic ? "تأكيد أنه لا يعمل" : "Confirm Broken"}
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="flex items-center gap-1"
+                                  onClick={() => updateReportMutation.mutate({ id: report.id, reviewStatus: "rejected" })}
+                                  disabled={updateReportMutation.isPending}
+                                  data-testid={`button-reject-${report.id}`}
+                                >
+                                  <AlertTriangle className="w-4 h-4" />
+                                  {t("admin.reject")}
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                );
+              })}
+            </Accordion>
           )}
         </TabsContent>
 
