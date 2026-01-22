@@ -39,30 +39,25 @@ function createCustomIcon(station: Station, isBestNearby: boolean = false) {
   let pulseAnimation = '';
   let shadowSize: string;
   
+  size = 12;
+  shadowSize = '0 2px 4px rgba(0,0,0,0.3)';
+  
   switch (priority) {
     case 'best':
       color = '#10b981';
-      size = isBestNearby ? 24 : 18;
-      shadowSize = isBestNearby ? '0 4px 12px rgba(16, 185, 129, 0.5)' : '0 4px 6px rgba(0,0,0,0.3)';
       if (isBestNearby) {
         pulseAnimation = 'animation: pulse 2s infinite;';
       }
       break;
     case 'good':
       color = '#22c55e';
-      size = 16;
-      shadowSize = '0 4px 6px rgba(0,0,0,0.3)';
       break;
     case 'busy':
       color = '#f97316';
-      size = 14;
-      shadowSize = '0 3px 4px rgba(0,0,0,0.2)';
       break;
     case 'offline':
     default:
       color = '#ef4444';
-      size = 12;
-      shadowSize = '0 2px 3px rgba(0,0,0,0.2)';
       break;
   }
   
@@ -84,7 +79,7 @@ function createCustomIcon(station: Station, isBestNearby: boolean = false) {
         width: ${size}px; 
         height: ${size}px; 
         border-radius: 50%; 
-        border: ${isBestNearby ? '4px' : '3px'} solid white; 
+        border: 2px solid white; 
         box-shadow: ${shadowSize};
         ${pulseAnimation}
       "></div>
