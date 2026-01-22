@@ -5,18 +5,22 @@ hidden = [".config", ".git", "generated-icon.png", "node_modules", "dist"]
 [nix]
 channel = "stable-25_05"
 
+# ===== PORT CONFIG (مهم للـ Preview) =====
 [[ports]]
 localPort = 5000
-externalPort = 443
+externalPort = 80
 
+# ===== ENV =====
 [env]
 PORT = "5000"
 
+# ===== DEPLOYMENT =====
 [deployment]
 deploymentTarget = "autoscale"
 run = ["node", "./dist/index.cjs"]
 build = ["npm", "run", "build"]
 
+# ===== WORKFLOWS =====
 [workflows]
 runButton = "Project"
 
@@ -38,14 +42,16 @@ task = "shell.exec"
 args = "npm run dev"
 waitForPort = 5000
 
+# ===== AGENT =====
 [agent]
 integrations = ["javascript_log_in_with_replit:2.0.0"]
 expertMode = true
 
+# ===== USER ENV =====
 [userenv]
 
 [userenv.development]
-APP_URL = "APP_URL=https://file-helper--almakhmari001.replit.app"
+APP_URL = "https://file-helper--almakhmari001.replit.app"
 TRUST_SCORE_ENABLED = "false"
 
 [userenv.shared]
