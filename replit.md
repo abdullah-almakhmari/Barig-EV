@@ -115,3 +115,17 @@ Preferred communication style: Simple, everyday language.
 - **New Controls**: 
   - `MapInteractionControl` component toggles Leaflet interaction handlers
   - Fullscreen toggle button (top-left corner)
+
+### Hybrid Community Verification System - January 2026
+- **Purpose**: Auto-update station status based on community votes
+- **Priority 1 - Trusted Users**: Users with TRUSTED level can change station status immediately with a single vote
+  - WORKING vote → Station becomes OPERATIONAL
+  - NOT_WORKING vote → Station becomes OFFLINE
+  - BUSY vote → No status change
+- **Priority 2 - Community Consensus**: For non-trusted users, requires 3+ votes with clear majority
+  - 3+ NOT_WORKING votes (strictly greater than WORKING and BUSY) → Station becomes OFFLINE
+  - 3+ WORKING votes (strictly greater than NOT_WORKING and BUSY) → Station becomes OPERATIONAL
+  - Ties or no clear consensus → No status change
+- **BUSY votes**: Never change station status, only affect display
+- **Implementation**: `server/routes.ts` in station verification endpoint
+- **Admin Override**: Admins can still manually change station status in station details page
