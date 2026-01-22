@@ -7,7 +7,7 @@ channel = "stable-25_05"
 
 [[ports]]
 localPort = 5000
-externalPort = 5000
+externalPort = 443
 
 [env]
 PORT = "5000"
