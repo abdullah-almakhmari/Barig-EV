@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, buildUrl } from "@shared/routes";
 import type { InsertStation, InsertReport, ChargingSession, EvVehicle, UserVehicleWithDetails, InsertUserVehicle } from "@shared/schema";
 import { z } from "zod";
+import { apiRequest } from "@/lib/queryClient";
 
 // --- Stations Hooks ---
 
@@ -51,17 +52,8 @@ export function useCreateStation() {
       
       const validated = api.stations.create.input.parse(payload);
       
-      const res = await fetch(api.stations.create.path, {
-        method: api.stations.create.method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(validated),
-        credentials: "include",
-      });
+      const res = await apiRequest(api.stations.create.method, api.stations.create.path, validated);
       
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || "Failed to create station");
-      }
       return api.stations.create.responses[201].parse(await res.json());
     },
     onSuccess: () => {
@@ -90,14 +82,8 @@ export function useCreateReport() {
   return useMutation({
     mutationFn: async (data: InsertReport) => {
       const validated = api.reports.create.input.parse(data);
-      const res = await fetch(api.reports.create.path, {
-        method: api.reports.create.method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(validated),
-        credentials: "include",
-      });
+      const res = await apiRequest(api.reports.create.method, api.reports.create.path, validated);
 
-      if (!res.ok) throw new Error("Failed to submit report");
       return api.reports.create.responses[201].parse(await res.json());
     },
     onSuccess: (_, variables) => {
@@ -123,14 +109,7 @@ export function useStartCharging() {
   return useMutation({
     mutationFn: async (stationId: number) => {
       const url = buildUrl(api.stations.startCharging.path, { id: stationId });
-      const res = await fetch(url, {
-        method: api.stations.startCharging.method,
-        credentials: "include",
-      });
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || "Failed to start charging");
-      }
+      const res = await apiRequest(api.stations.startCharging.method, url);
       return res.json();
     },
     onSuccess: (_, stationId) => {
@@ -145,14 +124,7 @@ export function useStopCharging() {
   return useMutation({
     mutationFn: async (stationId: number) => {
       const url = buildUrl(api.stations.stopCharging.path, { id: stationId });
-      const res = await fetch(url, {
-        method: api.stations.stopCharging.method,
-        credentials: "include",
-      });
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || "Failed to stop charging");
-      }
+      const res = await apiRequest(api.stations.stopCharging.method, url);
       return res.json();
     },
     onSuccess: (_, stationId) => {
@@ -194,16 +166,7 @@ export function useStartChargingSession() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (data: { stationId: number; userVehicleId?: number; customVehicleName?: string; batteryStartPercent?: number }) => {
-      const res = await fetch(api.chargingSessions.start.path, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-        credentials: "include",
-      });
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || "Failed to start charging session");
-      }
+      const res = await apiRequest("POST", api.chargingSessions.start.path, data);
       return res.json() as Promise<ChargingSession>;
     },
     onSuccess: (_, variables) => {
@@ -220,16 +183,7 @@ export function useEndChargingSession() {
   return useMutation({
     mutationFn: async (data: { sessionId: number; stationId: number; batteryEndPercent?: number; energyKwh?: number }) => {
       const url = buildUrl(api.chargingSessions.end.path, { id: data.sessionId });
-      const res = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ batteryEndPercent: data.batteryEndPercent, energyKwh: data.energyKwh }),
-        credentials: "include",
-      });
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || "Failed to end charging session");
-      }
+      const res = await apiRequest("POST", url, { batteryEndPercent: data.batteryEndPercent, energyKwh: data.energyKwh });
       return res.json() as Promise<ChargingSession>;
     },
     onSuccess: (_, variables) => {
@@ -287,16 +241,7 @@ export function useCreateUserVehicle() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (data: Omit<InsertUserVehicle, "userId">) => {
-      const res = await fetch(api.userVehicles.create.path, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-        credentials: "include",
-      });
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || "Failed to add vehicle");
-      }
+      const res = await apiRequest("POST", api.userVehicles.create.path, data);
       return res.json();
     },
     onSuccess: () => {
@@ -310,14 +255,7 @@ export function useDeleteUserVehicle() {
   return useMutation({
     mutationFn: async (vehicleId: number) => {
       const url = buildUrl(api.userVehicles.delete.path, { id: vehicleId });
-      const res = await fetch(url, {
-        method: "DELETE",
-        credentials: "include",
-      });
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || "Failed to delete vehicle");
-      }
+      const res = await apiRequest("DELETE", url);
       return res.json();
     },
     onSuccess: () => {
@@ -331,14 +269,7 @@ export function useSetDefaultUserVehicle() {
   return useMutation({
     mutationFn: async (vehicleId: number) => {
       const url = buildUrl(api.userVehicles.setDefault.path, { id: vehicleId });
-      const res = await fetch(url, {
-        method: "POST",
-        credentials: "include",
-      });
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || "Failed to set default vehicle");
-      }
+      const res = await apiRequest("POST", url);
       return res.json();
     },
     onSuccess: () => {
