@@ -111,7 +111,11 @@ export default function AdminPanel() {
       case "resolved":
         return <Badge className="bg-green-500">{t("admin.resolved")}</Badge>;
       case "rejected":
-        return <Badge className="bg-red-500">{t("admin.rejected")}</Badge>;
+        return <Badge variant="secondary">{t("admin.rejected")}</Badge>;
+      case "confirmed_working":
+        return <Badge className="bg-green-500">{isArabic ? "مؤكد - يعمل" : "Confirmed Working"}</Badge>;
+      case "confirmed_broken":
+        return <Badge className="bg-red-500">{isArabic ? "مؤكد - لا يعمل" : "Confirmed Broken"}</Badge>;
       case "confirmed":
         if (reportStatus === "NOT_WORKING" || reportStatus === "BROKEN") {
           return <Badge className="bg-red-500">{t("admin.confirmed")}</Badge>;
@@ -202,14 +206,23 @@ export default function AdminPanel() {
                         <div className="flex flex-wrap gap-2 pt-2">
                           <Button
                             size="sm"
-                            variant="outline"
-                            className="flex items-center gap-1"
-                            onClick={() => updateReportMutation.mutate({ id: report.id, reviewStatus: "resolved" })}
+                            className="flex items-center gap-1 bg-green-500 hover:bg-green-600 text-white"
+                            onClick={() => updateReportMutation.mutate({ id: report.id, reviewStatus: "confirmed_working" })}
                             disabled={updateReportMutation.isPending}
-                            data-testid={`button-resolve-${report.id}`}
+                            data-testid={`button-confirm-working-${report.id}`}
                           >
                             <Check className="w-4 h-4" />
-                            {t("admin.resolve")}
+                            {isArabic ? "تأكيد أنه يعمل" : "Confirm Working"}
+                          </Button>
+                          <Button
+                            size="sm"
+                            className="flex items-center gap-1 bg-red-500 hover:bg-red-600 text-white"
+                            onClick={() => updateReportMutation.mutate({ id: report.id, reviewStatus: "confirmed_broken" })}
+                            disabled={updateReportMutation.isPending}
+                            data-testid={`button-confirm-broken-${report.id}`}
+                          >
+                            <X className="w-4 h-4" />
+                            {isArabic ? "تأكيد أنه لا يعمل" : "Confirm Broken"}
                           </Button>
                           <Button
                             size="sm"
@@ -219,19 +232,8 @@ export default function AdminPanel() {
                             disabled={updateReportMutation.isPending}
                             data-testid={`button-reject-${report.id}`}
                           >
-                            <X className="w-4 h-4" />
-                            {t("admin.reject")}
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="flex items-center gap-1"
-                            onClick={() => updateReportMutation.mutate({ id: report.id, reviewStatus: "confirmed" })}
-                            disabled={updateReportMutation.isPending}
-                            data-testid={`button-confirm-${report.id}`}
-                          >
                             <AlertTriangle className="w-4 h-4" />
-                            {t("admin.confirm")}
+                            {t("admin.reject")}
                           </Button>
                         </div>
                       )}

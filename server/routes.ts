@@ -599,7 +599,7 @@ export async function registerRoutes(
 
   // Admin: Update report review status
   const reviewStatusSchema = z.object({
-    reviewStatus: z.enum(["open", "resolved", "rejected", "confirmed"])
+    reviewStatus: z.enum(["open", "resolved", "rejected", "confirmed", "confirmed_working", "confirmed_broken"])
   });
 
   app.patch("/api/admin/reports/:id/review", isAuthenticated, isAdmin, async (req: any, res) => {
@@ -623,8 +623,14 @@ export async function registerRoutes(
         return res.status(404).json({ message: "Report not found" });
       }
       
-      // If confirming that a station is NOT working, update the station status to OFFLINE
-      if (parsed.data.reviewStatus === "confirmed" && existingReport.status === "NOT_WORKING") {
+      // If admin confirms station is working, update the station status to ONLINE
+      if (parsed.data.reviewStatus === "confirmed_working") {
+        await storage.updateStationStatus(existingReport.stationId, "ONLINE");
+      }
+      
+      // If admin confirms station is broken, update the station status to OFFLINE
+      if (parsed.data.reviewStatus === "confirmed_broken" || 
+          (parsed.data.reviewStatus === "confirmed" && existingReport.status === "NOT_WORKING")) {
         await storage.updateStationStatus(existingReport.stationId, "OFFLINE");
       }
       
