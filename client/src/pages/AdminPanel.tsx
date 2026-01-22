@@ -106,14 +106,17 @@ export default function AdminPanel() {
     return <Redirect to="/" />;
   }
 
-  const getReviewStatusBadge = (status: string | null) => {
-    switch (status) {
+  const getReviewStatusBadge = (reviewStatus: string | null, reportStatus?: string) => {
+    switch (reviewStatus) {
       case "resolved":
         return <Badge className="bg-green-500">{t("admin.resolved")}</Badge>;
       case "rejected":
         return <Badge className="bg-red-500">{t("admin.rejected")}</Badge>;
       case "confirmed":
-        return <Badge className="bg-yellow-500">{t("admin.confirmed")}</Badge>;
+        if (reportStatus === "BROKEN") {
+          return <Badge className="bg-red-500">{t("admin.confirmed")}</Badge>;
+        }
+        return <Badge className="bg-green-500">{t("admin.confirmed")}</Badge>;
       default:
         return <Badge variant="secondary">{t("admin.open")}</Badge>;
     }
@@ -168,7 +171,7 @@ export default function AdminPanel() {
                         {isArabic ? report.stationNameAr : report.stationName}
                       </CardTitle>
                       <div className="flex items-center gap-2 flex-wrap">
-                        {getReviewStatusBadge(report.reviewStatus)}
+                        {getReviewStatusBadge(report.reviewStatus, report.status)}
                         <Badge variant="outline" className="flex items-center gap-1">
                           <AlertTriangle className="w-3 h-3" />
                           {report.reportCount} {t("admin.totalReports")}
