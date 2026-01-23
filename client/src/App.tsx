@@ -15,6 +15,7 @@ import StationDetails from "@/pages/StationDetails";
 import AddStation from "@/pages/AddStation";
 import NearbyStations from "@/pages/NearbyStations";
 import ChargingHistory from "@/pages/ChargingHistory";
+import ChargingStats from "@/pages/ChargingStats";
 import AuthPage from "@/pages/AuthPage";
 import AdminPanel from "@/pages/AdminPanel";
 import NotFound from "@/pages/not-found";
@@ -27,6 +28,7 @@ function Router() {
       <Route path="/add" component={AddStation} />
       <Route path="/nearby" component={NearbyStations} />
       <Route path="/history" component={ChargingHistory} />
+      <Route path="/stats" component={ChargingStats} />
       <Route path="/admin" component={AdminPanel} />
       <Route path="/station/:id" component={StationDetails} />
       <Route component={NotFound} />

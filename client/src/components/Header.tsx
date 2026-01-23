@@ -1,7 +1,7 @@
 import { useLanguage } from "./LanguageContext";
 import { useTranslation } from "react-i18next";
 import { Link, useLocation } from "wouter";
-import { MapPin, Plus, Languages, Zap, Navigation, History, LogIn, LogOut, User, Shield } from "lucide-react";
+import { MapPin, Plus, Languages, Zap, Navigation, History, LogIn, LogOut, User, Shield, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -76,6 +76,17 @@ export function Header() {
             >
               <History className="w-4 h-4" />
               <span className="hidden sm:inline">{t("nav.history")}</span>
+            </Button>
+          </Link>
+
+          <Link href="/stats">
+            <Button
+              variant={location === "/stats" ? "secondary" : "ghost"}
+              className="gap-2 font-medium"
+              data-testid="button-nav-stats"
+            >
+              <BarChart3 className="w-4 h-4" />
+              <span className="hidden sm:inline">{language === "ar" ? "إحصائيات" : "Stats"}</span>
             </Button>
           </Link>
 
