@@ -19,8 +19,19 @@ import { ar } from "date-fns/locale";
 
 const ELECTRICITY_STORAGE_KEY = "bariq_electricity_rate";
 const PETROL_STORAGE_KEY = "bariq_petrol_price";
+const CURRENCY_STORAGE_KEY = "bariq_currency";
 const DEFAULT_ELECTRICITY_RATE = 0.1;
 const DEFAULT_PETROL_PRICE = 0.180;
+const DEFAULT_CURRENCY = "OMR";
+
+const CURRENCIES = [
+  { code: "OMR", nameAr: "ريال عماني", nameEn: "Omani Rial", symbol: "ر.ع" },
+  { code: "AED", nameAr: "درهم إماراتي", nameEn: "UAE Dirham", symbol: "د.إ" },
+  { code: "SAR", nameAr: "ريال سعودي", nameEn: "Saudi Riyal", symbol: "ر.س" },
+  { code: "KWD", nameAr: "دينار كويتي", nameEn: "Kuwaiti Dinar", symbol: "د.ك" },
+  { code: "BHD", nameAr: "دينار بحريني", nameEn: "Bahraini Dinar", symbol: "د.ب" },
+  { code: "QAR", nameAr: "ريال قطري", nameEn: "Qatari Riyal", symbol: "ر.ق" },
+];
 
 export default function ChargingStats() {
   const { t } = useTranslation();
@@ -32,9 +43,14 @@ export default function ChargingStats() {
   const [viewMode, setViewMode] = useState<"month" | "year">("month");
   const [electricityRate, setElectricityRate] = useState(DEFAULT_ELECTRICITY_RATE);
   const [petrolPrice, setPetrolPrice] = useState(DEFAULT_PETROL_PRICE);
+  const [currency, setCurrency] = useState(DEFAULT_CURRENCY);
   const [rateInput, setRateInput] = useState("");
   const [petrolInput, setPetrolInput] = useState("");
+  const [currencyInput, setCurrencyInput] = useState(DEFAULT_CURRENCY);
   const [showSettings, setShowSettings] = useState(false);
+
+  const selectedCurrency = CURRENCIES.find(c => c.code === currency) || CURRENCIES[0];
+  const getCurrencySymbol = () => isArabic ? selectedCurrency.symbol : selectedCurrency.code;
 
   useEffect(() => {
     const savedElecRate = localStorage.getItem(ELECTRICITY_STORAGE_KEY);
@@ -58,6 +74,12 @@ export default function ChargingStats() {
     } else {
       setPetrolInput(DEFAULT_PETROL_PRICE.toString());
     }
+
+    const savedCurrency = localStorage.getItem(CURRENCY_STORAGE_KEY);
+    if (savedCurrency && CURRENCIES.some(c => c.code === savedCurrency)) {
+      setCurrency(savedCurrency);
+      setCurrencyInput(savedCurrency);
+    }
   }, []);
 
   const saveSettings = () => {
@@ -72,6 +94,11 @@ export default function ChargingStats() {
     if (!isNaN(petPrice) && petPrice > 0) {
       setPetrolPrice(petPrice);
       localStorage.setItem(PETROL_STORAGE_KEY, petPrice.toString());
+    }
+
+    if (currencyInput && CURRENCIES.some(c => c.code === currencyInput)) {
+      setCurrency(currencyInput);
+      localStorage.setItem(CURRENCY_STORAGE_KEY, currencyInput);
     }
     
     setShowSettings(false);
@@ -227,8 +254,31 @@ export default function ChargingStats() {
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
+                <Label htmlFor="currency-select">
+                  {isArabic ? "العملة" : "Currency"}
+                </Label>
+                <Select value={currencyInput} onValueChange={setCurrencyInput}>
+                  <SelectTrigger id="currency-select" data-testid="select-currency">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CURRENCIES.map((curr) => (
+                      <SelectItem key={curr.code} value={curr.code} data-testid={`currency-option-${curr.code}`}>
+                        <span className="flex items-center gap-2">
+                          <span className="font-medium">{curr.symbol}</span>
+                          <span>{isArabic ? curr.nameAr : curr.nameEn}</span>
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
                 <Label htmlFor="electricity-rate">
-                  {isArabic ? "سعر الكيلوواط (ر.ع)" : "Electricity price per kWh (OMR)"}
+                  {isArabic 
+                    ? `سعر الكيلوواط (${CURRENCIES.find(c => c.code === currencyInput)?.symbol || "ر.ع"})` 
+                    : `Electricity price per kWh (${currencyInput})`}
                 </Label>
                 <Input
                   id="electricity-rate"
@@ -244,7 +294,9 @@ export default function ChargingStats() {
 
               <div className="space-y-2">
                 <Label htmlFor="petrol-price">
-                  {isArabic ? "سعر لتر البنزين (ر.ع)" : "Petrol price per liter (OMR)"}
+                  {isArabic 
+                    ? `سعر لتر البنزين (${CURRENCIES.find(c => c.code === currencyInput)?.symbol || "ر.ع"})` 
+                    : `Petrol price per liter (${currencyInput})`}
                 </Label>
                 <Input
                   id="petrol-price"
@@ -269,7 +321,7 @@ export default function ChargingStats() {
                     {isArabic ? "سعر الكهرباء" : "Electricity"}
                   </span>
                   <span className="font-semibold text-primary">
-                    {electricityRate.toFixed(3)} {isArabic ? "ر.ع/كيلوواط" : "OMR/kWh"}
+                    {electricityRate.toFixed(3)} {isArabic ? `${selectedCurrency.symbol}/كيلوواط` : `${currency}/kWh`}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
@@ -277,7 +329,7 @@ export default function ChargingStats() {
                     {isArabic ? "سعر البنزين" : "Petrol"}
                   </span>
                   <span className="font-semibold text-orange-600">
-                    {petrolPrice.toFixed(3)} {isArabic ? "ر.ع/لتر" : "OMR/L"}
+                    {petrolPrice.toFixed(3)} {isArabic ? `${selectedCurrency.symbol}/لتر` : `${currency}/L`}
                   </span>
                 </div>
               </div>
@@ -384,7 +436,7 @@ export default function ChargingStats() {
                     ~{monthlyStats.petrolLitersSaved.toFixed(0)} {isArabic ? "لتر" : "L"}
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    ≈ {monthlyStats.petrolMoneySaved.toFixed(2)} {isArabic ? "ر.ع توفير" : "OMR saved"}
+                    ≈ {monthlyStats.petrolMoneySaved.toFixed(2)} {isArabic ? `${selectedCurrency.symbol} توفير` : `${currency} saved`}
                   </div>
                 </div>
               </div>
@@ -393,11 +445,11 @@ export default function ChargingStats() {
             <Card className="p-4 bg-gradient-to-br from-blue-500/5 to-indigo-500/10" data-testid="stat-cost">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center">
-                  <span className="text-blue-600 font-bold text-sm">ر.ع</span>
+                  <span className="text-blue-600 font-bold text-sm">{selectedCurrency.symbol}</span>
                 </div>
                 <div>
                   <div className="text-lg font-bold text-blue-600">
-                    ~{monthlyStats.estimatedCost.toFixed(2)} {isArabic ? "ر.ع" : "OMR"}
+                    ~{monthlyStats.estimatedCost.toFixed(2)} {isArabic ? selectedCurrency.symbol : currency}
                   </div>
                   <div className="text-xs text-muted-foreground">
                     {isArabic ? "تكلفة الشحن التقديرية" : "estimated charging cost"}
