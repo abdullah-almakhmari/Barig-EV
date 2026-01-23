@@ -27,35 +27,35 @@ export function Onboarding() {
 
   return (
     <div 
-      className="fixed inset-0 z-50 flex items-center justify-center bg-background/95 backdrop-blur-sm p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-background/95 backdrop-blur-sm p-3 sm:p-4 overflow-y-auto"
       dir={isRTL ? "rtl" : "ltr"}
       data-testid="onboarding-overlay"
     >
-      <Card className="relative max-w-lg w-full p-6 md:p-8 shadow-lg">
+      <Card className="relative max-w-md w-full p-5 sm:p-6 shadow-lg my-auto">
         <button
           onClick={handleDismiss}
-          className="absolute top-4 end-4 text-muted-foreground hover-elevate p-1 rounded"
+          className="absolute top-3 end-3 text-muted-foreground hover-elevate p-1 rounded"
           aria-label={t("onboarding.skip")}
           data-testid="button-onboarding-skip"
         >
           <X className="w-5 h-5" />
         </button>
 
-        <div className="flex flex-col items-center text-center space-y-6">
+        <div className="flex flex-col items-center text-center space-y-4 sm:space-y-5">
           <div className="flex items-center gap-2 text-primary">
-            <Zap className="w-8 h-8" />
-            <span className="text-2xl font-bold">{t("app.title")}</span>
+            <Zap className="w-7 h-7" />
+            <span className="text-xl font-bold">{t("app.title")}</span>
           </div>
 
-          <h1 className="text-xl md:text-2xl font-semibold text-foreground" data-testid="text-onboarding-headline">
+          <h1 className="text-lg sm:text-xl font-semibold text-foreground leading-tight" data-testid="text-onboarding-headline">
             {t("onboarding.headline")}
           </h1>
 
-          <p className="text-muted-foreground text-sm md:text-base leading-relaxed">
+          <p className="text-muted-foreground text-xs sm:text-sm leading-relaxed px-2">
             {t("onboarding.problem")}
           </p>
 
-          <div className="flex items-start gap-3 bg-muted/50 rounded-lg p-4 w-full">
+          <div className="flex items-start gap-3 bg-muted/50 rounded-lg p-3 w-full">
             <Users className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
             <div className="text-start">
               <p className="font-medium text-foreground text-sm">{t("onboarding.trustTitle")}</p>
@@ -63,31 +63,31 @@ export function Onboarding() {
             </div>
           </div>
 
-          <ul className="w-full space-y-3 text-start">
-            <li className="flex items-center gap-3">
+          <ul className="w-full space-y-2.5 text-start">
+            <li className="flex items-center gap-2.5">
               <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
                 <MapPin className="w-3.5 h-3.5 text-primary" />
               </div>
-              <span className="text-sm text-foreground">{t("onboarding.howTo1")}</span>
+              <span className="text-xs sm:text-sm text-foreground">{t("onboarding.howTo1")}</span>
             </li>
-            <li className="flex items-center gap-3">
+            <li className="flex items-center gap-2.5">
               <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
                 <CheckCircle className="w-3.5 h-3.5 text-primary" />
               </div>
-              <span className="text-sm text-foreground">{t("onboarding.howTo2")}</span>
+              <span className="text-xs sm:text-sm text-foreground">{t("onboarding.howTo2")}</span>
             </li>
-            <li className="flex items-center gap-3">
+            <li className="flex items-center gap-2.5">
               <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
                 <Users className="w-3.5 h-3.5 text-primary" />
               </div>
-              <span className="text-sm text-foreground">{t("onboarding.howTo3")}</span>
+              <span className="text-xs sm:text-sm text-foreground">{t("onboarding.howTo3")}</span>
             </li>
           </ul>
 
           <Button 
             onClick={handleDismiss} 
-            className="w-full"
-            size="lg"
+            className="w-full mt-2"
+            size="default"
             data-testid="button-onboarding-start"
           >
             {t("onboarding.getStarted")}
