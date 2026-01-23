@@ -238,16 +238,36 @@ export default function AddStation() {
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
                 name="chargerCount"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t("add.chargerCount")}</FormLabel>
-                    <FormControl>
-                      <Input type="number" min="1" {...field} />
-                    </FormControl>
+                    <FormLabel className="text-center block mb-2">{t("add.chargerCount")}</FormLabel>
+                    <div className="flex items-center justify-center gap-3 p-3 rounded-xl border-2 border-muted">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        className="h-10 w-10 rounded-full"
+                        onClick={() => field.onChange(Math.max(1, (field.value || 1) - 1))}
+                        data-testid="button-charger-count-minus"
+                      >
+                        <span className="text-xl">−</span>
+                      </Button>
+                      <span className="text-2xl font-bold w-12 text-center">{field.value || 1}</span>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        className="h-10 w-10 rounded-full"
+                        onClick={() => field.onChange((field.value || 1) + 1)}
+                        data-testid="button-charger-count-plus"
+                      >
+                        <span className="text-xl">+</span>
+                      </Button>
+                    </div>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -258,15 +278,37 @@ export default function AddStation() {
                 name="availableChargers"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t("add.availableChargers")}</FormLabel>
-                    <FormControl>
-                      <Input type="number" min="0" {...field} />
-                    </FormControl>
+                    <FormLabel className="text-center block mb-2">{t("add.availableChargers")}</FormLabel>
+                    <div className="flex items-center justify-center gap-3 p-3 rounded-xl border-2 border-muted">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        className="h-10 w-10 rounded-full"
+                        onClick={() => field.onChange(Math.max(0, (field.value || 1) - 1))}
+                        data-testid="button-available-chargers-minus"
+                      >
+                        <span className="text-xl">−</span>
+                      </Button>
+                      <span className="text-2xl font-bold w-12 text-center">{field.value || 1}</span>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        className="h-10 w-10 rounded-full"
+                        onClick={() => {
+                          const chargerCount = form.getValues("chargerCount") || 1;
+                          field.onChange(Math.min(chargerCount, (field.value || 1) + 1));
+                        }}
+                        data-testid="button-available-chargers-plus"
+                      >
+                        <span className="text-xl">+</span>
+                      </Button>
+                    </div>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-
             </div>
 
             <FormField
