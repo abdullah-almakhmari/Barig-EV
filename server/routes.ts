@@ -23,6 +23,10 @@ import {
   exportUsersCSV,
   exportVerificationsCSV,
   exportSummaryCSV,
+  exportTemporalPatternsCSV,
+  exportGeographicAnalysisCSV,
+  exportUserBehaviorCSV,
+  exportReliabilityMetricsCSV,
   getAvailableDatasets
 } from "./admin/dataExport";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
@@ -903,6 +907,46 @@ export async function registerRoutes(
       await exportSummaryCSV(res);
     } catch (err) {
       console.error("[Export] Summary export failed:", err);
+      res.status(500).json({ message: "Export failed" });
+    }
+  });
+
+  // Export temporal patterns as CSV
+  app.get("/api/admin/export/temporal", isAuthenticated, isAdmin, async (_req, res) => {
+    try {
+      await exportTemporalPatternsCSV(res);
+    } catch (err) {
+      console.error("[Export] Temporal patterns export failed:", err);
+      res.status(500).json({ message: "Export failed" });
+    }
+  });
+
+  // Export geographic analysis as CSV
+  app.get("/api/admin/export/geographic", isAuthenticated, isAdmin, async (_req, res) => {
+    try {
+      await exportGeographicAnalysisCSV(res);
+    } catch (err) {
+      console.error("[Export] Geographic analysis export failed:", err);
+      res.status(500).json({ message: "Export failed" });
+    }
+  });
+
+  // Export user behavior as CSV
+  app.get("/api/admin/export/behavior", isAuthenticated, isAdmin, async (_req, res) => {
+    try {
+      await exportUserBehaviorCSV(res);
+    } catch (err) {
+      console.error("[Export] User behavior export failed:", err);
+      res.status(500).json({ message: "Export failed" });
+    }
+  });
+
+  // Export reliability metrics as CSV
+  app.get("/api/admin/export/reliability", isAuthenticated, isAdmin, async (_req, res) => {
+    try {
+      await exportReliabilityMetricsCSV(res);
+    } catch (err) {
+      console.error("[Export] Reliability metrics export failed:", err);
       res.status(500).json({ message: "Export failed" });
     }
   });

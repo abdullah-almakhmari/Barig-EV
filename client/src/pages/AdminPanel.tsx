@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Shield, FileWarning, MapPin, Check, X, AlertTriangle, Eye, EyeOff, Download, Database, ChevronDown, Camera, BatteryCharging, MessageCircle, Users, Zap, CheckCircle, BarChart3, FileSpreadsheet, GraduationCap } from "lucide-react";
+import { Shield, FileWarning, MapPin, Check, X, AlertTriangle, Eye, EyeOff, Download, Database, ChevronDown, Camera, BatteryCharging, MessageCircle, Users, Zap, CheckCircle, BarChart3, FileSpreadsheet, GraduationCap, Clock, Globe, Activity, TrendingUp } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Redirect } from "wouter";
@@ -889,6 +889,160 @@ export default function AdminPanel() {
                   >
                     <Download className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0" />
                     {isArabic ? "تحميل CSV" : "Download CSV"}
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+
+          {/* Advanced Analytics */}
+          <div>
+            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <TrendingUp className="w-5 h-5" />
+              {isArabic ? "تحليلات متقدمة لعلم البيانات" : "Advanced Analytics for Data Science"}
+              <Badge variant="secondary" className="text-xs">{isArabic ? "جديد" : "NEW"}</Badge>
+            </h3>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              {/* Temporal Patterns */}
+              <Card className="border-2 hover-elevate">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <Clock className="w-5 h-5 text-purple-500" />
+                  </div>
+                  <CardTitle className="text-sm mt-2">
+                    {isArabic ? "الأنماط الزمنية" : "Temporal Patterns"}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    {isArabic
+                      ? "مصفوفة 24 ساعة × 7 أيام للشحن والتحقق"
+                      : "24-hour × 7-day matrix for charging and verification"}
+                  </p>
+                  <div className="flex flex-wrap gap-1">
+                    {["hour", "day", "sessions", "energy", "votes"].map(field => (
+                      <Badge key={field} variant="outline" className="text-[10px] font-mono">
+                        {field}
+                      </Badge>
+                    ))}
+                  </div>
+                  <Button 
+                    className="w-full" 
+                    size="sm"
+                    variant="outline"
+                    onClick={() => window.open("/api/admin/export/temporal", "_blank")}
+                    data-testid="button-export-temporal"
+                  >
+                    <Download className="w-3 h-3 mr-1 rtl:ml-1 rtl:mr-0" />
+                    {isArabic ? "تحميل" : "Download"}
+                  </Button>
+                </CardContent>
+              </Card>
+
+              {/* Geographic Analysis */}
+              <Card className="border-2 hover-elevate">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <Globe className="w-5 h-5 text-blue-500" />
+                  </div>
+                  <CardTitle className="text-sm mt-2">
+                    {isArabic ? "التحليل الجغرافي" : "Geographic Analysis"}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    {isArabic
+                      ? "توزيع المحطات والاستخدام حسب المدينة"
+                      : "Station distribution and usage by city"}
+                  </p>
+                  <div className="flex flex-wrap gap-1">
+                    {["city", "stations", "sessions", "energy", "chargers"].map(field => (
+                      <Badge key={field} variant="outline" className="text-[10px] font-mono">
+                        {field}
+                      </Badge>
+                    ))}
+                  </div>
+                  <Button 
+                    className="w-full" 
+                    size="sm"
+                    variant="outline"
+                    onClick={() => window.open("/api/admin/export/geographic", "_blank")}
+                    data-testid="button-export-geographic"
+                  >
+                    <Download className="w-3 h-3 mr-1 rtl:ml-1 rtl:mr-0" />
+                    {isArabic ? "تحميل" : "Download"}
+                  </Button>
+                </CardContent>
+              </Card>
+
+              {/* User Behavior */}
+              <Card className="border-2 hover-elevate">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <Activity className="w-5 h-5 text-green-500" />
+                  </div>
+                  <CardTitle className="text-sm mt-2">
+                    {isArabic ? "سلوك المستخدمين" : "User Behavior"}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    {isArabic
+                      ? "أنماط التفاعل ومعدلات المشاركة"
+                      : "Engagement patterns and activity rates"}
+                  </p>
+                  <div className="flex flex-wrap gap-1">
+                    {["frequency", "accuracy", "preferred_time", "engagement"].map(field => (
+                      <Badge key={field} variant="outline" className="text-[10px] font-mono">
+                        {field}
+                      </Badge>
+                    ))}
+                  </div>
+                  <Button 
+                    className="w-full" 
+                    size="sm"
+                    variant="outline"
+                    onClick={() => window.open("/api/admin/export/behavior", "_blank")}
+                    data-testid="button-export-behavior"
+                  >
+                    <Download className="w-3 h-3 mr-1 rtl:ml-1 rtl:mr-0" />
+                    {isArabic ? "تحميل" : "Download"}
+                  </Button>
+                </CardContent>
+              </Card>
+
+              {/* Reliability Metrics */}
+              <Card className="border-2 hover-elevate">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <Shield className="w-5 h-5 text-amber-500" />
+                  </div>
+                  <CardTitle className="text-sm mt-2">
+                    {isArabic ? "مقاييس الموثوقية" : "Reliability Metrics"}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    {isArabic
+                      ? "درجات الموثوقية ومعدلات الحل للمحطات"
+                      : "Station reliability scores and resolution rates"}
+                  </p>
+                  <div className="flex flex-wrap gap-1">
+                    {["working_rate", "confidence", "resolution", "score"].map(field => (
+                      <Badge key={field} variant="outline" className="text-[10px] font-mono">
+                        {field}
+                      </Badge>
+                    ))}
+                  </div>
+                  <Button 
+                    className="w-full" 
+                    size="sm"
+                    variant="outline"
+                    onClick={() => window.open("/api/admin/export/reliability", "_blank")}
+                    data-testid="button-export-reliability"
+                  >
+                    <Download className="w-3 h-3 mr-1 rtl:ml-1 rtl:mr-0" />
+                    {isArabic ? "تحميل" : "Download"}
                   </Button>
                 </CardContent>
               </Card>

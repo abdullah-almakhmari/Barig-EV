@@ -468,6 +468,513 @@ export async function exportSummaryCSV(res: Response): Promise<void> {
 }
 
 /**
+ * Export temporal patterns analysis - hourly and daily charging patterns
+ */
+export async function exportTemporalPatternsCSV(res: Response): Promise<void> {
+  res.setHeader("Content-Type", "text/csv; charset=utf-8");
+  res.setHeader("Content-Disposition", 'attachment; filename="bariq_temporal_patterns.csv"');
+  
+  const headers = [
+    "hour_of_day",
+    "day_of_week",
+    "total_sessions",
+    "total_energy_kwh",
+    "avg_duration_min",
+    "avg_energy_kwh",
+    "total_verifications",
+    "working_votes",
+    "not_working_votes"
+  ];
+  res.write(toCSVRow(headers));
+
+  // Get all sessions with timestamps
+  const sessionsData = await db.select().from(chargingSessions);
+  const verificationsData = await db.select().from(stationVerifications);
+
+  // Create hourly-daily matrix (24 hours x 7 days)
+  const matrix: Record<string, {
+    sessions: number;
+    energy: number;
+    duration: number;
+    verifications: number;
+    working: number;
+    notWorking: number;
+  }> = {};
+
+  // Initialize matrix
+  for (let day = 0; day < 7; day++) {
+    for (let hour = 0; hour < 24; hour++) {
+      matrix[`${hour}-${day}`] = {
+        sessions: 0,
+        energy: 0,
+        duration: 0,
+        verifications: 0,
+        working: 0,
+        notWorking: 0
+      };
+    }
+  }
+
+  // Populate sessions data
+  for (const session of sessionsData) {
+    if (session.startTime) {
+      const date = new Date(session.startTime);
+      const key = `${date.getHours()}-${date.getDay()}`;
+      if (matrix[key]) {
+        matrix[key].sessions++;
+        matrix[key].energy += session.energyKwh || 0;
+        matrix[key].duration += session.durationMinutes || 0;
+      }
+    }
+  }
+
+  // Populate verifications data
+  for (const verification of verificationsData) {
+    if (verification.createdAt) {
+      const date = new Date(verification.createdAt);
+      const key = `${date.getHours()}-${date.getDay()}`;
+      if (matrix[key]) {
+        matrix[key].verifications++;
+        if (verification.vote === "WORKING") matrix[key].working++;
+        if (verification.vote === "NOT_WORKING") matrix[key].notWorking++;
+      }
+    }
+  }
+
+  // Write rows
+  for (let day = 0; day < 7; day++) {
+    for (let hour = 0; hour < 24; hour++) {
+      const data = matrix[`${hour}-${day}`];
+      const row = [
+        hour,
+        day, // 0=Sunday, 6=Saturday
+        data.sessions,
+        data.energy.toFixed(2),
+        data.sessions > 0 ? (data.duration / data.sessions).toFixed(1) : 0,
+        data.sessions > 0 ? (data.energy / data.sessions).toFixed(2) : 0,
+        data.verifications,
+        data.working,
+        data.notWorking
+      ];
+      res.write(toCSVRow(row));
+    }
+  }
+
+  res.end();
+}
+
+/**
+ * Export geographic analysis - station distribution by city
+ */
+export async function exportGeographicAnalysisCSV(res: Response): Promise<void> {
+  res.setHeader("Content-Type", "text/csv; charset=utf-8");
+  res.setHeader("Content-Disposition", 'attachment; filename="bariq_geographic_analysis.csv"');
+  
+  const headers = [
+    "city",
+    "city_ar",
+    "total_stations",
+    "ac_stations",
+    "dc_stations",
+    "both_type_stations",
+    "total_power_kw",
+    "avg_power_kw",
+    "total_chargers",
+    "total_sessions",
+    "total_energy_kwh",
+    "operational_stations",
+    "offline_stations",
+    "free_stations",
+    "paid_stations"
+  ];
+  res.write(toCSVRow(headers));
+
+  // Get all approved stations
+  const stationsData = await db
+    .select()
+    .from(stations)
+    .where(eq(stations.approvalStatus, "APPROVED"));
+
+  // Group by city
+  const cityStats: Record<string, {
+    cityAr: string;
+    total: number;
+    ac: number;
+    dc: number;
+    both: number;
+    totalPower: number;
+    totalChargers: number;
+    operational: number;
+    offline: number;
+    free: number;
+    paid: number;
+    stationIds: number[];
+  }> = {};
+
+  for (const station of stationsData) {
+    const city = station.city;
+    if (!cityStats[city]) {
+      cityStats[city] = {
+        cityAr: station.cityAr,
+        total: 0,
+        ac: 0,
+        dc: 0,
+        both: 0,
+        totalPower: 0,
+        totalChargers: 0,
+        operational: 0,
+        offline: 0,
+        free: 0,
+        paid: 0,
+        stationIds: []
+      };
+    }
+
+    cityStats[city].total++;
+    cityStats[city].stationIds.push(station.id);
+    cityStats[city].totalPower += station.powerKw || 0;
+    cityStats[city].totalChargers += station.chargerCount || 1;
+
+    if (station.chargerType === "AC") cityStats[city].ac++;
+    else if (station.chargerType === "DC") cityStats[city].dc++;
+    else if (station.chargerType === "Both") cityStats[city].both++;
+
+    if (station.status === "OPERATIONAL") cityStats[city].operational++;
+    else cityStats[city].offline++;
+
+    if (station.isFree) cityStats[city].free++;
+    else cityStats[city].paid++;
+  }
+
+  // Batch query: Get session stats per station in one query
+  const allSessionStats = await db
+    .select({
+      stationId: chargingSessions.stationId,
+      count: count(),
+      energy: sum(chargingSessions.energyKwh)
+    })
+    .from(chargingSessions)
+    .groupBy(chargingSessions.stationId);
+
+  // Map session stats by stationId
+  const sessionStatsMap: Record<number, { count: number; energy: number }> = {};
+  for (const stat of allSessionStats) {
+    sessionStatsMap[stat.stationId] = {
+      count: Number(stat.count) || 0,
+      energy: Number(stat.energy) || 0
+    };
+  }
+
+  // Write rows using pre-fetched data
+  for (const city of Object.keys(cityStats)) {
+    const stats = cityStats[city];
+    
+    // Sum sessions and energy from pre-fetched map
+    let totalSessions = 0;
+    let totalEnergy = 0;
+    for (const stationId of stats.stationIds) {
+      const stationStats = sessionStatsMap[stationId];
+      if (stationStats) {
+        totalSessions += stationStats.count;
+        totalEnergy += stationStats.energy;
+      }
+    }
+
+    const row = [
+      city,
+      stats.cityAr,
+      stats.total,
+      stats.ac,
+      stats.dc,
+      stats.both,
+      stats.totalPower.toFixed(1),
+      stats.total > 0 ? (stats.totalPower / stats.total).toFixed(1) : 0,
+      stats.totalChargers,
+      totalSessions,
+      totalEnergy.toFixed(2),
+      stats.operational,
+      stats.offline,
+      stats.free,
+      stats.paid
+    ];
+    res.write(toCSVRow(row));
+  }
+
+  res.end();
+}
+
+/**
+ * Export user behavior patterns - engagement and activity metrics
+ * Optimized with batch queries to avoid N+1 performance issues
+ */
+export async function exportUserBehaviorCSV(res: Response): Promise<void> {
+  res.setHeader("Content-Type", "text/csv; charset=utf-8");
+  res.setHeader("Content-Disposition", 'attachment; filename="bariq_user_behavior.csv"');
+  
+  const headers = [
+    "user_id",
+    "email",
+    "days_since_registration",
+    "days_since_last_activity",
+    "total_sessions",
+    "sessions_per_month",
+    "total_energy_kwh",
+    "avg_session_energy_kwh",
+    "total_verifications",
+    "verification_accuracy_rate",
+    "total_reports",
+    "resolved_reports",
+    "preferred_charger_type",
+    "preferred_time_of_day",
+    "engagement_score"
+  ];
+  res.write(toCSVRow(headers));
+
+  const now = new Date();
+
+  // Batch fetch all data
+  const usersData = await db.select().from(users);
+  const allSessions = await db
+    .select({
+      session: chargingSessions,
+      station: stations
+    })
+    .from(chargingSessions)
+    .leftJoin(stations, eq(chargingSessions.stationId, stations.id));
+  const allVerifications = await db
+    .select({
+      verification: stationVerifications,
+      station: stations
+    })
+    .from(stationVerifications)
+    .leftJoin(stations, eq(stationVerifications.stationId, stations.id));
+  const allReports = await db.select().from(reports);
+
+  // Group data by userId
+  const sessionsByUser: Record<string, typeof allSessions> = {};
+  const verificationsByUser: Record<string, typeof allVerifications> = {};
+  const reportsByUser: Record<string, typeof allReports> = {};
+
+  for (const sessionData of allSessions) {
+    const userId = sessionData.session.userId;
+    if (userId) {
+      if (!sessionsByUser[userId]) sessionsByUser[userId] = [];
+      sessionsByUser[userId].push(sessionData);
+    }
+  }
+
+  for (const verificationData of allVerifications) {
+    const userId = verificationData.verification.userId;
+    if (!verificationsByUser[userId]) verificationsByUser[userId] = [];
+    verificationsByUser[userId].push(verificationData);
+  }
+
+  for (const report of allReports) {
+    const userId = report.userId;
+    if (userId) {
+      if (!reportsByUser[userId]) reportsByUser[userId] = [];
+      reportsByUser[userId].push(report);
+    }
+  }
+
+  // Process each user
+  for (const user of usersData) {
+    const userSessions = sessionsByUser[user.id] || [];
+    const userVerifications = verificationsByUser[user.id] || [];
+    const userReports = reportsByUser[user.id] || [];
+
+    // Calculate metrics
+    const daysSinceReg = user.createdAt 
+      ? Math.floor((now.getTime() - new Date(user.createdAt).getTime()) / (1000 * 60 * 60 * 24))
+      : 0;
+
+    let lastActivity = user.createdAt;
+    for (const { session } of userSessions) {
+      if (session.createdAt && (!lastActivity || new Date(session.createdAt) > new Date(lastActivity))) {
+        lastActivity = session.createdAt;
+      }
+    }
+    const daysSinceLastActivity = lastActivity
+      ? Math.floor((now.getTime() - new Date(lastActivity).getTime()) / (1000 * 60 * 60 * 24))
+      : daysSinceReg;
+
+    const totalEnergy = userSessions.reduce((sum, { session }) => sum + (session.energyKwh || 0), 0);
+    const avgEnergy = userSessions.length > 0 ? totalEnergy / userSessions.length : 0;
+    const sessionsPerMonth = daysSinceReg > 0 ? (userSessions.length / daysSinceReg) * 30 : 0;
+
+    // Verification accuracy (compare vote to current station status using pre-fetched data)
+    let accurateVotes = 0;
+    for (const { verification, station } of userVerifications) {
+      if (station) {
+        const isAccurate = 
+          (verification.vote === "WORKING" && station.status === "OPERATIONAL") ||
+          (verification.vote === "NOT_WORKING" && station.status === "OFFLINE");
+        if (isAccurate) accurateVotes++;
+      }
+    }
+    const accuracyRate = userVerifications.length > 0 ? (accurateVotes / userVerifications.length) : 0;
+
+    const resolvedReports = userReports.filter(r => r.reviewStatus === "resolved").length;
+
+    // Preferred charger type (using pre-fetched station data)
+    const chargerTypes: Record<string, number> = {};
+    for (const { station } of userSessions) {
+      const type = station?.chargerType || "Unknown";
+      chargerTypes[type] = (chargerTypes[type] || 0) + 1;
+    }
+    const preferredType = Object.entries(chargerTypes).sort((a, b) => b[1] - a[1])[0]?.[0] || "";
+
+    // Preferred time (most common hour)
+    const hourCounts: Record<number, number> = {};
+    for (const { session } of userSessions) {
+      if (session.startTime) {
+        const hour = new Date(session.startTime).getHours();
+        hourCounts[hour] = (hourCounts[hour] || 0) + 1;
+      }
+    }
+    const preferredHour = Object.entries(hourCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || "";
+
+    // Engagement score (0-100)
+    const engagementScore = Math.min(100, Math.round(
+      (userSessions.length * 5) +
+      (userVerifications.length * 3) +
+      (userReports.length * 2) +
+      (accuracyRate * 20) +
+      (user.trustScore || 0)
+    ));
+
+    const row = [
+      user.id.substring(0, 8),
+      user.email ?? "",
+      daysSinceReg,
+      daysSinceLastActivity,
+      userSessions.length,
+      sessionsPerMonth.toFixed(2),
+      totalEnergy.toFixed(2),
+      avgEnergy.toFixed(2),
+      userVerifications.length,
+      (accuracyRate * 100).toFixed(1) + "%",
+      userReports.length,
+      resolvedReports,
+      preferredType,
+      preferredHour,
+      engagementScore
+    ];
+    res.write(toCSVRow(row));
+  }
+
+  res.end();
+}
+
+/**
+ * Export reliability metrics - station reliability and trust analysis
+ * Optimized with batch queries to avoid N+1 performance issues
+ */
+export async function exportReliabilityMetricsCSV(res: Response): Promise<void> {
+  res.setHeader("Content-Type", "text/csv; charset=utf-8");
+  res.setHeader("Content-Disposition", 'attachment; filename="bariq_reliability_metrics.csv"');
+  
+  const headers = [
+    "station_id",
+    "station_name",
+    "city",
+    "current_status",
+    "trust_level",
+    "total_verifications",
+    "working_votes",
+    "not_working_votes",
+    "busy_votes",
+    "working_rate",
+    "status_changes_count",
+    "avg_verification_confidence",
+    "total_reports",
+    "resolved_reports",
+    "report_resolution_rate",
+    "reliability_score"
+  ];
+  res.write(toCSVRow(headers));
+
+  // Batch fetch all data
+  const stationsData = await db
+    .select()
+    .from(stations)
+    .where(eq(stations.approvalStatus, "APPROVED"));
+  const allVerifications = await db.select().from(stationVerifications);
+  const allReports = await db.select().from(reports);
+
+  // Group verifications by stationId
+  const verificationsByStation: Record<number, typeof allVerifications> = {};
+  for (const verification of allVerifications) {
+    if (!verificationsByStation[verification.stationId]) {
+      verificationsByStation[verification.stationId] = [];
+    }
+    verificationsByStation[verification.stationId].push(verification);
+  }
+
+  // Group reports by stationId
+  const reportsByStation: Record<number, typeof allReports> = {};
+  for (const report of allReports) {
+    if (!reportsByStation[report.stationId]) {
+      reportsByStation[report.stationId] = [];
+    }
+    reportsByStation[report.stationId].push(report);
+  }
+
+  // Process each station
+  for (const station of stationsData) {
+    const verifications = verificationsByStation[station.id] || [];
+    const stationReports = reportsByStation[station.id] || [];
+
+    const workingVotes = verifications.filter(v => v.vote === "WORKING").length;
+    const notWorkingVotes = verifications.filter(v => v.vote === "NOT_WORKING").length;
+    const busyVotes = verifications.filter(v => v.vote === "BUSY").length;
+    const workingRate = verifications.length > 0 
+      ? workingVotes / verifications.length 
+      : 0;
+
+    const resolvedReports = stationReports.filter(r => r.reviewStatus === "resolved").length;
+    const resolutionRate = stationReports.length > 0 
+      ? resolvedReports / stationReports.length 
+      : 1; // 100% if no reports
+
+    // Calculate confidence (how consistent are the votes)
+    const totalVotes = workingVotes + notWorkingVotes + busyVotes;
+    const maxVoteType = Math.max(workingVotes, notWorkingVotes, busyVotes);
+    const confidence = totalVotes > 0 ? maxVoteType / totalVotes : 0;
+
+    // Reliability score (0-100)
+    const reliabilityScore = Math.round(
+      (workingRate * 40) +
+      (resolutionRate * 20) +
+      (confidence * 20) +
+      (station.trustLevel === "HIGH" ? 20 : station.trustLevel === "NORMAL" ? 10 : 0)
+    );
+
+    const row = [
+      station.id,
+      station.name,
+      station.city,
+      station.status ?? "OPERATIONAL",
+      station.trustLevel ?? "NORMAL",
+      verifications.length,
+      workingVotes,
+      notWorkingVotes,
+      busyVotes,
+      (workingRate * 100).toFixed(1) + "%",
+      0, // status_changes_count placeholder (requires historical data)
+      (confidence * 100).toFixed(1) + "%",
+      stationReports.length,
+      resolvedReports,
+      (resolutionRate * 100).toFixed(1) + "%",
+      reliabilityScore
+    ];
+    res.write(toCSVRow(row));
+  }
+
+  res.end();
+}
+
+/**
  * Get available datasets for export with descriptions
  */
 export function getAvailableDatasets() {
