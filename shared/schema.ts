@@ -108,6 +108,7 @@ export const contactMessages = pgTable("contact_messages", {
   userId: varchar("user_id"),
   userName: text("user_name"),
   userEmail: text("user_email"),
+  userPhone: text("user_phone"),
   subject: text("subject").notNull(),
   message: text("message").notNull(),
   status: text("status").default("unread"), // unread, read, replied

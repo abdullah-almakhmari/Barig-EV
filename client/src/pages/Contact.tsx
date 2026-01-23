@@ -21,6 +21,7 @@ export default function Contact() {
   const [formData, setFormData] = useState({
     userName: "",
     userEmail: "",
+    userPhone: "",
     subject: "",
     message: ""
   });
@@ -32,7 +33,7 @@ export default function Contact() {
     },
     onSuccess: () => {
       setIsSuccess(true);
-      setFormData({ userName: "", userEmail: "", subject: "", message: "" });
+      setFormData({ userName: "", userEmail: "", userPhone: "", subject: "", message: "" });
       toast({
         title: t("contact.success"),
         description: t("contact.successDesc"),
@@ -103,6 +104,19 @@ export default function Contact() {
                 onChange={(e) => setFormData(prev => ({ ...prev, userEmail: e.target.value }))}
                 placeholder={t("contact.email")}
                 data-testid="input-contact-email"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="phone">{isRTL ? "رقم الهاتف" : "Phone Number"}</Label>
+              <Input
+                id="phone"
+                type="tel"
+                value={formData.userPhone}
+                onChange={(e) => setFormData(prev => ({ ...prev, userPhone: e.target.value }))}
+                placeholder={isRTL ? "مثال: 99123456" : "e.g. 99123456"}
+                data-testid="input-contact-phone"
+                dir="ltr"
               />
             </div>
 

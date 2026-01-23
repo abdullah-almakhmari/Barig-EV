@@ -546,6 +546,7 @@ export default function AdminPanel() {
                       <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
                         {msg.userName && <span>{isArabic ? "الاسم:" : "Name:"} {msg.userName}</span>}
                         {msg.userEmail && <span>{isArabic ? "البريد:" : "Email:"} {msg.userEmail}</span>}
+                        {msg.userPhone && <span>{isArabic ? "الهاتف:" : "Phone:"} <a href={`tel:${msg.userPhone}`} className="text-primary hover:underline" dir="ltr">{msg.userPhone}</a></span>}
                       </div>
                       <p className="text-sm bg-muted/50 p-3 rounded-lg whitespace-pre-wrap">{msg.message}</p>
                       <div className="flex gap-2">
