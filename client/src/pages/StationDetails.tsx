@@ -150,7 +150,7 @@ export default function StationDetails() {
   });
   
   const submitVerification = useMutation({
-    mutationFn: async (vote: 'WORKING' | 'NOT_WORKING' | 'BUSY') => {
+    mutationFn: async (vote: 'WORKING' | 'NOT_WORKING') => {
       return apiRequest('POST', `/api/stations/${id}/verify`, { vote });
     },
     onSuccess: () => {
@@ -444,23 +444,6 @@ export default function StationDetails() {
           >
             <XCircle className="w-4 h-4 mr-1 rtl:ml-1 rtl:mr-0" />
             {t("verify.confirmNotWorking")}
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              if (!isAuthenticated) {
-                toast({ title: t("verify.loginRequired"), variant: "destructive" });
-                return;
-              }
-              submitVerification.mutate('BUSY');
-            }}
-            disabled={submitVerification.isPending}
-            className="border-orange-500 text-orange-600 hover:bg-orange-50"
-            data-testid="button-verify-busy"
-          >
-            <Clock className="w-4 h-4 mr-1 rtl:ml-1 rtl:mr-0" />
-            {t("verify.confirmBusy")}
           </Button>
           <ReportDialog stationId={id} />
         </div>
