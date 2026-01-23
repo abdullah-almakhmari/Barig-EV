@@ -8,12 +8,12 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Shield, FileWarning, MapPin, Check, X, AlertTriangle, Eye, EyeOff, Download, Database, ChevronDown, Camera, BatteryCharging } from "lucide-react";
+import { Shield, FileWarning, MapPin, Check, X, AlertTriangle, Eye, EyeOff, Download, Database, ChevronDown, Camera, BatteryCharging, MessageCircle } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Redirect } from "wouter";
 import { SEO } from "@/components/SEO";
-import type { Station, ChargingSession } from "@shared/schema";
+import type { Station, ChargingSession, ContactMessage } from "@shared/schema";
 
 type AdminReport = {
   id: number;
@@ -60,7 +60,27 @@ export default function AdminPanel() {
     staleTime: 0,
   });
 
+  const { data: contactMessages, isLoading: messagesLoading } = useQuery<ContactMessage[]>({
+    queryKey: ["/api/admin/contact-messages"],
+    enabled: user?.role === "admin",
+    refetchOnWindowFocus: true,
+    staleTime: 0,
+  });
+
   const [selectedScreenshot, setSelectedScreenshot] = useState<string | null>(null);
+
+  const updateMessageMutation = useMutation({
+    mutationFn: async ({ id, status }: { id: number; status: string }) => {
+      return await apiRequest("PATCH", `/api/admin/contact-messages/${id}`, { status });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/contact-messages"] });
+      toast({ title: isArabic ? "تم تحديث الرسالة" : "Message updated" });
+    },
+    onError: () => {
+      toast({ title: t("common.error"), variant: "destructive" });
+    },
+  });
 
   const groupedReports = useMemo(() => {
     if (!reports) return [];
@@ -169,7 +189,7 @@ export default function AdminPanel() {
       </div>
 
       <Tabs defaultValue="reports" className="w-full">
-        <TabsList className="grid w-full sm:w-[600px] grid-cols-4 rounded-xl">
+        <TabsList className="grid w-full sm:w-[750px] grid-cols-5 rounded-xl">
           <TabsTrigger value="reports" className="rounded-lg flex items-center gap-2" data-testid="tab-reports">
             <FileWarning className="w-4 h-4" />
             {t("admin.reports")}
@@ -177,6 +197,15 @@ export default function AdminPanel() {
           <TabsTrigger value="stations" className="rounded-lg flex items-center gap-2" data-testid="tab-stations">
             <MapPin className="w-4 h-4" />
             {t("admin.stations")}
+          </TabsTrigger>
+          <TabsTrigger value="messages" className="rounded-lg flex items-center gap-2" data-testid="tab-messages">
+            <MessageCircle className="w-4 h-4" />
+            {isArabic ? "الرسائل" : "Messages"}
+            {contactMessages && contactMessages.filter(m => m.status === "unread").length > 0 && (
+              <Badge variant="destructive" className="text-xs px-1.5 py-0">
+                {contactMessages.filter(m => m.status === "unread").length}
+              </Badge>
+            )}
           </TabsTrigger>
           <TabsTrigger value="sessions" className="rounded-lg flex items-center gap-2" data-testid="tab-sessions">
             <Camera className="w-4 h-4" />
@@ -471,6 +500,76 @@ export default function AdminPanel() {
                               {t("admin.hide")}
                             </Button>
                           )
+                        )}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="messages" className="mt-4">
+          {messagesLoading ? (
+            <div className="flex justify-center py-12">
+              <div className="animate-pulse h-8 w-32 bg-muted rounded" />
+            </div>
+          ) : !contactMessages || contactMessages.length === 0 ? (
+            <Card>
+              <CardContent className="py-12 text-center text-muted-foreground">
+                <MessageCircle className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                {isArabic ? "لا توجد رسائل" : "No messages"}
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-4">
+              {contactMessages.map((msg) => (
+                <Card key={msg.id} className={msg.status === "unread" ? "border-primary/50 bg-primary/5" : ""}>
+                  <CardHeader className="pb-2">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <CardTitle className="text-lg">{msg.subject}</CardTitle>
+                      <div className="flex items-center gap-2">
+                        <Badge variant={msg.status === "unread" ? "destructive" : msg.status === "replied" ? "default" : "secondary"}>
+                          {msg.status === "unread" ? (isArabic ? "جديد" : "New") : 
+                           msg.status === "read" ? (isArabic ? "مقروء" : "Read") : 
+                           (isArabic ? "تم الرد" : "Replied")}
+                        </Badge>
+                        <span className="text-xs text-muted-foreground">
+                          {msg.createdAt && new Date(msg.createdAt).toLocaleDateString(isArabic ? "ar-OM" : "en-US")}
+                        </span>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+                        {msg.userName && <span>{isArabic ? "الاسم:" : "Name:"} {msg.userName}</span>}
+                        {msg.userEmail && <span>{isArabic ? "البريد:" : "Email:"} {msg.userEmail}</span>}
+                      </div>
+                      <p className="text-sm bg-muted/50 p-3 rounded-lg whitespace-pre-wrap">{msg.message}</p>
+                      <div className="flex gap-2">
+                        {msg.status === "unread" && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => updateMessageMutation.mutate({ id: msg.id, status: "read" })}
+                            disabled={updateMessageMutation.isPending}
+                          >
+                            <Check className="w-4 h-4 mr-1" />
+                            {isArabic ? "تحديد كمقروء" : "Mark Read"}
+                          </Button>
+                        )}
+                        {msg.status !== "replied" && (
+                          <Button
+                            size="sm"
+                            variant="default"
+                            onClick={() => updateMessageMutation.mutate({ id: msg.id, status: "replied" })}
+                            disabled={updateMessageMutation.isPending}
+                          >
+                            <Check className="w-4 h-4 mr-1" />
+                            {isArabic ? "تم الرد" : "Mark Replied"}
+                          </Button>
                         )}
                       </div>
                     </div>

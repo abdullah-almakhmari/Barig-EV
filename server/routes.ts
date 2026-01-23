@@ -719,6 +719,31 @@ export async function registerRoutes(
     }
   });
 
+  // Admin: Get contact messages
+  app.get("/api/admin/contact-messages", isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const messages = await storage.getContactMessages();
+      res.json(messages);
+    } catch (err) {
+      throw err;
+    }
+  });
+
+  // Admin: Update contact message status
+  app.patch("/api/admin/contact-messages/:id", isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { status, adminNotes } = req.body;
+      const updated = await storage.updateContactMessageStatus(id, status, adminNotes);
+      if (!updated) {
+        return res.status(404).json({ message: "Message not found" });
+      }
+      res.json(updated);
+    } catch (err) {
+      throw err;
+    }
+  });
+
   // Admin: Hide/Restore station
   const hideStationSchema = z.object({
     isHidden: z.boolean()
