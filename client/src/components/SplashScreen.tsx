@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { Zap } from "lucide-react";
 import { useIsPWA } from "@/hooks/use-pwa";
 
 export function SplashScreen() {
@@ -27,10 +26,12 @@ export function SplashScreen() {
     <div className={`splash-screen ${fadeOut ? 'splash-fade-out' : ''}`}>
       <div className="absolute inset-0 bg-gradient-to-b from-black/0 via-black/5 to-black/30" />
       
-      <div className="splash-logo flex flex-col items-center gap-5 relative z-10">
-        <div className="w-28 h-28 rounded-[28px] bg-white/20 backdrop-blur-md flex items-center justify-center shadow-2xl border border-white/10">
-          <Zap className="w-16 h-16 text-white fill-current drop-shadow-lg" />
-        </div>
+      <div className="splash-logo flex flex-col items-center gap-6 relative z-10">
+        <img 
+          src="/icons/icon-192.png" 
+          alt="Bariq" 
+          className="w-32 h-32 rounded-[32px] shadow-2xl"
+        />
         <div className="flex flex-col items-center gap-1">
           <h1 className="text-4xl font-bold text-white font-display tracking-wide">بارق</h1>
           <p className="text-white/80 text-sm font-medium">محطات شحن السيارات الكهربائية</p>
