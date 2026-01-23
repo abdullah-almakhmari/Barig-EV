@@ -31,7 +31,7 @@ export function Onboarding() {
       dir={isRTL ? "rtl" : "ltr"}
       data-testid="onboarding-overlay"
     >
-      <Card className="relative w-full max-w-xs p-3 shadow-lg mt-8">
+      <Card className="relative w-full max-w-xs p-3 shadow-lg mt-8 ms-4">
         <button
           onClick={handleDismiss}
           className="absolute top-2 end-2 text-muted-foreground hover-elevate p-0.5 rounded z-10"
