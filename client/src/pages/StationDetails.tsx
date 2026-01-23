@@ -45,10 +45,20 @@ function isRecentlyVerified(lastVerifiedAt: string | null | undefined): boolean 
   return (now - lastTime) < RECENCY_THRESHOLD_MS;
 }
 
-function getPrimaryStatus(verificationSummary: VerificationSummary | undefined, stationStatus?: string): PrimaryStatus {
+function getPrimaryStatus(
+  verificationSummary: VerificationSummary | undefined, 
+  stationStatus?: string,
+  availableChargers?: number,
+  totalChargers?: number
+): PrimaryStatus {
   // If station is marked as OFFLINE by admin/system, always show NOT_WORKING
   if (stationStatus === 'OFFLINE') {
     return 'NOT_WORKING';
+  }
+  
+  // If no available chargers (all in use), show BUSY - matches map marker logic
+  if (typeof availableChargers === 'number' && availableChargers === 0 && (totalChargers ?? 0) > 0) {
+    return 'BUSY';
   }
   
   // If station is OPERATIONAL, show WORKING
@@ -215,7 +225,12 @@ export default function StationDetails() {
   const name = isAr ? station.nameAr : station.name;
   const city = isAr ? station.cityAr : station.city;
   
-  const primaryStatus = getPrimaryStatus(verificationSummary, station.status ?? undefined);
+  const primaryStatus = getPrimaryStatus(
+    verificationSummary, 
+    station.status ?? undefined,
+    station.availableChargers ?? undefined,
+    station.chargerCount ?? undefined
+  );
   const statusConfig = getStatusConfig(primaryStatus, t);
   const StatusIcon = statusConfig.icon;
 
