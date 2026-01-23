@@ -94,7 +94,12 @@ export default function AddStation() {
 
   async function onSubmit(data: InsertStation) {
     try {
-      await createStation.mutateAsync(data);
+      const submitData = {
+        ...data,
+        nameAr: data.nameAr || data.name,
+        cityAr: data.cityAr || data.city,
+      };
+      await createStation.mutateAsync(submitData);
       toast({
         title: t("add.successTitle"),
         description: t("add.successPending"),
@@ -159,63 +164,41 @@ export default function AddStation() {
               )}
             />
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t("add.name")}</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g. Mall of Oman Charger" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="nameAr"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t("add.nameAr")}</FormLabel>
-                    <FormControl>
-                      <Input placeholder="مثال: شاحن عمان مول" className="text-right" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t("add.stationName")}</FormLabel>
+                  <FormControl>
+                    <Input 
+                      placeholder={t("add.stationNamePlaceholder")} 
+                      {...field} 
+                      data-testid="input-station-name"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <FormField
-                control={form.control}
-                name="city"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t("add.city")}</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Muscat" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="cityAr"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t("add.cityAr")}</FormLabel>
-                    <FormControl>
-                      <Input placeholder="مسقط" className="text-right" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+            <FormField
+              control={form.control}
+              name="city"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t("add.cityLabel")}</FormLabel>
+                  <FormControl>
+                    <Input 
+                      placeholder={t("add.cityPlaceholder")} 
+                      {...field}
+                      data-testid="input-city"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                <FormField
