@@ -181,9 +181,9 @@ export function useStartChargingSession() {
 export function useEndChargingSession() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (data: { sessionId: number; stationId: number; batteryEndPercent?: number; energyKwh?: number }) => {
+    mutationFn: async (data: { sessionId: number; stationId: number; batteryEndPercent?: number; energyKwh?: number; screenshotPath?: string }) => {
       const url = buildUrl(api.chargingSessions.end.path, { id: data.sessionId });
-      const res = await apiRequest("POST", url, { batteryEndPercent: data.batteryEndPercent, energyKwh: data.energyKwh });
+      const res = await apiRequest("POST", url, { batteryEndPercent: data.batteryEndPercent, energyKwh: data.energyKwh, screenshotPath: data.screenshotPath });
       return res.json() as Promise<ChargingSession>;
     },
     onSuccess: (_, variables) => {
