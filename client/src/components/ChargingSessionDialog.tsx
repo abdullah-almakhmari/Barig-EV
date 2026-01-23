@@ -9,6 +9,7 @@ import { Loader2, Zap, BatteryCharging, Battery, Gauge, Car, Plus, Camera, Check
 import { useStartChargingSession, useEndChargingSession, useActiveSession, useVehicles, useUserVehicles, useCreateUserVehicle } from "@/hooks/use-stations";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
+import { getCsrfToken } from "@/lib/queryClient";
 import type { ChargingSession, EvVehicle, UserVehicleWithDetails } from "@shared/schema";
 
 interface ChargingSessionDialogProps {
@@ -153,9 +154,14 @@ export function ChargingSessionDialog({ stationId, availableChargers, totalCharg
 
     setIsUploading(true);
     try {
+      const csrfToken = await getCsrfToken();
       const res = await fetch("/api/uploads/request-url", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "x-csrf-token": csrfToken,
+        },
+        credentials: "include",
         body: JSON.stringify({
           name: file.name,
           size: file.size,

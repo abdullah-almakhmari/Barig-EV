@@ -18,6 +18,10 @@ export function clearCsrfToken() {
   csrfToken = null;
 }
 
+export async function getCsrfToken(): Promise<string> {
+  return fetchCsrfToken();
+}
+
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
     const text = (await res.text()) || res.statusText;

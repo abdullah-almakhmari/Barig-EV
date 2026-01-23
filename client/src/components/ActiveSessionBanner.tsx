@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Zap, X, Clock, Battery, Gauge, Loader2, Camera, Check } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useLanguage } from "@/components/LanguageContext";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, getCsrfToken } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { ChargingSession, Station } from "@shared/schema";
 import { useState, useEffect, useRef } from "react";
@@ -115,9 +115,14 @@ export function ActiveSessionBanner() {
 
     setIsUploading(true);
     try {
+      const csrfToken = await getCsrfToken();
       const res = await fetch("/api/uploads/request-url", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "x-csrf-token": csrfToken,
+        },
+        credentials: "include",
         body: JSON.stringify({
           name: file.name,
           size: file.size,
