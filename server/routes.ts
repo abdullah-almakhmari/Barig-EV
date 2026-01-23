@@ -20,6 +20,9 @@ import {
   exportStationsCSV,
   exportChargingSessionsCSV,
   exportReportsCSV,
+  exportUsersCSV,
+  exportVerificationsCSV,
+  exportSummaryCSV,
   getAvailableDatasets
 } from "./admin/dataExport";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
@@ -870,6 +873,36 @@ export async function registerRoutes(
       await exportReportsCSV(res);
     } catch (err) {
       console.error("[Export] Reports export failed:", err);
+      res.status(500).json({ message: "Export failed" });
+    }
+  });
+
+  // Export users dataset as CSV
+  app.get("/api/admin/export/users", isAuthenticated, isAdmin, async (_req, res) => {
+    try {
+      await exportUsersCSV(res);
+    } catch (err) {
+      console.error("[Export] Users export failed:", err);
+      res.status(500).json({ message: "Export failed" });
+    }
+  });
+
+  // Export verifications dataset as CSV
+  app.get("/api/admin/export/verifications", isAuthenticated, isAdmin, async (_req, res) => {
+    try {
+      await exportVerificationsCSV(res);
+    } catch (err) {
+      console.error("[Export] Verifications export failed:", err);
+      res.status(500).json({ message: "Export failed" });
+    }
+  });
+
+  // Export summary statistics as CSV
+  app.get("/api/admin/export/summary", isAuthenticated, isAdmin, async (_req, res) => {
+    try {
+      await exportSummaryCSV(res);
+    } catch (err) {
+      console.error("[Export] Summary export failed:", err);
       res.status(500).json({ message: "Export failed" });
     }
   });
