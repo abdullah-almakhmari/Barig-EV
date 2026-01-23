@@ -117,6 +117,7 @@ export const api = {
       input: z.object({
         batteryEndPercent: z.number().min(0).max(100).optional(),
         energyKwh: z.number().min(0).optional(),
+        screenshotPath: z.string().optional(),
       }),
       responses: {
         200: z.custom<typeof chargingSessions.$inferSelect>(),

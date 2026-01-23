@@ -22,6 +22,7 @@ import {
   exportReportsCSV,
   getAvailableDatasets
 } from "./admin/dataExport";
+import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
 import { 
   validateCsrf, 
   csrfTokenEndpoint, 
@@ -71,6 +72,9 @@ export async function registerRoutes(
   
   // Seed database on startup
   await storage.seed();
+
+  // Register object storage routes for screenshot uploads
+  registerObjectStorageRoutes(app);
 
   app.get(api.stations.list.path, async (req, res) => {
     try {
@@ -447,7 +451,7 @@ export async function registerRoutes(
         return res.status(400).json({ message: "Session already ended" });
       }
       
-      const session = await storage.endChargingSession(sessionId, input.batteryEndPercent, input.energyKwh);
+      const session = await storage.endChargingSession(sessionId, input.batteryEndPercent, input.energyKwh, input.screenshotPath);
       if (!session) {
         return res.status(404).json({ message: "Session not found" });
       }

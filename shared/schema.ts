@@ -87,6 +87,7 @@ export const chargingSessions = pgTable("charging_sessions", {
   energyKwh: real("energy_kwh"),
   batteryStartPercent: integer("battery_start_percent"),
   batteryEndPercent: integer("battery_end_percent"),
+  screenshotPath: text("screenshot_path"), // Optional screenshot of charger screen for data verification
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),

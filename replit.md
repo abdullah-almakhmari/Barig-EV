@@ -129,3 +129,20 @@ Preferred communication style: Simple, everyday language.
 - **BUSY votes**: Never change station status, only affect display
 - **Implementation**: `server/routes.ts` in station verification endpoint
 - **Admin Override**: Admins can still manually change station status in station details page
+
+### Charging Session Screenshot Upload - January 2026
+- **Purpose**: Allow optional charger screen photo uploads when ending sessions for data verification
+- **Features**:
+  - Optional photo upload when ending a charging session
+  - Captures charger screen data (energy, duration, etc.) for verification
+  - Uses Replit Object Storage with presigned URL upload flow
+  - Mobile camera capture support with `capture="environment"` attribute
+- **Implementation**:
+  - Schema: `chargingSessions.screenshotPath` stores the object storage path
+  - Backend: `server/replit_integrations/object_storage/` handles uploads
+  - Frontend: `ActiveSessionBanner.tsx` includes upload button in end session dialog
+- **API Flow**:
+  1. POST `/api/uploads/request-url` - Get presigned upload URL
+  2. PUT to presigned URL - Upload file directly to storage
+  3. POST `/api/charging-sessions/:id/end` with `screenshotPath` - Save path with session
+- **Bilingual Support**: Full Arabic/English translations for upload UI

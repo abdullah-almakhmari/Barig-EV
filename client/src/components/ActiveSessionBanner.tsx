@@ -5,13 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Zap, X, Clock, Battery, Gauge, Loader2 } from "lucide-react";
+import { Zap, X, Clock, Battery, Gauge, Loader2, Camera, Check } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useLanguage } from "@/components/LanguageContext";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { ChargingSession, Station } from "@shared/schema";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { api } from "@shared/routes";
 
 interface ActiveSessionResponse {
@@ -31,6 +31,9 @@ export function ActiveSessionBanner() {
   const [showEndDialog, setShowEndDialog] = useState(false);
   const [batteryEnd, setBatteryEnd] = useState("");
   const [energyKwh, setEnergyKwh] = useState("");
+  const [screenshotPath, setScreenshotPath] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data, isLoading } = useQuery<ActiveSessionResponse | null>({
     queryKey: ["/api/charging-sessions/my-active"],
@@ -44,8 +47,8 @@ export function ActiveSessionBanner() {
   });
 
   const endSessionMutation = useMutation({
-    mutationFn: async ({ sessionId, batteryEndPercent, energyKwh }: { sessionId: number; batteryEndPercent?: number; energyKwh?: number }) => {
-      return apiRequest("POST", `/api/charging-sessions/${sessionId}/end`, { batteryEndPercent, energyKwh });
+    mutationFn: async ({ sessionId, batteryEndPercent, energyKwh, screenshotPath }: { sessionId: number; batteryEndPercent?: number; energyKwh?: number; screenshotPath?: string }) => {
+      return apiRequest("POST", `/api/charging-sessions/${sessionId}/end`, { batteryEndPercent, energyKwh, screenshotPath });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/charging-sessions/my-active"] });
@@ -59,6 +62,7 @@ export function ActiveSessionBanner() {
       setShowEndDialog(false);
       setBatteryEnd("");
       setEnergyKwh("");
+      setScreenshotPath(null);
     },
     onError: () => {
       toast({ title: t("common.error"), variant: "destructive" });
@@ -105,12 +109,54 @@ export function ActiveSessionBanner() {
     setShowEndDialog(true);
   };
 
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    try {
+      const res = await fetch("/api/uploads/request-url", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: file.name,
+          size: file.size,
+          contentType: file.type || "image/jpeg",
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to get upload URL");
+      }
+
+      const { uploadURL, objectPath } = await res.json();
+
+      const uploadRes = await fetch(uploadURL, {
+        method: "PUT",
+        body: file,
+        headers: { "Content-Type": file.type || "image/jpeg" },
+      });
+
+      if (!uploadRes.ok) {
+        throw new Error("Failed to upload file");
+      }
+
+      setScreenshotPath(objectPath);
+      toast({ title: t("charging.screenshotUploaded") });
+    } catch {
+      toast({ title: t("common.error"), variant: "destructive" });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const confirmEndSession = () => {
     if (!data?.session) return;
     endSessionMutation.mutate({
       sessionId: data.session.id,
       batteryEndPercent: batteryEnd ? Number(batteryEnd) : undefined,
       energyKwh: energyKwh ? Number(energyKwh) : undefined,
+      screenshotPath: screenshotPath || undefined,
     });
   };
 
@@ -210,6 +256,38 @@ export function ActiveSessionBanner() {
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">kWh</span>
             </div>
           </div>
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              <Camera className="w-4 h-4" />
+              {t("charging.screenshot")}
+            </Label>
+            <p className="text-sm text-muted-foreground">{t("charging.screenshotHint")}</p>
+            <input
+              type="file"
+              accept="image/*"
+              capture="environment"
+              ref={fileInputRef}
+              onChange={handleFileSelect}
+              className="hidden"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isUploading}
+              className="w-full"
+              data-testid="button-upload-screenshot"
+            >
+              {isUploading ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : screenshotPath ? (
+                <Check className="mr-2 h-4 w-4 text-emerald-500" />
+              ) : (
+                <Camera className="mr-2 h-4 w-4" />
+              )}
+              {screenshotPath ? t("charging.screenshotUploaded") : t("charging.uploadScreenshot")}
+            </Button>
+          </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => setShowEndDialog(false)}>
@@ -217,7 +295,7 @@ export function ActiveSessionBanner() {
           </Button>
           <Button 
             onClick={confirmEndSession}
-            disabled={endSessionMutation.isPending}
+            disabled={endSessionMutation.isPending || isUploading}
             className="bg-emerald-500 hover:bg-emerald-600"
             data-testid="button-confirm-end-session-banner"
           >
