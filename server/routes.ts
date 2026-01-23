@@ -70,8 +70,10 @@ export async function registerRoutes(
   // Apply CSRF validation to all state-changing API routes
   app.use("/api", validateCsrf);
   
-  // Seed database on startup
-  await storage.seed();
+  // Seed database only in development (not production)
+  if (process.env.NODE_ENV !== "production") {
+    await storage.seed();
+  }
 
   // Register object storage routes for screenshot uploads
   registerObjectStorageRoutes(app);
