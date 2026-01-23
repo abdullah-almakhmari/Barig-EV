@@ -988,7 +988,8 @@ export function getAvailableDatasets() {
         descriptionAr: "نظرة عامة سريعة على جميع مقاييس المنصة",
         icon: "BarChart3",
         fields: ["metric", "value", "description"],
-        recordCount: "~10 metrics"
+        recordCount: "~10 metrics",
+        category: "primary"
       },
       {
         id: "users",
@@ -998,7 +999,8 @@ export function getAvailableDatasets() {
         descriptionAr: "ملفات المستخدمين مع تحليلات سلوك الشحن",
         icon: "Users",
         fields: ["user_id", "email", "trust_score", "total_sessions", "total_energy_kwh", "unique_stations_used", "favorite_station"],
-        recordCount: "All users"
+        recordCount: "All users",
+        category: "primary"
       },
       {
         id: "stations",
@@ -1008,7 +1010,8 @@ export function getAvailableDatasets() {
         descriptionAr: "محطات الشحن مع الموقع والمقاييس وإحصائيات التحقق",
         icon: "MapPin",
         fields: ["station_id", "name", "location", "charger_type", "power_kw", "trust_score", "total_sessions", "verifications"],
-        recordCount: "All approved stations"
+        recordCount: "All approved stations",
+        category: "primary"
       },
       {
         id: "sessions",
@@ -1018,7 +1021,8 @@ export function getAvailableDatasets() {
         descriptionAr: "سجلات جلسات الشحن التفصيلية مع الطاقة والمدة",
         icon: "Zap",
         fields: ["session_id", "user_email", "station", "duration", "energy_kwh", "battery_levels"],
-        recordCount: "All sessions"
+        recordCount: "All sessions",
+        category: "primary"
       },
       {
         id: "verifications",
@@ -1028,7 +1032,8 @@ export function getAvailableDatasets() {
         descriptionAr: "أصوات التحقق المجتمعية مع الأنماط الزمنية",
         icon: "CheckCircle",
         fields: ["verification_id", "station", "voter_email", "vote", "day_of_week", "hour"],
-        recordCount: "All verifications"
+        recordCount: "All verifications",
+        category: "secondary"
       },
       {
         id: "reports",
@@ -1038,7 +1043,52 @@ export function getAvailableDatasets() {
         descriptionAr: "مشاكل المحطات المقدمة من المستخدمين وحالة الحل",
         icon: "AlertTriangle",
         fields: ["report_id", "station", "reporter", "reason", "review_status"],
-        recordCount: "All reports"
+        recordCount: "All reports",
+        category: "secondary"
+      },
+      {
+        id: "temporal",
+        name: "Temporal Patterns",
+        nameAr: "الأنماط الزمنية",
+        description: "Hourly and daily charging patterns analysis (24x7 matrix)",
+        descriptionAr: "تحليل أنماط الشحن بالساعة واليوم (مصفوفة 24×7)",
+        icon: "Clock",
+        fields: ["hour_of_day", "day_of_week", "total_sessions", "total_energy_kwh", "verifications"],
+        recordCount: "168 time slots",
+        category: "analysis"
+      },
+      {
+        id: "geographic",
+        name: "Geographic Analysis",
+        nameAr: "التحليل الجغرافي",
+        description: "Station distribution and density by city",
+        descriptionAr: "توزيع المحطات وكثافتها حسب المدينة",
+        icon: "Globe",
+        fields: ["city", "total_stations", "ac_stations", "dc_stations", "total_sessions", "total_energy_kwh"],
+        recordCount: "All cities",
+        category: "analysis"
+      },
+      {
+        id: "behavior",
+        name: "User Behavior",
+        nameAr: "سلوك المستخدمين",
+        description: "Engagement metrics and activity patterns per user",
+        descriptionAr: "مقاييس المشاركة وأنماط النشاط لكل مستخدم",
+        icon: "Activity",
+        fields: ["user_id", "sessions_per_month", "verification_accuracy", "preferred_charger", "engagement_score"],
+        recordCount: "All users",
+        category: "analysis"
+      },
+      {
+        id: "reliability",
+        name: "Reliability Metrics",
+        nameAr: "مقاييس الموثوقية",
+        description: "Station reliability scores and trust analysis",
+        descriptionAr: "درجات موثوقية المحطات وتحليل الثقة",
+        icon: "TrendingUp",
+        fields: ["station_id", "working_rate", "report_resolution_rate", "reliability_score"],
+        recordCount: "All stations",
+        category: "analysis"
       }
     ],
     researchNote: "Data exported for academic research purposes. Includes user emails for correlation analysis.",
