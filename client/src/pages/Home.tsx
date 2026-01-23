@@ -90,7 +90,7 @@ export default function Home() {
           </TabsList>
         </div>
 
-        <TabsContent value="map" className="h-[600px] mt-0">
+        <TabsContent value="map" className="h-[280px] sm:h-[350px] mt-0">
           <StationMap stations={stationList} />
         </TabsContent>
         
