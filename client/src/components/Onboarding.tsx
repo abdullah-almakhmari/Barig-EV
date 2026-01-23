@@ -27,70 +27,69 @@ export function Onboarding() {
 
   return (
     <div 
-      className="fixed inset-0 z-50 flex items-start justify-center bg-background/95 backdrop-blur-sm p-2 pt-16 overflow-y-auto"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-background/90 backdrop-blur-sm px-4"
       dir={isRTL ? "rtl" : "ltr"}
       data-testid="onboarding-overlay"
     >
-      <Card className="relative w-full max-w-sm p-4 shadow-lg">
+      <Card className="relative w-full max-w-xs p-3 shadow-lg mt-8">
         <button
           onClick={handleDismiss}
-          className="absolute top-2 end-2 text-muted-foreground hover-elevate p-1 rounded z-10"
+          className="absolute top-2 end-2 text-muted-foreground hover-elevate p-0.5 rounded z-10"
           aria-label={t("onboarding.skip")}
           data-testid="button-onboarding-skip"
         >
           <X className="w-4 h-4" />
         </button>
 
-        <div className="flex flex-col items-center text-center space-y-3">
-          <div className="flex items-center gap-1.5 text-primary">
-            <Zap className="w-6 h-6" />
-            <span className="text-lg font-bold">{t("app.title")}</span>
+        <div className="flex flex-col items-center text-center space-y-2">
+          <div className="flex items-center gap-1 text-primary">
+            <Zap className="w-5 h-5" />
+            <span className="text-base font-bold">{t("app.title")}</span>
           </div>
 
-          <h1 className="text-base font-semibold text-foreground leading-tight" data-testid="text-onboarding-headline">
+          <h1 className="text-sm font-semibold text-foreground leading-tight" data-testid="text-onboarding-headline">
             {t("onboarding.headline")}
           </h1>
 
-          <p className="text-muted-foreground text-xs leading-relaxed">
+          <p className="text-muted-foreground text-[11px] leading-relaxed">
             {t("onboarding.problem")}
           </p>
 
-          <div className="flex items-start gap-2 bg-muted/50 rounded-md p-2.5 w-full">
-            <Users className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
+          <div className="flex items-start gap-2 bg-muted/50 rounded-md p-2 w-full">
+            <Users className="w-4 h-4 text-primary flex-shrink-0" />
             <div className="text-start">
-              <p className="font-medium text-foreground text-xs">{t("onboarding.trustTitle")}</p>
-              <p className="text-muted-foreground text-[10px] mt-0.5 leading-relaxed">{t("onboarding.trustDesc")}</p>
+              <p className="font-medium text-foreground text-[11px]">{t("onboarding.trustTitle")}</p>
+              <p className="text-muted-foreground text-[10px] leading-snug">{t("onboarding.trustDesc")}</p>
             </div>
           </div>
 
-          <ul className="w-full space-y-2 text-start">
-            <li className="flex items-center gap-2">
-              <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                <MapPin className="w-3 h-3 text-primary" />
+          <ul className="w-full space-y-1.5 text-start">
+            <li className="flex items-center gap-1.5">
+              <div className="w-4 h-4 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <MapPin className="w-2.5 h-2.5 text-primary" />
               </div>
-              <span className="text-xs text-foreground">{t("onboarding.howTo1")}</span>
+              <span className="text-[11px] text-foreground">{t("onboarding.howTo1")}</span>
             </li>
-            <li className="flex items-center gap-2">
-              <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                <CheckCircle className="w-3 h-3 text-primary" />
+            <li className="flex items-center gap-1.5">
+              <div className="w-4 h-4 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <CheckCircle className="w-2.5 h-2.5 text-primary" />
               </div>
-              <span className="text-xs text-foreground">{t("onboarding.howTo2")}</span>
+              <span className="text-[11px] text-foreground">{t("onboarding.howTo2")}</span>
             </li>
-            <li className="flex items-center gap-2">
-              <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                <Users className="w-3 h-3 text-primary" />
+            <li className="flex items-center gap-1.5">
+              <div className="w-4 h-4 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <Users className="w-2.5 h-2.5 text-primary" />
               </div>
-              <span className="text-xs text-foreground">{t("onboarding.howTo3")}</span>
+              <span className="text-[11px] text-foreground">{t("onboarding.howTo3")}</span>
             </li>
           </ul>
 
           <Button 
             onClick={handleDismiss} 
-            className="w-full"
-            size="sm"
+            className="w-full h-8 text-xs"
             data-testid="button-onboarding-start"
           >
-            <span>{t("onboarding.getStarted")}</span>
+            {t("onboarding.getStarted")}
           </Button>
         </div>
       </Card>
