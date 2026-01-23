@@ -46,11 +46,24 @@ function isRecentlyVerified(lastVerifiedAt: string | null | undefined): boolean 
 }
 
 function getPrimaryStatus(verificationSummary: VerificationSummary | undefined, stationStatus?: string): PrimaryStatus {
-  // If station is marked as OFFLINE by admin, always show NOT_WORKING
+  // If station is marked as OFFLINE by admin/system, always show NOT_WORKING
   if (stationStatus === 'OFFLINE') {
     return 'NOT_WORKING';
   }
   
+  // If station is OPERATIONAL, show WORKING
+  if (stationStatus === 'OPERATIONAL') {
+    // Check if there are recent verifications indicating BUSY
+    if (verificationSummary && 
+        verificationSummary.totalVotes > 0 && 
+        isRecentlyVerified(verificationSummary.lastVerifiedAt) &&
+        verificationSummary.leadingVote === 'BUSY') {
+      return 'BUSY';
+    }
+    return 'WORKING';
+  }
+  
+  // For other statuses (MAINTENANCE, etc), check verifications
   if (!verificationSummary || verificationSummary.totalVotes === 0) {
     return 'NOT_RECENTLY_VERIFIED';
   }
@@ -59,9 +72,9 @@ function getPrimaryStatus(verificationSummary: VerificationSummary | undefined, 
     return 'NOT_RECENTLY_VERIFIED';
   }
   
-  if (verificationSummary.leadingVote === 'WORKING') return 'WORKING';
-  if (verificationSummary.leadingVote === 'NOT_WORKING') return 'NOT_WORKING';
+  // Only show leadingVote for display purposes (BUSY indicator)
   if (verificationSummary.leadingVote === 'BUSY') return 'BUSY';
+  
   return 'NOT_RECENTLY_VERIFIED';
 }
 
