@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
@@ -7,12 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Shield, FileWarning, MapPin, Check, X, AlertTriangle, Eye, EyeOff, Download, Database, ChevronDown } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Shield, FileWarning, MapPin, Check, X, AlertTriangle, Eye, EyeOff, Download, Database, ChevronDown, Camera, BatteryCharging } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Redirect } from "wouter";
 import { SEO } from "@/components/SEO";
-import type { Station } from "@shared/schema";
+import type { Station, ChargingSession } from "@shared/schema";
 
 type AdminReport = {
   id: number;
@@ -51,6 +52,15 @@ export default function AdminPanel() {
     refetchOnWindowFocus: true,
     staleTime: 0,
   });
+
+  const { data: sessionsWithScreenshots, isLoading: sessionsLoading } = useQuery<(ChargingSession & { stationName?: string; stationNameAr?: string; userEmail?: string })[]>({
+    queryKey: ["/api/admin/charging-sessions"],
+    enabled: user?.role === "admin",
+    refetchOnWindowFocus: true,
+    staleTime: 0,
+  });
+
+  const [selectedScreenshot, setSelectedScreenshot] = useState<string | null>(null);
 
   const groupedReports = useMemo(() => {
     if (!reports) return [];
@@ -159,7 +169,7 @@ export default function AdminPanel() {
       </div>
 
       <Tabs defaultValue="reports" className="w-full">
-        <TabsList className="grid w-full sm:w-[500px] grid-cols-3 rounded-xl">
+        <TabsList className="grid w-full sm:w-[600px] grid-cols-4 rounded-xl">
           <TabsTrigger value="reports" className="rounded-lg flex items-center gap-2" data-testid="tab-reports">
             <FileWarning className="w-4 h-4" />
             {t("admin.reports")}
@@ -168,9 +178,13 @@ export default function AdminPanel() {
             <MapPin className="w-4 h-4" />
             {t("admin.stations")}
           </TabsTrigger>
+          <TabsTrigger value="sessions" className="rounded-lg flex items-center gap-2" data-testid="tab-sessions">
+            <Camera className="w-4 h-4" />
+            {isArabic ? "الصور" : "Screenshots"}
+          </TabsTrigger>
           <TabsTrigger value="export" className="rounded-lg flex items-center gap-2" data-testid="tab-export">
             <Database className="w-4 h-4" />
-            {isArabic ? "تصدير البيانات" : "Data Export"}
+            {isArabic ? "تصدير" : "Export"}
           </TabsTrigger>
         </TabsList>
 
@@ -424,6 +438,65 @@ export default function AdminPanel() {
           )}
         </TabsContent>
 
+        <TabsContent value="sessions" className="mt-4">
+          {sessionsLoading ? (
+            <div className="flex justify-center py-12">
+              <div className="animate-pulse h-8 w-32 bg-muted rounded" />
+            </div>
+          ) : !sessionsWithScreenshots || sessionsWithScreenshots.length === 0 ? (
+            <Card>
+              <CardContent className="py-12 text-center text-muted-foreground">
+                <Camera className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                {isArabic ? "لا توجد جلسات شحن بها صور" : "No charging sessions with screenshots"}
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {sessionsWithScreenshots.map((session) => (
+                <Card 
+                  key={session.id} 
+                  className="overflow-hidden hover-elevate cursor-pointer"
+                  onClick={() => session.screenshotPath && setSelectedScreenshot(session.screenshotPath)}
+                  data-testid={`session-screenshot-card-${session.id}`}
+                >
+                  {session.screenshotPath && (
+                    <div className="aspect-video bg-muted relative">
+                      <img
+                        src={`/objects/${session.screenshotPath}`}
+                        alt="Session screenshot"
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute top-2 right-2 rtl:right-auto rtl:left-2">
+                        <Badge className="bg-blue-500">
+                          <Camera className="w-3 h-3 mr-1 rtl:ml-1 rtl:mr-0" />
+                          {isArabic ? "صورة" : "Photo"}
+                        </Badge>
+                      </div>
+                    </div>
+                  )}
+                  <CardContent className="p-3">
+                    <div className="font-medium text-sm mb-1">
+                      {isArabic ? session.stationNameAr || session.stationName : session.stationName}
+                    </div>
+                    <div className="text-xs text-muted-foreground space-y-1">
+                      <div className="flex items-center gap-2">
+                        <BatteryCharging className="w-3 h-3" />
+                        {session.energyKwh ? `${session.energyKwh.toFixed(1)} kWh` : "-"}
+                      </div>
+                      {session.userEmail && (
+                        <div className="truncate">{session.userEmail}</div>
+                      )}
+                      <div>
+                        {session.startTime && new Date(session.startTime).toLocaleDateString(isArabic ? "ar-OM" : "en-US")}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
         <TabsContent value="export" className="mt-4">
           <Card>
             <CardHeader>
@@ -540,6 +613,26 @@ export default function AdminPanel() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <Dialog open={!!selectedScreenshot} onOpenChange={() => setSelectedScreenshot(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>
+              {isArabic ? "صورة شاشة الشاحن" : "Charger Screenshot"}
+            </DialogTitle>
+          </DialogHeader>
+          {selectedScreenshot && (
+            <div className="relative">
+              <img
+                src={`/objects/${selectedScreenshot}`}
+                alt="Charger screenshot"
+                className="w-full rounded-lg"
+                data-testid="admin-screenshot-image"
+              />
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

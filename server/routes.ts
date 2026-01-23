@@ -696,6 +696,16 @@ export async function registerRoutes(
     }
   });
 
+  // Admin: Get charging sessions with screenshots
+  app.get("/api/admin/charging-sessions", isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const sessions = await storage.getChargingSessionsWithScreenshots();
+      res.json(sessions);
+    } catch (err) {
+      throw err;
+    }
+  });
+
   // Admin: Hide/Restore station
   const hideStationSchema = z.object({
     isHidden: z.boolean()

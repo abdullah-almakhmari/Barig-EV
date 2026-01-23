@@ -8,7 +8,7 @@ import {
   type StationVerification, type VerificationSummary
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, ilike, or, ne, gte, sql } from "drizzle-orm";
+import { eq, desc, and, ilike, or, ne, gte, sql, isNotNull } from "drizzle-orm";
 
 export interface IStorage {
   getStations(filters?: { search?: string; city?: string; type?: string }): Promise<Station[]>;
@@ -29,6 +29,7 @@ export interface IStorage {
   startChargingSession(stationId: number, batteryStartPercent?: number, userVehicleId?: number, userId?: string, customVehicleName?: string): Promise<ChargingSession>;
   endChargingSession(sessionId: number, batteryEndPercent?: number, energyKwh?: number, screenshotPath?: string): Promise<ChargingSession | undefined>;
   getChargingSessions(stationId?: number, userId?: string): Promise<ChargingSession[]>;
+  getChargingSessionsWithScreenshots(): Promise<(ChargingSession & { stationName?: string; stationNameAr?: string; userEmail?: string })[]>;
   getActiveSession(stationId: number): Promise<ChargingSession | undefined>;
   getUserActiveSession(userId: string): Promise<ChargingSession | undefined>;
   getSessionById(sessionId: number): Promise<ChargingSession | undefined>;
@@ -265,6 +266,35 @@ export class DatabaseStorage implements IStorage {
     return await db.select()
       .from(chargingSessions)
       .orderBy(desc(chargingSessions.createdAt));
+  }
+
+  async getChargingSessionsWithScreenshots(): Promise<(ChargingSession & { stationName?: string; stationNameAr?: string; userEmail?: string })[]> {
+    const results = await db.select({
+      id: chargingSessions.id,
+      stationId: chargingSessions.stationId,
+      userId: chargingSessions.userId,
+      startTime: chargingSessions.startTime,
+      endTime: chargingSessions.endTime,
+      durationMinutes: chargingSessions.durationMinutes,
+      batteryStartPercent: chargingSessions.batteryStartPercent,
+      batteryEndPercent: chargingSessions.batteryEndPercent,
+      energyKwh: chargingSessions.energyKwh,
+      isActive: chargingSessions.isActive,
+      userVehicleId: chargingSessions.userVehicleId,
+      customVehicleName: chargingSessions.customVehicleName,
+      screenshotPath: chargingSessions.screenshotPath,
+      createdAt: chargingSessions.createdAt,
+      stationName: stations.name,
+      stationNameAr: stations.nameAr,
+      userEmail: users.email,
+    })
+      .from(chargingSessions)
+      .leftJoin(stations, eq(chargingSessions.stationId, stations.id))
+      .leftJoin(users, eq(chargingSessions.userId, users.id))
+      .where(isNotNull(chargingSessions.screenshotPath))
+      .orderBy(desc(chargingSessions.createdAt));
+    
+    return results as (ChargingSession & { stationName?: string; stationNameAr?: string; userEmail?: string })[];
   }
 
   async getActiveSession(stationId: number): Promise<ChargingSession | undefined> {

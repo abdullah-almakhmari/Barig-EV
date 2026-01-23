@@ -1,9 +1,11 @@
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useLanguage } from "@/components/LanguageContext";
 import { useChargingSessions, useStations } from "@/hooks/use-stations";
-import { Loader2, BatteryCharging, Clock, Zap, Battery } from "lucide-react";
+import { Loader2, BatteryCharging, Clock, Zap, Battery, Camera, X } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { formatDistanceToNow, format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { Link } from "wouter";
@@ -14,6 +16,7 @@ export default function ChargingHistory() {
   const { language } = useLanguage();
   const { data: sessions, isLoading } = useChargingSessions();
   const { data: stations } = useStations();
+  const [selectedScreenshot, setSelectedScreenshot] = useState<string | null>(null);
 
   const getStationName = (stationId: number) => {
     const station = stations?.find(s => s.id === stationId);
@@ -112,6 +115,26 @@ export default function ChargingHistory() {
                         </div>
                       </div>
                     )}
+
+                    {session.screenshotPath && (
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setSelectedScreenshot(session.screenshotPath!);
+                        }}
+                        className="p-2 bg-blue-500/10 rounded-lg hover-elevate"
+                        data-testid={`screenshot-btn-${session.id}`}
+                      >
+                        <Camera className="w-4 h-4 mx-auto text-blue-600 mb-1" />
+                        <div className="font-bold text-sm text-blue-600">
+                          {language === "ar" ? "صورة" : "Photo"}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {language === "ar" ? "الشاحن" : "Charger"}
+                        </div>
+                      </button>
+                    )}
                   </div>
                 </div>
               </Card>
@@ -130,6 +153,26 @@ export default function ChargingHistory() {
           </p>
         </Card>
       )}
+
+      <Dialog open={!!selectedScreenshot} onOpenChange={() => setSelectedScreenshot(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>
+              {language === "ar" ? "صورة شاشة الشاحن" : "Charger Screenshot"}
+            </DialogTitle>
+          </DialogHeader>
+          {selectedScreenshot && (
+            <div className="relative">
+              <img
+                src={`/objects/${selectedScreenshot}`}
+                alt="Charger screenshot"
+                className="w-full rounded-lg"
+                data-testid="screenshot-image"
+              />
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
