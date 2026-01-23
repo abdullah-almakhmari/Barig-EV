@@ -33,6 +33,8 @@ export function ChargingSessionDialog({ stationId, availableChargers, totalCharg
   const [selectedCatalogVehicleId, setSelectedCatalogVehicleId] = useState<string>("");
   const [showOtherVehicle, setShowOtherVehicle] = useState(false);
   const [customVehicleName, setCustomVehicleName] = useState("");
+  const [showCustomCatalogVehicle, setShowCustomCatalogVehicle] = useState(false);
+  const [customCatalogVehicleName, setCustomCatalogVehicleName] = useState("");
 
   const { data: activeSession, isLoading: loadingSession } = useActiveSession(stationId);
   const { data: userVehicles = [], isLoading: loadingUserVehicles } = useUserVehicles();
@@ -76,20 +78,48 @@ export function ChargingSessionDialog({ stationId, availableChargers, totalCharg
     }
   };
 
-  const handleAddVehicle = async () => {
-    if (!selectedCatalogVehicleId) return;
-    try {
-      const newVehicle = await createUserVehicle.mutateAsync({
-        evVehicleId: Number(selectedCatalogVehicleId),
-        isDefault: userVehicles.length === 0,
-      });
-      setSelectedUserVehicleId(String(newVehicle.id));
-      localStorage.setItem(VEHICLE_STORAGE_KEY, String(newVehicle.id));
-      setShowAddVehicle(false);
+  const handleCatalogVehicleChange = (value: string) => {
+    if (value === "other_catalog") {
+      setShowCustomCatalogVehicle(true);
       setSelectedCatalogVehicleId("");
-      toast({ title: t("vehicle.added"), description: t("vehicle.addedDesc") });
-    } catch (error: any) {
-      toast({ variant: "destructive", title: t("common.error"), description: error.message });
+    } else {
+      setShowCustomCatalogVehicle(false);
+      setSelectedCatalogVehicleId(value);
+    }
+  };
+
+  const handleAddVehicle = async () => {
+    if (showCustomCatalogVehicle) {
+      if (!customCatalogVehicleName.trim()) return;
+      try {
+        const newVehicle = await createUserVehicle.mutateAsync({
+          nickname: customCatalogVehicleName.trim(),
+          isDefault: userVehicles.length === 0,
+        });
+        setSelectedUserVehicleId(String(newVehicle.id));
+        localStorage.setItem(VEHICLE_STORAGE_KEY, String(newVehicle.id));
+        setShowAddVehicle(false);
+        setShowCustomCatalogVehicle(false);
+        setCustomCatalogVehicleName("");
+        toast({ title: t("vehicle.added"), description: t("vehicle.addedDesc") });
+      } catch (error: any) {
+        toast({ variant: "destructive", title: t("common.error"), description: error.message });
+      }
+    } else {
+      if (!selectedCatalogVehicleId) return;
+      try {
+        const newVehicle = await createUserVehicle.mutateAsync({
+          evVehicleId: Number(selectedCatalogVehicleId),
+          isDefault: userVehicles.length === 0,
+        });
+        setSelectedUserVehicleId(String(newVehicle.id));
+        localStorage.setItem(VEHICLE_STORAGE_KEY, String(newVehicle.id));
+        setShowAddVehicle(false);
+        setSelectedCatalogVehicleId("");
+        toast({ title: t("vehicle.added"), description: t("vehicle.addedDesc") });
+      } catch (error: any) {
+        toast({ variant: "destructive", title: t("common.error"), description: error.message });
+      }
     }
   };
 
@@ -266,29 +296,62 @@ export function ChargingSessionDialog({ stationId, availableChargers, totalCharg
                     <Plus className="w-4 h-4" />
                     {t("vehicle.addNew")}
                   </Label>
-                  <Select value={selectedCatalogVehicleId} onValueChange={setSelectedCatalogVehicleId}>
-                    <SelectTrigger data-testid="select-catalog-vehicle">
-                      <SelectValue placeholder={t("vehicle.selectModel")} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {catalogVehicles.map((vehicle) => (
-                        <SelectItem key={vehicle.id} value={String(vehicle.id)}>
-                          {isArabic ? `${vehicle.brandAr} ${vehicle.modelAr}` : `${vehicle.brand} ${vehicle.model}`}
+                  {!showCustomCatalogVehicle ? (
+                    <Select value={selectedCatalogVehicleId} onValueChange={handleCatalogVehicleChange}>
+                      <SelectTrigger data-testid="select-catalog-vehicle">
+                        <SelectValue placeholder={t("vehicle.selectModel")} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {catalogVehicles.map((vehicle) => (
+                          <SelectItem key={vehicle.id} value={String(vehicle.id)}>
+                            {isArabic ? `${vehicle.brandAr} ${vehicle.modelAr}` : `${vehicle.brand} ${vehicle.model}`}
+                          </SelectItem>
+                        ))}
+                        <SelectItem value="other_catalog" data-testid="other-catalog-vehicle">
+                          {t("vehicle.other")}
                         </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {selectedCatalogVehicle && (
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <div className="space-y-2">
+                      <Input
+                        placeholder={t("vehicle.enterCustomName")}
+                        value={customCatalogVehicleName}
+                        onChange={(e) => setCustomCatalogVehicleName(e.target.value)}
+                        data-testid="input-custom-catalog-vehicle"
+                      />
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="p-0 h-auto text-xs text-primary"
+                        onClick={() => {
+                          setShowCustomCatalogVehicle(false);
+                          setCustomCatalogVehicleName("");
+                        }}
+                      >
+                        {t("vehicle.selectFromList")}
+                      </Button>
+                    </div>
+                  )}
+                  {selectedCatalogVehicle && !showCustomCatalogVehicle && (
                     <div className="text-xs text-muted-foreground flex gap-3">
                       <span>{selectedCatalogVehicle.batteryCapacityKwh} kWh</span>
                       <span>{selectedCatalogVehicle.chargerType}</span>
                     </div>
                   )}
                   <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={() => setShowAddVehicle(false)}>
+                    <Button variant="outline" size="sm" onClick={() => {
+                      setShowAddVehicle(false);
+                      setShowCustomCatalogVehicle(false);
+                      setCustomCatalogVehicleName("");
+                    }}>
                       {t("common.cancel")}
                     </Button>
-                    <Button size="sm" onClick={handleAddVehicle} disabled={!selectedCatalogVehicleId || createUserVehicle.isPending}>
+                    <Button 
+                      size="sm" 
+                      onClick={handleAddVehicle} 
+                      disabled={(!selectedCatalogVehicleId && !showCustomCatalogVehicle) || (showCustomCatalogVehicle && !customCatalogVehicleName.trim()) || createUserVehicle.isPending}
+                    >
                       {createUserVehicle.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                       {t("vehicle.add")}
                     </Button>

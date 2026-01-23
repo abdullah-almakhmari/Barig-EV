@@ -65,7 +65,7 @@ export const evVehicles = pgTable("ev_vehicles", {
 export const userVehicles = pgTable("user_vehicles", {
   id: serial("id").primaryKey(),
   userId: varchar("user_id").notNull(),
-  evVehicleId: integer("ev_vehicle_id").notNull(),
+  evVehicleId: integer("ev_vehicle_id"),
   nickname: text("nickname"),
   licensePlate: text("license_plate"),
   color: text("color"),
