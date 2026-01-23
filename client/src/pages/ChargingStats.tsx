@@ -17,8 +17,10 @@ import { Link } from "wouter";
 import { startOfMonth, endOfMonth, format, subMonths, addMonths, isSameMonth } from "date-fns";
 import { ar } from "date-fns/locale";
 
-const STORAGE_KEY = "bariq_electricity_rate";
-const DEFAULT_RATE = 0.1;
+const ELECTRICITY_STORAGE_KEY = "bariq_electricity_rate";
+const PETROL_STORAGE_KEY = "bariq_petrol_price";
+const DEFAULT_ELECTRICITY_RATE = 0.1;
+const DEFAULT_PETROL_PRICE = 0.180;
 
 export default function ChargingStats() {
   const { t } = useTranslation();
@@ -28,30 +30,51 @@ export default function ChargingStats() {
   const { data: stations } = useStations();
   const [selectedMonth, setSelectedMonth] = useState(new Date());
   const [viewMode, setViewMode] = useState<"month" | "year">("month");
-  const [electricityRate, setElectricityRate] = useState(DEFAULT_RATE);
+  const [electricityRate, setElectricityRate] = useState(DEFAULT_ELECTRICITY_RATE);
+  const [petrolPrice, setPetrolPrice] = useState(DEFAULT_PETROL_PRICE);
   const [rateInput, setRateInput] = useState("");
+  const [petrolInput, setPetrolInput] = useState("");
   const [showSettings, setShowSettings] = useState(false);
 
   useEffect(() => {
-    const savedRate = localStorage.getItem(STORAGE_KEY);
-    if (savedRate) {
-      const rate = parseFloat(savedRate);
+    const savedElecRate = localStorage.getItem(ELECTRICITY_STORAGE_KEY);
+    if (savedElecRate) {
+      const rate = parseFloat(savedElecRate);
       if (!isNaN(rate) && rate > 0) {
         setElectricityRate(rate);
         setRateInput(rate.toString());
       }
     } else {
-      setRateInput(DEFAULT_RATE.toString());
+      setRateInput(DEFAULT_ELECTRICITY_RATE.toString());
+    }
+
+    const savedPetrolPrice = localStorage.getItem(PETROL_STORAGE_KEY);
+    if (savedPetrolPrice) {
+      const price = parseFloat(savedPetrolPrice);
+      if (!isNaN(price) && price > 0) {
+        setPetrolPrice(price);
+        setPetrolInput(price.toString());
+      }
+    } else {
+      setPetrolInput(DEFAULT_PETROL_PRICE.toString());
     }
   }, []);
 
-  const saveElectricityRate = () => {
-    const rate = parseFloat(rateInput);
-    if (!isNaN(rate) && rate > 0) {
-      setElectricityRate(rate);
-      localStorage.setItem(STORAGE_KEY, rate.toString());
-      setShowSettings(false);
+  const saveSettings = () => {
+    const elecRate = parseFloat(rateInput);
+    const petPrice = parseFloat(petrolInput);
+    
+    if (!isNaN(elecRate) && elecRate > 0) {
+      setElectricityRate(elecRate);
+      localStorage.setItem(ELECTRICITY_STORAGE_KEY, elecRate.toString());
     }
+    
+    if (!isNaN(petPrice) && petPrice > 0) {
+      setPetrolPrice(petPrice);
+      localStorage.setItem(PETROL_STORAGE_KEY, petPrice.toString());
+    }
+    
+    setShowSettings(false);
   };
 
   const isArabic = language === "ar";
@@ -86,7 +109,8 @@ export default function ChargingStats() {
     const topStation = Object.entries(stationVisits).sort((a, b) => b[1] - a[1])[0];
 
     const estimatedCost = totalEnergy * electricityRate;
-    const petrolSaved = totalEnergy * 0.7;
+    const petrolLitersSaved = totalEnergy * 0.7;
+    const petrolMoneySaved = petrolLitersSaved * petrolPrice;
 
     return {
       totalEnergy,
@@ -95,10 +119,11 @@ export default function ChargingStats() {
       avgEnergy,
       topStation: topStation ? { id: Number(topStation[0]), visits: topStation[1] } : null,
       estimatedCost,
-      petrolSaved,
+      petrolLitersSaved,
+      petrolMoneySaved,
       sessions: monthSessions,
     };
-  }, [sessions, selectedMonth, electricityRate]);
+  }, [sessions, selectedMonth, electricityRate, petrolPrice]);
 
   const yearlyData = useMemo(() => {
     if (!sessions) return [];
@@ -203,37 +228,57 @@ export default function ChargingStats() {
             <div className="space-y-4 py-4">
               <div className="space-y-2">
                 <Label htmlFor="electricity-rate">
-                  {isArabic ? "سعر الكيلوواط (ر.ع)" : "Price per kWh (OMR)"}
+                  {isArabic ? "سعر الكيلوواط (ر.ع)" : "Electricity price per kWh (OMR)"}
                 </Label>
-                <div className="flex gap-2">
-                  <Input
-                    id="electricity-rate"
-                    type="number"
-                    step="0.001"
-                    min="0"
-                    placeholder="0.1"
-                    value={rateInput}
-                    onChange={(e) => setRateInput(e.target.value)}
-                    className="flex-1"
-                    data-testid="input-electricity-rate"
-                  />
-                  <Button onClick={saveElectricityRate} data-testid="button-save-rate">
-                    <Check className="w-4 h-4" />
-                  </Button>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  {isArabic 
-                    ? "أدخل سعر الكهرباء الحالي لحساب التكلفة بدقة"
-                    : "Enter current electricity price for accurate cost calculation"
-                  }
-                </p>
+                <Input
+                  id="electricity-rate"
+                  type="number"
+                  step="0.001"
+                  min="0"
+                  placeholder="0.1"
+                  value={rateInput}
+                  onChange={(e) => setRateInput(e.target.value)}
+                  data-testid="input-electricity-rate"
+                />
               </div>
-              <div className="p-3 bg-muted rounded-lg">
-                <div className="text-sm font-medium mb-1">
-                  {isArabic ? "السعر الحالي" : "Current rate"}
+
+              <div className="space-y-2">
+                <Label htmlFor="petrol-price">
+                  {isArabic ? "سعر لتر البنزين (ر.ع)" : "Petrol price per liter (OMR)"}
+                </Label>
+                <Input
+                  id="petrol-price"
+                  type="number"
+                  step="0.001"
+                  min="0"
+                  placeholder="0.180"
+                  value={petrolInput}
+                  onChange={(e) => setPetrolInput(e.target.value)}
+                  data-testid="input-petrol-price"
+                />
+              </div>
+
+              <Button onClick={saveSettings} className="w-full" data-testid="button-save-settings">
+                <Check className="w-4 h-4 me-2" />
+                {isArabic ? "حفظ الإعدادات" : "Save Settings"}
+              </Button>
+
+              <div className="p-3 bg-muted rounded-lg space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">
+                    {isArabic ? "سعر الكهرباء" : "Electricity"}
+                  </span>
+                  <span className="font-semibold text-primary">
+                    {electricityRate.toFixed(3)} {isArabic ? "ر.ع/كيلوواط" : "OMR/kWh"}
+                  </span>
                 </div>
-                <div className="text-lg font-bold text-primary">
-                  {electricityRate.toFixed(3)} {isArabic ? "ر.ع/كيلوواط" : "OMR/kWh"}
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">
+                    {isArabic ? "سعر البنزين" : "Petrol"}
+                  </span>
+                  <span className="font-semibold text-orange-600">
+                    {petrolPrice.toFixed(3)} {isArabic ? "ر.ع/لتر" : "OMR/L"}
+                  </span>
                 </div>
               </div>
             </div>
@@ -336,10 +381,10 @@ export default function ChargingStats() {
                 </div>
                 <div>
                   <div className="text-lg font-bold text-green-600">
-                    ~{monthlyStats.petrolSaved.toFixed(0)} {isArabic ? "لتر" : "L"}
+                    ~{monthlyStats.petrolLitersSaved.toFixed(0)} {isArabic ? "لتر" : "L"}
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    {isArabic ? "بنزين موفر تقريباً" : "petrol saved (approx)"}
+                    ≈ {monthlyStats.petrolMoneySaved.toFixed(2)} {isArabic ? "ر.ع توفير" : "OMR saved"}
                   </div>
                 </div>
               </div>
