@@ -46,8 +46,17 @@ export interface IStorage {
   submitVerification(stationId: number, userId: string, vote: string): Promise<StationVerification>;
   getVerificationSummary(stationId: number): Promise<VerificationSummary>;
   getUserRecentVerification(stationId: number, userId: string): Promise<StationVerification | undefined>;
+  getVerificationHistory(stationId: number): Promise<VerificationHistoryItem[]>;
   seed(): Promise<void>;
 }
+
+export type VerificationHistoryItem = {
+  id: number;
+  vote: string;
+  createdAt: string;
+  userName: string;
+  userTrustLevel: string;
+};
 
 export type ReportWithDetails = Report & {
   stationName?: string;
@@ -454,6 +463,45 @@ export class DatabaseStorage implements IStorage {
       isStrongVerified,
       lastVerifiedAt
     };
+  }
+
+  async getVerificationHistory(stationId: number): Promise<VerificationHistoryItem[]> {
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    
+    const verifications = await db.select({
+      id: stationVerifications.id,
+      vote: stationVerifications.vote,
+      createdAt: stationVerifications.createdAt,
+      userId: stationVerifications.userId,
+    })
+      .from(stationVerifications)
+      .where(and(
+        eq(stationVerifications.stationId, stationId),
+        gte(stationVerifications.createdAt, twentyFourHoursAgo)
+      ))
+      .orderBy(desc(stationVerifications.createdAt))
+      .limit(20);
+    
+    const result: VerificationHistoryItem[] = [];
+    
+    for (const v of verifications) {
+      const [user] = await db.select({
+        firstName: users.firstName,
+        userTrustLevel: users.userTrustLevel,
+      })
+        .from(users)
+        .where(eq(users.id, v.userId));
+      
+      result.push({
+        id: v.id,
+        vote: v.vote,
+        createdAt: v.createdAt?.toISOString() || new Date().toISOString(),
+        userName: user?.firstName || 'مستخدم',
+        userTrustLevel: user?.userTrustLevel || 'NEW',
+      });
+    }
+    
+    return result;
   }
 
   async seed(): Promise<void> {

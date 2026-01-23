@@ -299,6 +299,17 @@ export async function registerRoutes(
     }
   });
 
+  // Verification history endpoint - shows recent verifications with user names
+  app.get("/api/stations/:id/verification-history", async (req, res) => {
+    try {
+      const stationId = Number(req.params.id);
+      const history = await storage.getVerificationHistory(stationId);
+      res.json(history);
+    } catch (err) {
+      throw err;
+    }
+  });
+
   // Trust Score endpoint (feature-flagged)
   app.get("/api/stations/:id/trust-score", async (req, res) => {
     try {

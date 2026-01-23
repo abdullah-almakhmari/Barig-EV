@@ -2,7 +2,7 @@ import { useRoute } from "wouter";
 import { useStation, useStationReports } from "@/hooks/use-stations";
 import { useTranslation } from "react-i18next";
 import { useLanguage } from "@/components/LanguageContext";
-import { Loader2, Navigation, Clock, ShieldCheck, MapPin, BatteryCharging, Home, Phone, MessageCircle, AlertTriangle, CheckCircle2, XCircle, Users, ShieldAlert, ThumbsUp, ThumbsDown, Zap } from "lucide-react";
+import { Loader2, Navigation, Clock, ShieldCheck, MapPin, BatteryCharging, Home, Phone, MessageCircle, AlertTriangle, CheckCircle2, XCircle, Users, ShieldAlert, ThumbsUp, ThumbsDown, Zap, Shield } from "lucide-react";
 import { api } from "@shared/routes";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -144,6 +144,24 @@ export default function StationDetails() {
     queryFn: async () => {
       const res = await fetch(`/api/stations/${id}/verification-summary`);
       if (!res.ok) throw new Error('Failed to fetch verification summary');
+      return res.json();
+    },
+    enabled: id > 0,
+  });
+
+  interface VerificationHistoryItem {
+    id: number;
+    vote: string;
+    createdAt: string;
+    userName: string;
+    userTrustLevel: string;
+  }
+
+  const { data: verificationHistory } = useQuery<VerificationHistoryItem[]>({
+    queryKey: ['/api/stations', id, 'verification-history'],
+    queryFn: async () => {
+      const res = await fetch(`/api/stations/${id}/verification-history`);
+      if (!res.ok) throw new Error('Failed to fetch verification history');
       return res.json();
     },
     enabled: id > 0,
@@ -487,6 +505,55 @@ export default function StationDetails() {
           </div>
         </div>
       </details>
+
+      {/* Community Verification History */}
+      {verificationHistory && verificationHistory.length > 0 && (
+        <details className="group bg-card rounded-2xl border shadow-sm" open>
+          <summary className="cursor-pointer p-5 flex items-center justify-between hover:bg-muted/50 rounded-2xl transition-colors">
+            <div className="flex items-center gap-2">
+              <Users className="w-5 h-5 text-primary" />
+              <span className="font-semibold">{t("verify.communityHistory")}</span>
+              <Badge variant="outline" className="text-xs">{verificationHistory.length}</Badge>
+            </div>
+            <span className="text-muted-foreground text-sm group-open:hidden">{t("station.tapToExpand")}</span>
+          </summary>
+          <div className="px-5 pb-5 space-y-2 border-t max-h-[250px] overflow-y-auto">
+            {verificationHistory.map((item) => (
+              <div key={item.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-xl">
+                <div className="flex items-center gap-3">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold ${
+                    item.vote === 'WORKING' ? 'bg-emerald-500' : 
+                    item.vote === 'NOT_WORKING' ? 'bg-red-500' : 'bg-orange-500'
+                  }`}>
+                    {item.userName.charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-sm">{item.userName}</span>
+                      {item.userTrustLevel === 'TRUSTED' && (
+                        <Badge variant="outline" className="text-xs border-green-500/50 text-green-600">
+                          <Shield className="w-3 h-3 me-1" />
+                          {t("trust.trustedUser")}
+                        </Badge>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {formatTimeAgo(item.createdAt, t)}
+                    </p>
+                  </div>
+                </div>
+                <Badge className={`${
+                  item.vote === 'WORKING' ? 'bg-emerald-500' : 
+                  item.vote === 'NOT_WORKING' ? 'bg-red-500' : 'bg-orange-500'
+                } text-white border-0`}>
+                  {item.vote === 'WORKING' ? t("status.working") : 
+                   item.vote === 'NOT_WORKING' ? t("status.notWorking") : t("status.busy")}
+                </Badge>
+              </div>
+            ))}
+          </div>
+        </details>
+      )}
 
       {/* Recent Reports - De-emphasized */}
       {reports && reports.length > 0 && (
