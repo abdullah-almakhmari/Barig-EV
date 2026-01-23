@@ -1,18 +1,24 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useLanguage } from "@/components/LanguageContext";
 import { useChargingSessions, useStations } from "@/hooks/use-stations";
 import { useAuth } from "@/hooks/use-auth";
-import { Loader2, BarChart3, Zap, Clock, MapPin, TrendingUp, Fuel, Calendar, ChevronLeft, ChevronRight } from "lucide-react";
+import { Loader2, BarChart3, Zap, Clock, MapPin, TrendingUp, Fuel, Calendar, ChevronLeft, ChevronRight, Settings, Check } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { SEO } from "@/components/SEO";
 import { Link } from "wouter";
 import { startOfMonth, endOfMonth, format, subMonths, addMonths, isSameMonth } from "date-fns";
 import { ar } from "date-fns/locale";
+
+const STORAGE_KEY = "bariq_electricity_rate";
+const DEFAULT_RATE = 0.1;
 
 export default function ChargingStats() {
   const { t } = useTranslation();
@@ -22,6 +28,31 @@ export default function ChargingStats() {
   const { data: stations } = useStations();
   const [selectedMonth, setSelectedMonth] = useState(new Date());
   const [viewMode, setViewMode] = useState<"month" | "year">("month");
+  const [electricityRate, setElectricityRate] = useState(DEFAULT_RATE);
+  const [rateInput, setRateInput] = useState("");
+  const [showSettings, setShowSettings] = useState(false);
+
+  useEffect(() => {
+    const savedRate = localStorage.getItem(STORAGE_KEY);
+    if (savedRate) {
+      const rate = parseFloat(savedRate);
+      if (!isNaN(rate) && rate > 0) {
+        setElectricityRate(rate);
+        setRateInput(rate.toString());
+      }
+    } else {
+      setRateInput(DEFAULT_RATE.toString());
+    }
+  }, []);
+
+  const saveElectricityRate = () => {
+    const rate = parseFloat(rateInput);
+    if (!isNaN(rate) && rate > 0) {
+      setElectricityRate(rate);
+      localStorage.setItem(STORAGE_KEY, rate.toString());
+      setShowSettings(false);
+    }
+  };
 
   const isArabic = language === "ar";
 
@@ -54,7 +85,7 @@ export default function ChargingStats() {
     });
     const topStation = Object.entries(stationVisits).sort((a, b) => b[1] - a[1])[0];
 
-    const estimatedCost = totalEnergy * 0.1;
+    const estimatedCost = totalEnergy * electricityRate;
     const petrolSaved = totalEnergy * 0.7;
 
     return {
@@ -67,7 +98,7 @@ export default function ChargingStats() {
       petrolSaved,
       sessions: monthSessions,
     };
-  }, [sessions, selectedMonth]);
+  }, [sessions, selectedMonth, electricityRate]);
 
   const yearlyData = useMemo(() => {
     if (!sessions) return [];
@@ -142,18 +173,72 @@ export default function ChargingStats() {
     <div className="max-w-4xl mx-auto pb-20">
       <SEO title={isArabic ? "إحصائيات الشحن" : "Charging Statistics"} />
       
-      <div className="flex items-center gap-3 mb-6">
-        <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-          <BarChart3 className="w-6 h-6 text-primary" />
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+            <BarChart3 className="w-6 h-6 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold">
+              {isArabic ? "إحصائيات الشحن" : "Charging Statistics"}
+            </h1>
+            <p className="text-muted-foreground text-sm">
+              {isArabic ? "تتبع استهلاكك للطاقة" : "Track your energy consumption"}
+            </p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-2xl font-bold">
-            {isArabic ? "إحصائيات الشحن" : "Charging Statistics"}
-          </h1>
-          <p className="text-muted-foreground text-sm">
-            {isArabic ? "تتبع استهلاكك للطاقة" : "Track your energy consumption"}
-          </p>
-        </div>
+
+        <Dialog open={showSettings} onOpenChange={setShowSettings}>
+          <DialogTrigger asChild>
+            <Button variant="outline" size="icon" data-testid="button-settings">
+              <Settings className="w-4 h-4" />
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle>
+                {isArabic ? "إعدادات التسعيرة" : "Pricing Settings"}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="electricity-rate">
+                  {isArabic ? "سعر الكيلوواط (ر.ع)" : "Price per kWh (OMR)"}
+                </Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="electricity-rate"
+                    type="number"
+                    step="0.001"
+                    min="0"
+                    placeholder="0.1"
+                    value={rateInput}
+                    onChange={(e) => setRateInput(e.target.value)}
+                    className="flex-1"
+                    data-testid="input-electricity-rate"
+                  />
+                  <Button onClick={saveElectricityRate} data-testid="button-save-rate">
+                    <Check className="w-4 h-4" />
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {isArabic 
+                    ? "أدخل سعر الكهرباء الحالي لحساب التكلفة بدقة"
+                    : "Enter current electricity price for accurate cost calculation"
+                  }
+                </p>
+              </div>
+              <div className="p-3 bg-muted rounded-lg">
+                <div className="text-sm font-medium mb-1">
+                  {isArabic ? "السعر الحالي" : "Current rate"}
+                </div>
+                <div className="text-lg font-bold text-primary">
+                  {electricityRate.toFixed(3)} {isArabic ? "ر.ع/كيلوواط" : "OMR/kWh"}
+                </div>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <div className="flex items-center justify-between gap-4 mb-6">
