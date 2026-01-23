@@ -49,9 +49,10 @@ interface MapPickerProps {
   initialLat: number;
   initialLng: number;
   onConfirm: (lat: number, lng: number) => void;
+  renderTrigger?: (onClick: () => void) => React.ReactNode;
 }
 
-export function MapPicker({ initialLat, initialLng, onConfirm }: MapPickerProps) {
+export function MapPicker({ initialLat, initialLng, onConfirm, renderTrigger }: MapPickerProps) {
   const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [selectedPosition, setSelectedPosition] = useState<[number, number]>([initialLat, initialLng]);
@@ -61,18 +62,24 @@ export function MapPicker({ initialLat, initialLng, onConfirm }: MapPickerProps)
     setIsOpen(false);
   };
 
+  const handleOpen = () => setIsOpen(true);
+
   return (
     <>
-      <Button
-        type="button"
-        variant="outline"
-        onClick={() => setIsOpen(true)}
-        className="gap-2"
-        data-testid="button-pick-from-map"
-      >
-        <Map className="h-4 w-4" />
-        {t("add.pickFromMap")}
-      </Button>
+      {renderTrigger ? (
+        renderTrigger(handleOpen)
+      ) : (
+        <Button
+          type="button"
+          variant="outline"
+          onClick={handleOpen}
+          className="gap-2"
+          data-testid="button-pick-from-map"
+        >
+          <Map className="h-4 w-4" />
+          {t("add.pickFromMap")}
+        </Button>
+      )}
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogContent className="max-w-3xl h-[80vh] flex flex-col p-0">

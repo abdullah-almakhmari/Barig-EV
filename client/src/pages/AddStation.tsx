@@ -361,41 +361,60 @@ export default function AddStation() {
             )}
 
             <div className="space-y-4">
-              <div className="flex items-center justify-between flex-wrap gap-2">
-                <FormLabel className="text-base font-semibold flex items-center gap-2">
-                  <MapPin className="h-4 w-4" />
-                  {t("add.location")}
-                </FormLabel>
-                <div className="flex gap-2 flex-wrap">
-                  <MapPicker
-                    initialLat={form.getValues("lat")}
-                    initialLng={form.getValues("lng")}
-                    onConfirm={(lat, lng) => {
-                      form.setValue("lat", lat);
-                      form.setValue("lng", lng);
-                      toast({
-                        title: t("add.locationSuccess"),
-                        description: `${lat.toFixed(6)}, ${lng.toFixed(6)}`,
-                      });
-                    }}
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={getMyLocation}
-                    disabled={isGettingLocation}
-                    className="gap-2"
-                    data-testid="button-use-my-location"
-                  >
-                    {isGettingLocation ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Navigation className="h-4 w-4" />
-                    )}
-                    {t("add.useMyLocation")}
-                  </Button>
+              <FormLabel className="text-base font-semibold flex items-center gap-2">
+                <MapPin className="h-4 w-4" />
+                {t("add.location")}
+              </FormLabel>
+              <div className="grid grid-cols-2 gap-4">
+                <MapPicker
+                  initialLat={form.getValues("lat")}
+                  initialLng={form.getValues("lng")}
+                  onConfirm={(lat, lng) => {
+                    form.setValue("lat", lat);
+                    form.setValue("lng", lng);
+                    toast({
+                      title: t("add.locationSuccess"),
+                      description: `${lat.toFixed(6)}, ${lng.toFixed(6)}`,
+                    });
+                  }}
+                  renderTrigger={(onClick) => (
+                    <div
+                      onClick={onClick}
+                      className="cursor-pointer p-4 rounded-xl border-2 border-muted hover:border-primary/50 transition-all flex flex-col items-center justify-center gap-2"
+                      data-testid="button-pick-from-map"
+                    >
+                      <MapPin className="h-6 w-6 text-muted-foreground" />
+                      <span className="font-medium text-sm">{t("add.pickFromMap")}</span>
+                    </div>
+                  )}
+                />
+                <div
+                  onClick={getMyLocation}
+                  className={`cursor-pointer p-4 rounded-xl border-2 transition-all flex flex-col items-center justify-center gap-2 ${
+                    isGettingLocation 
+                      ? "border-primary bg-primary/5" 
+                      : "border-muted hover:border-primary/50"
+                  }`}
+                  data-testid="button-use-my-location"
+                >
+                  {isGettingLocation ? (
+                    <Loader2 className="h-6 w-6 text-primary animate-spin" />
+                  ) : (
+                    <Navigation className="h-6 w-6 text-muted-foreground" />
+                  )}
+                  <span className="font-medium text-sm">{t("add.useMyLocation")}</span>
                 </div>
               </div>
+              
+              {(form.watch("lat") !== 23.5880 || form.watch("lng") !== 58.3829) && (
+                <div className="p-3 bg-primary/5 border border-primary/20 rounded-lg flex items-center gap-2">
+                  <Check className="h-4 w-4 text-primary" />
+                  <span className="text-sm text-primary">
+                    {t("add.locationSet")}: {form.watch("lat").toFixed(4)}, {form.watch("lng").toFixed(4)}
+                  </span>
+                </div>
+              )}
+              
               <div className="grid grid-cols-2 gap-6">
                 <FormField
                   control={form.control}
