@@ -17,6 +17,45 @@ export function registerObjectStorageRoutes(app: Express): void {
   const objectStorageService = new ObjectStorageService();
 
   /**
+   * Health check for object storage
+   */
+  app.get("/api/uploads/health", async (req, res) => {
+    try {
+      // Check if environment variables are set
+      const hasPrivateDir = !!process.env.PRIVATE_OBJECT_DIR;
+      const hasPublicPaths = !!process.env.PUBLIC_OBJECT_SEARCH_PATHS;
+      const hasBucketId = !!process.env.DEFAULT_OBJECT_STORAGE_BUCKET_ID;
+      
+      if (!hasPrivateDir || !hasBucketId) {
+        return res.status(503).json({
+          status: "not_configured",
+          hasPrivateDir,
+          hasPublicPaths,
+          hasBucketId,
+        });
+      }
+
+      // Try to generate an upload URL to verify sidecar connectivity
+      const uploadURL = await objectStorageService.getObjectEntityUploadURL();
+      const hasValidUrl = uploadURL.startsWith("https://storage.googleapis.com/");
+
+      res.json({
+        status: "ok",
+        hasPrivateDir,
+        hasPublicPaths,
+        hasBucketId,
+        hasValidUrl,
+      });
+    } catch (error: any) {
+      console.error("Object storage health check failed:", error);
+      res.status(503).json({
+        status: "error",
+        error: error.message || "Unknown error",
+      });
+    }
+  });
+
+  /**
    * Request a presigned URL for file upload.
    *
    * Request body (JSON):
@@ -45,10 +84,14 @@ export function registerObjectStorageRoutes(app: Express): void {
         });
       }
 
+      console.log(`[Upload] Requesting upload URL for: ${name}, size: ${size}, type: ${contentType}`);
+      
       const uploadURL = await objectStorageService.getObjectEntityUploadURL();
 
       // Extract object path from the presigned URL for later reference
       const objectPath = objectStorageService.normalizeObjectEntityPath(uploadURL);
+
+      console.log(`[Upload] Generated URL for path: ${objectPath}`);
 
       res.json({
         uploadURL,
@@ -56,9 +99,12 @@ export function registerObjectStorageRoutes(app: Express): void {
         // Echo back the metadata for client convenience
         metadata: { name, size, contentType },
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error generating upload URL:", error);
-      res.status(500).json({ error: "Failed to generate upload URL" });
+      res.status(500).json({ 
+        error: "Failed to generate upload URL",
+        details: process.env.NODE_ENV !== "production" ? error.message : undefined 
+      });
     }
   });
 

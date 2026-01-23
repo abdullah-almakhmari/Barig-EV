@@ -135,21 +135,24 @@ export function ActiveSessionBanner() {
       });
 
       if (!res.ok) {
-        throw new Error("Failed to get upload URL");
+        const errorData = await res.json().catch(() => ({}));
+        console.error("Failed to get upload URL:", res.status, errorData);
+        throw new Error(errorData.details || errorData.error || "Failed to get upload URL");
       }
 
       const { uploadURL, objectPath } = await res.json();
 
+      // Upload file directly to Google Cloud Storage using presigned URL
       const uploadRes = await fetch(uploadURL, {
         method: "PUT",
         body: file,
         headers: { "Content-Type": file.type || "image/jpeg" },
-        mode: "cors",
       });
 
       // Google Cloud Storage returns 200 on success
       if (!uploadRes.ok && uploadRes.status !== 200) {
-        throw new Error("Failed to upload file");
+        console.error("GCS upload failed:", uploadRes.status, await uploadRes.text().catch(() => ""));
+        throw new Error(`Upload failed with status ${uploadRes.status}`);
       }
 
       // Save screenshot path
@@ -197,11 +200,19 @@ export function ActiveSessionBanner() {
         // OCR failed but upload succeeded - user can still enter manually
       }
       setIsAnalyzing(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Upload error:", error);
-      toast({ title: t("common.error"), variant: "destructive" });
+      toast({ 
+        title: language === "ar" ? "فشل رفع الصورة" : "Photo upload failed",
+        description: error.message || t("common.error"),
+        variant: "destructive" 
+      });
       setIsUploading(false);
       setIsAnalyzing(false);
+    }
+    // Reset input so user can try again with same file
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
     }
   };
 
