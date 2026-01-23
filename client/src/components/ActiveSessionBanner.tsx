@@ -2,13 +2,17 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Zap, X, Clock } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Zap, X, Clock, Battery, Gauge, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useLanguage } from "@/components/LanguageContext";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { ChargingSession, Station } from "@shared/schema";
 import { useState, useEffect } from "react";
+import { api } from "@shared/routes";
 
 interface ActiveSessionResponse {
   session: ChargingSession;
@@ -24,6 +28,9 @@ export function ActiveSessionBanner() {
   const queryClient = useQueryClient();
   const [dismissed, setDismissed] = useState(false);
   const [elapsedTime, setElapsedTime] = useState("");
+  const [showEndDialog, setShowEndDialog] = useState(false);
+  const [batteryEnd, setBatteryEnd] = useState("");
+  const [energyKwh, setEnergyKwh] = useState("");
 
   const { data, isLoading } = useQuery<ActiveSessionResponse | null>({
     queryKey: ["/api/charging-sessions/my-active"],
@@ -37,13 +44,21 @@ export function ActiveSessionBanner() {
   });
 
   const endSessionMutation = useMutation({
-    mutationFn: async (sessionId: number) => {
-      return apiRequest("POST", `/api/charging-sessions/${sessionId}/end`, {});
+    mutationFn: async ({ sessionId, batteryEndPercent, energyKwh }: { sessionId: number; batteryEndPercent?: number; energyKwh?: number }) => {
+      return apiRequest("POST", `/api/charging-sessions/${sessionId}/end`, { batteryEndPercent, energyKwh });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/charging-sessions/my-active"] });
       queryClient.invalidateQueries({ queryKey: ["/api/charging-sessions"] });
+      if (data?.station) {
+        queryClient.invalidateQueries({ queryKey: [api.stations.get.path, data.station.id] });
+        queryClient.invalidateQueries({ queryKey: [api.stations.list.path] });
+        queryClient.invalidateQueries({ queryKey: ['/api/stations', data.station.id, 'verification-summary'] });
+      }
       toast({ title: t("charging.sessionEnded"), description: t("charging.sessionEndedDesc") });
+      setShowEndDialog(false);
+      setBatteryEnd("");
+      setEnergyKwh("");
     },
     onError: () => {
       toast({ title: t("common.error"), variant: "destructive" });
@@ -87,10 +102,20 @@ export function ActiveSessionBanner() {
   };
 
   const handleEndSession = () => {
-    endSessionMutation.mutate(data.session.id);
+    setShowEndDialog(true);
+  };
+
+  const confirmEndSession = () => {
+    if (!data?.session) return;
+    endSessionMutation.mutate({
+      sessionId: data.session.id,
+      batteryEndPercent: batteryEnd ? Number(batteryEnd) : undefined,
+      energyKwh: energyKwh ? Number(energyKwh) : undefined,
+    });
   };
 
   return (
+    <>
     <div className="bg-primary text-primary-foreground px-4 py-3" data-testid="active-session-banner">
       <div className="container mx-auto flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
@@ -138,5 +163,70 @@ export function ActiveSessionBanner() {
         </div>
       </div>
     </div>
+
+    <Dialog open={showEndDialog} onOpenChange={setShowEndDialog}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{t("charging.endSession")}</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label htmlFor="batteryEnd" className="flex items-center gap-2">
+              <Battery className="w-4 h-4" />
+              {t("charging.batteryEnd")}
+            </Label>
+            <div className="relative">
+              <Input
+                id="batteryEnd"
+                type="number"
+                min="0"
+                max="100"
+                placeholder="85"
+                value={batteryEnd}
+                onChange={(e) => setBatteryEnd(e.target.value)}
+                className="pr-8"
+                data-testid="input-battery-end-banner"
+              />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">%</span>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="energyKwh" className="flex items-center gap-2">
+              <Gauge className="w-4 h-4" />
+              {t("charging.energyCharged")}
+            </Label>
+            <div className="relative">
+              <Input
+                id="energyKwh"
+                type="number"
+                min="0"
+                step="0.1"
+                placeholder="25.5"
+                value={energyKwh}
+                onChange={(e) => setEnergyKwh(e.target.value)}
+                className="pr-12"
+                data-testid="input-energy-kwh-banner"
+              />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">kWh</span>
+            </div>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setShowEndDialog(false)}>
+            {t("common.cancel")}
+          </Button>
+          <Button 
+            onClick={confirmEndSession}
+            disabled={endSessionMutation.isPending}
+            className="bg-emerald-500 hover:bg-emerald-600"
+            data-testid="button-confirm-end-session-banner"
+          >
+            {endSessionMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {t("charging.endSession")}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }
