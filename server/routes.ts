@@ -85,6 +85,64 @@ export async function registerRoutes(
   // Register object storage routes for screenshot uploads
   registerObjectStorageRoutes(app);
 
+  // Rate limiter for OCR (5 requests per 15 minutes per user)
+  const ocrLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 5,
+    message: { message: "Too many OCR requests. Please try again later." },
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+
+  // OCR endpoint to analyze charging screen photos and extract kWh value
+  app.post("/api/ocr/analyze-charging-screen", isAuthenticated, ocrLimiter, async (req, res) => {
+    try {
+      const { objectPath } = req.body;
+      
+      if (!objectPath) {
+        return res.status(400).json({ error: "objectPath is required" });
+      }
+
+      // Security: Only allow object storage paths to prevent SSRF
+      if (!objectPath.startsWith("/objects/")) {
+        return res.status(400).json({ error: "Invalid object path" });
+      }
+
+      // Fetch the image from object storage server-side
+      const { ObjectStorageService } = await import("./replit_integrations/object_storage");
+      const objectStorageService = new ObjectStorageService();
+      
+      try {
+        const objectFile = await objectStorageService.getObjectEntityFile(objectPath);
+        const chunks: Buffer[] = [];
+        
+        // Read the file stream into a buffer
+        await new Promise<void>((resolve, reject) => {
+          objectFile.on("data", (chunk: Buffer) => chunks.push(chunk));
+          objectFile.on("end", () => resolve());
+          objectFile.on("error", reject);
+        });
+        
+        const imageBuffer = Buffer.concat(chunks);
+        const base64Image = imageBuffer.toString("base64");
+        const mimeType = "image/jpeg"; // Default to jpeg for charging screen photos
+        const dataUrl = `data:${mimeType};base64,${base64Image}`;
+
+        // Analyze using AI vision
+        const { analyzeChargingScreenshot } = await import("./replit_integrations/image/client");
+        const result = await analyzeChargingScreenshot(dataUrl);
+        
+        res.json(result);
+      } catch (storageError) {
+        console.error("Error fetching from object storage:", storageError);
+        return res.status(404).json({ error: "Image not found" });
+      }
+    } catch (error) {
+      console.error("Error analyzing charging screenshot:", error);
+      res.status(500).json({ error: "Failed to analyze image" });
+    }
+  });
+
   app.get(api.stations.list.path, async (req, res) => {
     try {
       const filters = api.stations.list.input?.parse(req.query);

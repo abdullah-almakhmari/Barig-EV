@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Zap, X, Clock, Battery, Gauge, Loader2, Camera, Check } from "lucide-react";
+import { Zap, X, Clock, Battery, Gauge, Loader2, Camera, Check, Sparkles } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useLanguage } from "@/components/LanguageContext";
 import { apiRequest, getCsrfToken } from "@/lib/queryClient";
@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import type { ChargingSession, Station } from "@shared/schema";
 import { useState, useEffect, useRef } from "react";
 import { api } from "@shared/routes";
+import { Badge } from "@/components/ui/badge";
 
 interface ActiveSessionResponse {
   session: ChargingSession;
@@ -33,6 +34,8 @@ export function ActiveSessionBanner() {
   const [energyKwh, setEnergyKwh] = useState("");
   const [screenshotPath, setScreenshotPath] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [ocrConfidence, setOcrConfidence] = useState<"high" | "medium" | "low" | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data, isLoading } = useQuery<ActiveSessionResponse | null>({
@@ -114,6 +117,7 @@ export function ActiveSessionBanner() {
     if (!file || !data?.session) return;
 
     setIsUploading(true);
+    setOcrConfidence(null);
     try {
       const csrfToken = await getCsrfToken();
       const res = await fetch("/api/uploads/request-url", {
@@ -148,17 +152,54 @@ export function ActiveSessionBanner() {
         throw new Error("Failed to upload file");
       }
 
-      // End session after successful upload
+      // Save screenshot path
+      setScreenshotPath(objectPath);
       setIsUploading(false);
-      endSessionMutation.mutate({
-        sessionId: data.session.id,
-        screenshotPath: objectPath,
-      });
-      return; // Exit early, mutation will handle success/error
+      
+      // Now analyze the image with AI OCR
+      setIsAnalyzing(true);
+      try {
+        const ocrRes = await fetch("/api/ocr/analyze-charging-screen", {
+          method: "POST",
+          headers: { 
+            "Content-Type": "application/json",
+            "x-csrf-token": csrfToken,
+          },
+          credentials: "include",
+          body: JSON.stringify({ objectPath }),
+        });
+
+        if (ocrRes.ok) {
+          const ocrResult = await ocrRes.json();
+          if (ocrResult.energyKwh !== null) {
+            setEnergyKwh(ocrResult.energyKwh.toString());
+            setOcrConfidence(ocrResult.confidence);
+            toast({ 
+              title: language === "ar" ? "تم قراءة الطاقة تلقائياً" : "Energy auto-detected",
+              description: language === "ar" 
+                ? `${ocrResult.energyKwh} كيلوواط/ساعة` 
+                : `${ocrResult.energyKwh} kWh detected from photo`,
+            });
+          } else {
+            toast({ 
+              title: language === "ar" ? "لم يتم العثور على قيمة الطاقة" : "Energy not detected",
+              description: language === "ar" 
+                ? "يرجى إدخال القيمة يدوياً" 
+                : "Please enter the value manually",
+              variant: "destructive",
+            });
+          }
+        }
+      } catch (ocrError) {
+        console.error("OCR error:", ocrError);
+        // OCR failed but upload succeeded - user can still enter manually
+      }
+      setIsAnalyzing(false);
     } catch (error) {
       console.error("Upload error:", error);
       toast({ title: t("common.error"), variant: "destructive" });
       setIsUploading(false);
+      setIsAnalyzing(false);
     }
   };
 
@@ -253,6 +294,19 @@ export function ActiveSessionBanner() {
             <Label htmlFor="energyKwh" className="flex items-center gap-2">
               <Gauge className="w-4 h-4" />
               {t("charging.energyCharged")}
+              {ocrConfidence && (
+                <Badge 
+                  variant="secondary" 
+                  className={`text-xs ${
+                    ocrConfidence === "high" ? "bg-emerald-100 text-emerald-700" :
+                    ocrConfidence === "medium" ? "bg-amber-100 text-amber-700" :
+                    "bg-gray-100 text-gray-700"
+                  }`}
+                >
+                  <Sparkles className="w-3 h-3 mr-1" />
+                  {language === "ar" ? "قراءة آلية" : "AI detected"}
+                </Badge>
+              )}
             </Label>
             <div className="relative">
               <Input
@@ -262,7 +316,10 @@ export function ActiveSessionBanner() {
                 step="0.1"
                 placeholder="25.5"
                 value={energyKwh}
-                onChange={(e) => setEnergyKwh(e.target.value)}
+                onChange={(e) => {
+                  setEnergyKwh(e.target.value);
+                  setOcrConfidence(null); // Clear confidence when user edits
+                }}
                 className="pr-12"
                 data-testid="input-energy-kwh-banner"
               />
@@ -287,18 +344,32 @@ export function ActiveSessionBanner() {
               type="button"
               variant="outline"
               onClick={() => fileInputRef.current?.click()}
-              disabled={isUploading}
+              disabled={isUploading || isAnalyzing}
               className="w-full"
               data-testid="button-upload-screenshot"
             >
               {isUploading ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  {language === "ar" ? "جاري الرفع..." : "Uploading..."}
+                </>
+              ) : isAnalyzing ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Sparkles className="mr-1 h-4 w-4" />
+                  {language === "ar" ? "جاري القراءة الآلية..." : "Reading with AI..."}
+                </>
               ) : screenshotPath ? (
-                <Check className="mr-2 h-4 w-4 text-emerald-500" />
+                <>
+                  <Check className="mr-2 h-4 w-4 text-emerald-500" />
+                  {t("charging.screenshotUploaded")}
+                </>
               ) : (
-                <Camera className="mr-2 h-4 w-4" />
+                <>
+                  <Camera className="mr-2 h-4 w-4" />
+                  {t("charging.uploadScreenshot")}
+                </>
               )}
-              {screenshotPath ? t("charging.screenshotUploaded") : t("charging.uploadScreenshot")}
             </Button>
           </div>
         </div>
@@ -308,7 +379,7 @@ export function ActiveSessionBanner() {
           </Button>
           <Button 
             onClick={confirmEndSession}
-            disabled={endSessionMutation.isPending || isUploading}
+            disabled={endSessionMutation.isPending || isUploading || isAnalyzing}
             className="bg-emerald-500 hover:bg-emerald-600"
             data-testid="button-confirm-end-session-banner"
           >

@@ -8,6 +8,75 @@ export const openai = new OpenAI({
 });
 
 /**
+ * Analyze a charging screen photo and extract the kWh value using AI vision.
+ * Returns the extracted energy value in kWh, or null if not found.
+ */
+export async function analyzeChargingScreenshot(imageUrl: string): Promise<{
+  energyKwh: number | null;
+  confidence: "high" | "medium" | "low";
+  rawText: string | null;
+}> {
+  try {
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        {
+          role: "system",
+          content: `You are an expert at reading EV charging station screens. Your task is to extract the energy delivered (kWh) from the charging screen photo.
+
+INSTRUCTIONS:
+1. Look for the total energy delivered value, usually shown as "kWh", "Energy", "الطاقة", or similar
+2. Focus on the FINAL or TOTAL energy value, not partial readings
+3. The value is typically between 0.1 and 100 kWh for a single charging session
+4. Return ONLY the numeric value without units
+5. If you cannot find or read the value clearly, return null
+
+RESPONSE FORMAT (JSON only):
+{
+  "energyKwh": <number or null>,
+  "confidence": "high" | "medium" | "low",
+  "rawText": "<what you read from the screen>"
+}`
+        },
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: "Extract the energy (kWh) value from this EV charging screen photo:"
+            },
+            {
+              type: "image_url",
+              image_url: {
+                url: imageUrl,
+                detail: "high"
+              }
+            }
+          ]
+        }
+      ],
+      max_tokens: 200,
+      response_format: { type: "json_object" }
+    });
+
+    const content = response.choices[0]?.message?.content;
+    if (!content) {
+      return { energyKwh: null, confidence: "low", rawText: null };
+    }
+
+    const parsed = JSON.parse(content);
+    return {
+      energyKwh: typeof parsed.energyKwh === "number" ? parsed.energyKwh : null,
+      confidence: parsed.confidence || "low",
+      rawText: parsed.rawText || null
+    };
+  } catch (error) {
+    console.error("Error analyzing charging screenshot:", error);
+    return { energyKwh: null, confidence: "low", rawText: null };
+  }
+}
+
+/**
  * Generate an image and return as Buffer.
  * Uses gpt-image-1 model via Replit AI Integrations.
  */

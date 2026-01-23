@@ -146,3 +146,26 @@ Preferred communication style: Simple, everyday language.
   2. PUT to presigned URL - Upload file directly to storage
   3. POST `/api/charging-sessions/:id/end` with `screenshotPath` - Save path with session
 - **Bilingual Support**: Full Arabic/English translations for upload UI
+
+### AI-Powered OCR for Charging Screen Photos - January 2026
+- **Purpose**: Automatically extract kWh energy values from uploaded charging screen photos
+- **Technology**: OpenAI GPT-4o Vision via Replit AI Integrations
+- **Features**:
+  - Auto-detects energy (kWh) from charger display photos
+  - Shows AI confidence level (high/medium/low) with visual badge
+  - Auto-fills energy field when value is detected
+  - Falls back to manual entry if OCR fails
+  - Rate limited (5 OCR requests per 15 minutes)
+- **Security**:
+  - Server-side image fetching (prevents SSRF)
+  - Only accepts object storage paths (no external URLs)
+  - Images converted to base64 and sent to AI server-side
+- **Implementation**:
+  - Backend: `server/replit_integrations/image/client.ts` - `analyzeChargingScreenshot()` function
+  - API: `POST /api/ocr/analyze-charging-screen` with `{ objectPath: "/objects/..." }`
+  - Frontend: `ActiveSessionBanner.tsx` - calls OCR after photo upload
+- **UI States**:
+  - "Uploading..." - file being sent to storage
+  - "Reading with AI..." - OCR analysis in progress
+  - "AI detected" badge - shows when value was auto-detected
+- **Bilingual Support**: Arabic/English for all OCR feedback messages
