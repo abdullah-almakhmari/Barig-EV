@@ -97,17 +97,6 @@ export function Header() {
                 </Button>
               </Link>
 
-              <Link href="/contact">
-                <Button
-                  variant={location === "/contact" ? "secondary" : "ghost"}
-                  className="gap-2 font-medium"
-                  data-testid="button-nav-contact"
-                >
-                  <MessageCircle className="w-4 h-4" />
-                  <span className="hidden sm:inline">{t("nav.contact")}</span>
-                </Button>
-              </Link>
-
               <div className="w-px h-6 bg-border mx-2" />
             </>
           )}
@@ -124,6 +113,17 @@ export function Header() {
               </Button>
             </Link>
           )}
+
+          <Link href="/contact">
+            <Button
+              variant={location === "/contact" ? "secondary" : "ghost"}
+              size="icon"
+              className="rounded-full"
+              data-testid="button-nav-contact-mobile"
+            >
+              <MessageCircle className="w-5 h-5" />
+            </Button>
+          </Link>
 
           <Button
             variant="ghost"
