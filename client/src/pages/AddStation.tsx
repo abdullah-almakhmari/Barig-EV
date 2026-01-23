@@ -10,8 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2, PlusCircle, MapPin, Navigation, Home, Building2, Phone } from "lucide-react";
+import { Loader2, PlusCircle, MapPin, Navigation, Home, Building2, Phone, Check, Banknote } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { useState } from "react";
 import { MapPicker } from "@/components/MapPicker";
@@ -268,26 +267,43 @@ export default function AddStation() {
                 )}
               />
 
-              <FormField
-                control={form.control}
-                name="isFree"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 shadow-sm">
-                    <FormControl>
-                      <Checkbox
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                    <div className="space-y-1 leading-none">
-                      <FormLabel>
-                        Free Charging?
-                      </FormLabel>
-                    </div>
-                  </FormItem>
-                )}
-              />
             </div>
+
+            <FormField
+              control={form.control}
+              name="isFree"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t("add.pricingType")}</FormLabel>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div
+                      onClick={() => field.onChange(true)}
+                      className={`cursor-pointer p-4 rounded-xl border-2 transition-all flex items-center justify-center gap-2 ${
+                        field.value === true 
+                          ? "border-primary bg-primary/5" 
+                          : "border-muted hover:border-primary/50"
+                      }`}
+                      data-testid="button-pricing-free"
+                    >
+                      <Check className={`h-5 w-5 ${field.value === true ? "text-primary" : "text-muted-foreground"}`} />
+                      <span className="font-medium">{t("add.freeCharging")}</span>
+                    </div>
+                    <div
+                      onClick={() => field.onChange(false)}
+                      className={`cursor-pointer p-4 rounded-xl border-2 transition-all flex items-center justify-center gap-2 ${
+                        field.value === false 
+                          ? "border-primary bg-primary/5" 
+                          : "border-muted hover:border-primary/50"
+                      }`}
+                      data-testid="button-pricing-paid"
+                    >
+                      <Banknote className={`h-5 w-5 ${field.value === false ? "text-primary" : "text-muted-foreground"}`} />
+                      <span className="font-medium">{t("add.paidCharging")}</span>
+                    </div>
+                  </div>
+                </FormItem>
+              )}
+            />
 
             {/* Price field - shown when not free */}
             {!isFree && (
