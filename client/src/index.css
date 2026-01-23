@@ -150,20 +150,57 @@
   }
 }
 
+/* Native App Behavior - Always */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* Prevent zoom on input focus (iOS) */
+input, select, textarea {
+  font-size: 16px !important;
+}
+
+/* Disable long-press context menu on images */
+img {
+  -webkit-touch-callout: none;
+  pointer-events: none;
+}
+
+/* Allow pointer events only where needed */
+img.interactive {
+  pointer-events: auto;
+}
+
 /* Standalone PWA Mode Adjustments */
 @media all and (display-mode: standalone) {
-  a, button {
+  * {
     -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
   }
   
   body {
     overscroll-behavior-y: contain;
     -webkit-user-select: none;
     user-select: none;
+    touch-action: pan-x pan-y;
+  }
+  
+  /* Allow text selection in inputs */
+  input, textarea, [contenteditable="true"] {
+    -webkit-user-select: text;
+    user-select: text;
   }
   
   .pwa-header {
+    position: sticky;
+    top: 0;
+    z-index: 40;
     padding-top: env(safe-area-inset-top, 0px);
+    background: hsl(var(--background) / 0.95);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid hsl(var(--border) / 0.5);
   }
   
   .pwa-bottom-nav {
@@ -171,7 +208,14 @@
   }
   
   .pwa-main-content {
-    padding-bottom: calc(4rem + env(safe-area-inset-bottom, 0px));
+    padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* iOS-style elastic scrolling */
+  .scroll-container {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
   }
 }
 

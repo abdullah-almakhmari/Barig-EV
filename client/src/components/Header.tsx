@@ -28,11 +28,11 @@ export function Header() {
   };
 
   return (
-    <header className={`sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/60 ${isPWA ? 'pwa-header' : ''}`}>
-      <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2 group">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-emerald-600 flex items-center justify-center text-white shadow-lg shadow-primary/20 group-hover:shadow-primary/40 transition-all">
-            <Zap className="w-6 h-6 fill-current" />
+    <header className={`sticky top-0 z-50 w-full ${showMobileNav ? '' : 'border-b'} bg-background/95 backdrop-blur-xl supports-[backdrop-filter]:bg-background/80 ${isPWA ? 'pwa-header' : ''}`}>
+      <div className={`container mx-auto px-4 ${showMobileNav ? 'h-14' : 'h-16'} flex items-center justify-between`}>
+        <Link href="/" className="flex items-center gap-2 group native-press">
+          <div className={`${showMobileNav ? 'w-9 h-9' : 'w-10 h-10'} rounded-xl bg-gradient-to-br from-primary to-emerald-600 flex items-center justify-center text-white shadow-lg shadow-primary/20 group-hover:shadow-primary/40 transition-all`}>
+            <Zap className={`${showMobileNav ? 'w-5 h-5' : 'w-6 h-6'} fill-current`} />
           </div>
           <span className="font-display font-bold text-xl hidden sm:block">
             {t("app.title")}

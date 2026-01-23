@@ -15,8 +15,8 @@ export function SplashScreen() {
 
     const timer = setTimeout(() => {
       setFadeOut(true);
-      setTimeout(() => setShow(false), 300);
-    }, 1200);
+      setTimeout(() => setShow(false), 400);
+    }, 1500);
 
     return () => clearTimeout(timer);
   }, [isPWA]);
@@ -25,16 +25,24 @@ export function SplashScreen() {
 
   return (
     <div className={`splash-screen ${fadeOut ? 'splash-fade-out' : ''}`}>
-      <div className="splash-logo flex flex-col items-center gap-4">
-        <div className="w-24 h-24 rounded-3xl bg-white/20 backdrop-blur-sm flex items-center justify-center shadow-2xl">
-          <Zap className="w-14 h-14 text-white fill-current" />
+      <div className="absolute inset-0 bg-gradient-to-b from-black/0 via-black/5 to-black/30" />
+      
+      <div className="splash-logo flex flex-col items-center gap-5 relative z-10">
+        <div className="w-28 h-28 rounded-[28px] bg-white/20 backdrop-blur-md flex items-center justify-center shadow-2xl border border-white/10">
+          <Zap className="w-16 h-16 text-white fill-current drop-shadow-lg" />
         </div>
-        <h1 className="text-3xl font-bold text-white font-display">بارق</h1>
-        <p className="text-white/70 text-sm">محطات شحن السيارات الكهربائية</p>
+        <div className="flex flex-col items-center gap-1">
+          <h1 className="text-4xl font-bold text-white font-display tracking-wide">بارق</h1>
+          <p className="text-white/80 text-sm font-medium">محطات شحن السيارات الكهربائية</p>
+        </div>
       </div>
       
-      <div className="absolute bottom-12 flex flex-col items-center gap-3">
-        <div className="w-8 h-8 border-3 border-white/30 border-t-white rounded-full spin-smooth" />
+      <div className="absolute bottom-16 flex flex-col items-center gap-3">
+        <div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full spin-smooth" />
+      </div>
+      
+      <div className="absolute bottom-8 text-white/40 text-xs">
+        Bariq EV
       </div>
     </div>
   );
