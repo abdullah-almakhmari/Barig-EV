@@ -167,10 +167,10 @@ export function ActiveSessionBanner() {
 
   return (
     <>
-    <div className="bg-primary text-primary-foreground px-4 py-3" data-testid="active-session-banner">
+    <div className="bg-orange-500 text-white px-4 py-3" data-testid="active-session-banner">
       <div className="container mx-auto flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="bg-primary-foreground/20 rounded-full p-2">
+          <div className="bg-white/20 rounded-full p-2">
             <Zap className="h-5 w-5" />
           </div>
           <div>
@@ -188,6 +188,7 @@ export function ActiveSessionBanner() {
             variant="secondary"
             size="sm"
             onClick={handleViewSession}
+            className="bg-white text-orange-600 hover:bg-orange-50"
             data-testid="button-view-session"
           >
             {t("charging.resume")}
@@ -197,7 +198,7 @@ export function ActiveSessionBanner() {
             size="sm"
             onClick={handleEndSession}
             disabled={endSessionMutation.isPending}
-            className="bg-primary-foreground/10 border-primary-foreground/30 hover:bg-primary-foreground/20"
+            className="bg-white/10 border-white/30 text-white hover:bg-white/20"
             data-testid="button-end-session"
           >
             {t("charging.endNow")}
@@ -206,7 +207,7 @@ export function ActiveSessionBanner() {
             variant="ghost"
             size="icon"
             onClick={() => setDismissed(true)}
-            className="hover:bg-primary-foreground/20"
+            className="text-white hover:bg-white/20"
             data-testid="button-dismiss-banner"
           >
             <X className="h-4 w-4" />
