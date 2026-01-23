@@ -20,6 +20,7 @@ import ChargingHistory from "@/pages/ChargingHistory";
 import ChargingStats from "@/pages/ChargingStats";
 import AuthPage from "@/pages/AuthPage";
 import AdminPanel from "@/pages/AdminPanel";
+import Contact from "@/pages/Contact";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -32,6 +33,7 @@ function Router() {
       <Route path="/history" component={ChargingHistory} />
       <Route path="/stats" component={ChargingStats} />
       <Route path="/admin" component={AdminPanel} />
+      <Route path="/contact" component={Contact} />
       <Route path="/station/:id" component={StationDetails} />
       <Route component={NotFound} />
     </Switch>

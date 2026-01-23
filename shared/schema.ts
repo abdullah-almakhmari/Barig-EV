@@ -102,6 +102,20 @@ export const stationVerifications = pgTable("station_verifications", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Contact messages from users to admin
+export const contactMessages = pgTable("contact_messages", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id"),
+  userName: text("user_name"),
+  userEmail: text("user_email"),
+  subject: text("subject").notNull(),
+  message: text("message").notNull(),
+  status: text("status").default("unread"), // unread, read, replied
+  adminNotes: text("admin_notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Trust events for idempotent rewards/penalties (persistent tracking)
 // Uses row-level locking + sliding window query for idempotency
 export const trustEvents = pgTable("trust_events", {
@@ -121,6 +135,7 @@ export const insertEvVehicleSchema = createInsertSchema(evVehicles).omit({ id: t
 export const insertUserVehicleSchema = createInsertSchema(userVehicles).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertStationVerificationSchema = createInsertSchema(stationVerifications).omit({ id: true, createdAt: true });
 export const insertTrustEventSchema = createInsertSchema(trustEvents).omit({ id: true, createdAt: true });
+export const insertContactMessageSchema = createInsertSchema(contactMessages).omit({ id: true, status: true, adminNotes: true, createdAt: true, updatedAt: true });
 
 export type Station = typeof stations.$inferSelect;
 export type InsertStation = z.infer<typeof insertStationSchema>;
@@ -136,6 +151,8 @@ export type StationVerification = typeof stationVerifications.$inferSelect;
 export type InsertStationVerification = z.infer<typeof insertStationVerificationSchema>;
 export type TrustEvent = typeof trustEvents.$inferSelect;
 export type InsertTrustEvent = z.infer<typeof insertTrustEventSchema>;
+export type ContactMessage = typeof contactMessages.$inferSelect;
+export type InsertContactMessage = z.infer<typeof insertContactMessageSchema>;
 
 export type StationWithReports = Station & {
   reports?: Report[];

@@ -1,11 +1,12 @@
 import {
-  stations, reports, chargingSessions, evVehicles, userVehicles, users, stationVerifications,
+  stations, reports, chargingSessions, evVehicles, userVehicles, users, stationVerifications, contactMessages,
   type Station, type InsertStation,
   type Report, type InsertReport,
   type ChargingSession, type InsertChargingSession,
   type EvVehicle, type InsertEvVehicle,
   type UserVehicle, type InsertUserVehicle, type UserVehicleWithDetails,
-  type StationVerification, type VerificationSummary
+  type StationVerification, type VerificationSummary,
+  type ContactMessage, type InsertContactMessage
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, ilike, or, ne, gte, sql, isNotNull } from "drizzle-orm";
@@ -47,6 +48,10 @@ export interface IStorage {
   getVerificationSummary(stationId: number): Promise<VerificationSummary>;
   getUserRecentVerification(stationId: number, userId: string): Promise<StationVerification | undefined>;
   getVerificationHistory(stationId: number): Promise<VerificationHistoryItem[]>;
+  // Contact messages
+  createContactMessage(message: InsertContactMessage): Promise<ContactMessage>;
+  getContactMessages(): Promise<ContactMessage[]>;
+  updateContactMessageStatus(id: number, status: string, adminNotes?: string): Promise<ContactMessage | undefined>;
   seed(): Promise<void>;
 }
 
@@ -506,6 +511,24 @@ export class DatabaseStorage implements IStorage {
     }
     
     return result;
+  }
+
+  // Contact messages
+  async createContactMessage(message: InsertContactMessage): Promise<ContactMessage> {
+    const [newMessage] = await db.insert(contactMessages).values(message).returning();
+    return newMessage;
+  }
+
+  async getContactMessages(): Promise<ContactMessage[]> {
+    return await db.select().from(contactMessages).orderBy(desc(contactMessages.createdAt));
+  }
+
+  async updateContactMessageStatus(id: number, status: string, adminNotes?: string): Promise<ContactMessage | undefined> {
+    const [updated] = await db.update(contactMessages)
+      .set({ status, adminNotes, updatedAt: new Date() })
+      .where(eq(contactMessages.id, id))
+      .returning();
+    return updated;
   }
 
   async seed(): Promise<void> {

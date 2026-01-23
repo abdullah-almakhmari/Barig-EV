@@ -849,5 +849,59 @@ export async function registerRoutes(
     }
   });
 
+  // Contact messages
+  app.post("/api/contact", async (req: any, res) => {
+    try {
+      const { userName, userEmail, subject, message } = req.body;
+      
+      if (!subject || !message) {
+        return res.status(400).json({ message: "Subject and message are required" });
+      }
+      
+      const userId = req.user?.id || null;
+      
+      const contactMessage = await storage.createContactMessage({
+        userId,
+        userName: userName || null,
+        userEmail: userEmail || null,
+        subject,
+        message
+      });
+      
+      res.status(201).json(contactMessage);
+    } catch (err) {
+      console.error("[Contact] Failed to create message:", err);
+      res.status(500).json({ message: "Failed to send message" });
+    }
+  });
+
+  // Admin: Get all contact messages
+  app.get("/api/admin/messages", isAuthenticated, isAdmin, async (_req, res) => {
+    try {
+      const messages = await storage.getContactMessages();
+      res.json(messages);
+    } catch (err) {
+      console.error("[Admin] Failed to get messages:", err);
+      res.status(500).json({ message: "Failed to get messages" });
+    }
+  });
+
+  // Admin: Update message status
+  app.patch("/api/admin/messages/:id", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { status, adminNotes } = req.body;
+      
+      const updated = await storage.updateContactMessageStatus(id, status, adminNotes);
+      if (!updated) {
+        return res.status(404).json({ message: "Message not found" });
+      }
+      res.json(updated);
+    } catch (err) {
+      console.error("[Admin] Failed to update message:", err);
+      res.status(500).json({ message: "Failed to update message" });
+    }
+  });
+
   return httpServer;
 }
