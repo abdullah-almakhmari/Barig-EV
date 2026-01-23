@@ -136,7 +136,7 @@ export default function AddStation() {
                   <div className="grid grid-cols-2 gap-4">
                     <div
                       onClick={() => field.onChange("PUBLIC")}
-                      className={`cursor-pointer p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${
+                      className={`cursor-pointer p-5 rounded-xl border-2 transition-all flex flex-col items-center gap-2 touch-manipulation min-h-[88px] ${
                         field.value === "PUBLIC" 
                           ? "border-primary bg-primary/5" 
                           : "border-muted hover:border-primary/50"
@@ -148,7 +148,7 @@ export default function AddStation() {
                     </div>
                     <div
                       onClick={() => field.onChange("HOME")}
-                      className={`cursor-pointer p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${
+                      className={`cursor-pointer p-5 rounded-xl border-2 transition-all flex flex-col items-center gap-2 touch-manipulation min-h-[88px] ${
                         field.value === "HOME" 
                           ? "border-primary bg-primary/5" 
                           : "border-muted hover:border-primary/50"
@@ -245,27 +245,27 @@ export default function AddStation() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="text-center block mb-2">{t("add.chargerCount")}</FormLabel>
-                    <div className="flex items-center justify-center gap-3 p-3 rounded-xl border-2 border-muted">
+                    <div className="flex items-center justify-center gap-4 p-4 rounded-xl border-2 border-muted">
                       <Button
                         type="button"
                         variant="outline"
                         size="icon"
-                        className="h-10 w-10 rounded-full"
+                        className="h-12 w-12 rounded-full text-xl touch-manipulation"
                         onClick={() => field.onChange(Math.max(1, (field.value || 1) - 1))}
                         data-testid="button-charger-count-minus"
                       >
-                        <span className="text-xl">−</span>
+                        −
                       </Button>
-                      <span className="text-2xl font-bold w-12 text-center">{field.value || 1}</span>
+                      <span className="text-3xl font-bold w-14 text-center">{field.value || 1}</span>
                       <Button
                         type="button"
                         variant="outline"
                         size="icon"
-                        className="h-10 w-10 rounded-full"
+                        className="h-12 w-12 rounded-full text-xl touch-manipulation"
                         onClick={() => field.onChange((field.value || 1) + 1)}
                         data-testid="button-charger-count-plus"
                       >
-                        <span className="text-xl">+</span>
+                        +
                       </Button>
                     </div>
                     <FormMessage />
@@ -279,30 +279,30 @@ export default function AddStation() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="text-center block mb-2">{t("add.availableChargers")}</FormLabel>
-                    <div className="flex items-center justify-center gap-3 p-3 rounded-xl border-2 border-muted">
+                    <div className="flex items-center justify-center gap-4 p-4 rounded-xl border-2 border-muted">
                       <Button
                         type="button"
                         variant="outline"
                         size="icon"
-                        className="h-10 w-10 rounded-full"
+                        className="h-12 w-12 rounded-full text-xl touch-manipulation"
                         onClick={() => field.onChange(Math.max(0, (field.value || 1) - 1))}
                         data-testid="button-available-chargers-minus"
                       >
-                        <span className="text-xl">−</span>
+                        −
                       </Button>
-                      <span className="text-2xl font-bold w-12 text-center">{field.value || 1}</span>
+                      <span className="text-3xl font-bold w-14 text-center">{field.value || 1}</span>
                       <Button
                         type="button"
                         variant="outline"
                         size="icon"
-                        className="h-10 w-10 rounded-full"
+                        className="h-12 w-12 rounded-full text-xl touch-manipulation"
                         onClick={() => {
                           const chargerCount = form.getValues("chargerCount") || 1;
                           field.onChange(Math.min(chargerCount, (field.value || 1) + 1));
                         }}
                         data-testid="button-available-chargers-plus"
                       >
-                        <span className="text-xl">+</span>
+                        +
                       </Button>
                     </div>
                     <FormMessage />
@@ -320,26 +320,26 @@ export default function AddStation() {
                   <div className="grid grid-cols-2 gap-4">
                     <div
                       onClick={() => field.onChange(true)}
-                      className={`cursor-pointer p-4 rounded-xl border-2 transition-all flex items-center justify-center gap-2 ${
+                      className={`cursor-pointer p-5 rounded-xl border-2 transition-all flex flex-col items-center justify-center gap-2 touch-manipulation min-h-[88px] ${
                         field.value === true 
                           ? "border-primary bg-primary/5" 
                           : "border-muted hover:border-primary/50"
                       }`}
                       data-testid="button-pricing-free"
                     >
-                      <Check className={`h-5 w-5 ${field.value === true ? "text-primary" : "text-muted-foreground"}`} />
+                      <Check className={`h-7 w-7 ${field.value === true ? "text-primary" : "text-muted-foreground"}`} />
                       <span className="font-medium">{t("add.freeCharging")}</span>
                     </div>
                     <div
                       onClick={() => field.onChange(false)}
-                      className={`cursor-pointer p-4 rounded-xl border-2 transition-all flex items-center justify-center gap-2 ${
+                      className={`cursor-pointer p-5 rounded-xl border-2 transition-all flex flex-col items-center justify-center gap-2 touch-manipulation min-h-[88px] ${
                         field.value === false 
                           ? "border-primary bg-primary/5" 
                           : "border-muted hover:border-primary/50"
                       }`}
                       data-testid="button-pricing-paid"
                     >
-                      <Banknote className={`h-5 w-5 ${field.value === false ? "text-primary" : "text-muted-foreground"}`} />
+                      <Banknote className={`h-7 w-7 ${field.value === false ? "text-primary" : "text-muted-foreground"}`} />
                       <span className="font-medium">{t("add.paidCharging")}</span>
                     </div>
                   </div>
@@ -422,17 +422,17 @@ export default function AddStation() {
                   renderTrigger={(onClick) => (
                     <div
                       onClick={onClick}
-                      className="cursor-pointer p-4 rounded-xl border-2 border-muted hover:border-primary/50 transition-all flex flex-col items-center justify-center gap-2"
+                      className="cursor-pointer p-5 rounded-xl border-2 border-muted hover:border-primary/50 transition-all flex flex-col items-center justify-center gap-2 touch-manipulation min-h-[88px]"
                       data-testid="button-pick-from-map"
                     >
-                      <MapPin className="h-6 w-6 text-muted-foreground" />
-                      <span className="font-medium text-sm">{t("add.pickFromMap")}</span>
+                      <MapPin className="h-7 w-7 text-muted-foreground" />
+                      <span className="font-medium">{t("add.pickFromMap")}</span>
                     </div>
                   )}
                 />
                 <div
                   onClick={getMyLocation}
-                  className={`cursor-pointer p-4 rounded-xl border-2 transition-all flex flex-col items-center justify-center gap-2 ${
+                  className={`cursor-pointer p-5 rounded-xl border-2 transition-all flex flex-col items-center justify-center gap-2 touch-manipulation min-h-[88px] ${
                     isGettingLocation 
                       ? "border-primary bg-primary/5" 
                       : "border-muted hover:border-primary/50"
@@ -440,11 +440,11 @@ export default function AddStation() {
                   data-testid="button-use-my-location"
                 >
                   {isGettingLocation ? (
-                    <Loader2 className="h-6 w-6 text-primary animate-spin" />
+                    <Loader2 className="h-7 w-7 text-primary animate-spin" />
                   ) : (
-                    <Navigation className="h-6 w-6 text-muted-foreground" />
+                    <Navigation className="h-7 w-7 text-muted-foreground" />
                   )}
-                  <span className="font-medium text-sm">{t("add.useMyLocation")}</span>
+                  <span className="font-medium">{t("add.useMyLocation")}</span>
                 </div>
               </div>
               
