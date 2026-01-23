@@ -319,6 +319,49 @@ export default function AdminPanel() {
             </Card>
           ) : (
             <div className="space-y-4">
+              {/* Station Stats Summary */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <Card className="border-yellow-500/50 bg-yellow-500/5">
+                  <CardContent className="py-4 text-center">
+                    <div className="text-3xl font-bold text-yellow-600">
+                      {stations.filter(s => s.approvalStatus === "PENDING").length}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      {isArabic ? "بانتظار الموافقة" : "Pending"}
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card className="border-green-500/50 bg-green-500/5">
+                  <CardContent className="py-4 text-center">
+                    <div className="text-3xl font-bold text-green-600">
+                      {stations.filter(s => s.approvalStatus === "APPROVED" && !s.isHidden).length}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      {isArabic ? "موافق عليها" : "Approved"}
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card className="border-red-500/50 bg-red-500/5">
+                  <CardContent className="py-4 text-center">
+                    <div className="text-3xl font-bold text-red-600">
+                      {stations.filter(s => s.approvalStatus === "REJECTED").length}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      {isArabic ? "مرفوضة" : "Rejected"}
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card className="border-muted">
+                  <CardContent className="py-4 text-center">
+                    <div className="text-3xl font-bold text-muted-foreground">
+                      {stations.filter(s => s.isHidden).length}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      {isArabic ? "مخفية" : "Hidden"}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
               {/* Show PENDING stations first */}
               {stations
                 .sort((a, b) => {
