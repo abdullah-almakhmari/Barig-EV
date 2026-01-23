@@ -140,20 +140,24 @@ export function ActiveSessionBanner() {
         method: "PUT",
         body: file,
         headers: { "Content-Type": file.type || "image/jpeg" },
+        mode: "cors",
       });
 
-      if (!uploadRes.ok) {
+      // Google Cloud Storage returns 200 on success
+      if (!uploadRes.ok && uploadRes.status !== 200) {
         throw new Error("Failed to upload file");
       }
 
-      // Automatically end session after successful upload
+      // End session after successful upload
+      setIsUploading(false);
       endSessionMutation.mutate({
         sessionId: data.session.id,
         screenshotPath: objectPath,
       });
-    } catch {
+      return; // Exit early, mutation will handle success/error
+    } catch (error) {
+      console.error("Upload error:", error);
       toast({ title: t("common.error"), variant: "destructive" });
-    } finally {
       setIsUploading(false);
     }
   };
