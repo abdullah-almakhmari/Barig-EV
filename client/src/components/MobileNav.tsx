@@ -27,7 +27,7 @@ export function MobileNav() {
 
   return (
     <nav className="pwa-bottom-nav">
-      <div className="flex justify-around items-end h-[68px] pb-1">
+      <div className="flex justify-around items-center h-[68px] pb-1 relative">
         {navItems.map((item) => {
           const isActive = location === item.path;
           const Icon = item.icon;
@@ -37,17 +37,17 @@ export function MobileNav() {
               <Link key={item.path} href={item.path}>
                 <button
                   onClick={triggerHaptic}
-                  className="flex flex-col items-center justify-center -mt-4"
+                  className="flex flex-col items-center justify-end min-w-[64px] h-full pt-1"
                   data-testid={`nav-${item.path.replace("/", "") || "home"}`}
                 >
-                  <div className={`w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition-all duration-200 ${
+                  <div className={`w-12 h-12 rounded-full flex items-center justify-center shadow-md transition-all duration-200 ${
                     isActive 
                       ? "bg-primary text-white scale-105" 
-                      : "bg-primary/90 text-white"
+                      : "bg-primary text-white"
                   }`}>
-                    <Icon className="w-6 h-6" />
+                    <Icon className="w-5 h-5" />
                   </div>
-                  <span className={`text-[10px] font-medium mt-1 ${isActive ? 'text-primary font-semibold' : 'text-muted-foreground'}`}>
+                  <span className={`text-[10px] mt-1 ${isActive ? 'text-primary font-semibold' : 'text-muted-foreground font-medium'}`}>
                     {language === "ar" ? item.labelAr : item.labelEn}
                   </span>
                 </button>
@@ -59,7 +59,7 @@ export function MobileNav() {
             <Link key={item.path} href={item.path}>
               <button
                 onClick={triggerHaptic}
-                className="flex flex-col items-center justify-center min-w-[64px] py-2"
+                className="flex flex-col items-center justify-end min-w-[64px] h-full pt-2"
                 data-testid={`nav-${item.path.replace("/", "") || "home"}`}
               >
                 <div className={`relative transition-all duration-200 ${isActive ? 'scale-110' : ''}`}>
@@ -68,9 +68,6 @@ export function MobileNav() {
                 <span className={`text-[10px] mt-1 ${isActive ? 'text-primary font-semibold' : 'text-muted-foreground font-medium'}`}>
                   {language === "ar" ? item.labelAr : item.labelEn}
                 </span>
-                {isActive && (
-                  <div className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-primary rounded-full" />
-                )}
               </button>
             </Link>
           );
