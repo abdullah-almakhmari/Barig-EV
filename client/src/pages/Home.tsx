@@ -57,6 +57,7 @@ export default function Home() {
           <SelectContent>
             <SelectItem value="ALL">{t("filter.all")}</SelectItem>
             <SelectItem value="DC">{t("filter.fast")}</SelectItem>
+            <SelectItem value="AC">{t("filter.home")}</SelectItem>
           </SelectContent>
         </Select>
       </div>
