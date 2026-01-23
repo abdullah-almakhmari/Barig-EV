@@ -111,7 +111,7 @@ export function ActiveSessionBanner() {
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file || !data?.session) return;
 
     setIsUploading(true);
     try {
@@ -146,8 +146,11 @@ export function ActiveSessionBanner() {
         throw new Error("Failed to upload file");
       }
 
-      setScreenshotPath(objectPath);
-      toast({ title: t("charging.screenshotUploaded") });
+      // Automatically end session after successful upload
+      endSessionMutation.mutate({
+        sessionId: data.session.id,
+        screenshotPath: objectPath,
+      });
     } catch {
       toast({ title: t("common.error"), variant: "destructive" });
     } finally {
