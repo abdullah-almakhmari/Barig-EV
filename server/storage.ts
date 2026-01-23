@@ -97,7 +97,11 @@ export class DatabaseStorage implements IStorage {
     }
 
     if (filters?.type) {
-      conditions.push(eq(stations.chargerType, filters.type));
+      if (filters.type === "HOME") {
+        conditions.push(eq(stations.stationType, "HOME"));
+      } else {
+        conditions.push(eq(stations.chargerType, filters.type));
+      }
     }
 
     return await db.select().from(stations).where(and(...conditions));
