@@ -113,22 +113,11 @@ export async function registerRoutes(
       const objectStorageService = new ObjectStorageService();
       
       try {
-        const objectFile = await objectStorageService.getObjectEntityFile(objectPath);
-        const chunks: Buffer[] = [];
-        
-        // Read the file stream into a buffer
-        await new Promise<void>((resolve, reject) => {
-          objectFile.on("data", (chunk: Buffer) => chunks.push(chunk));
-          objectFile.on("end", () => resolve());
-          objectFile.on("error", reject);
-        });
-        
-        const imageBuffer = Buffer.concat(chunks);
+        const imageBuffer = await objectStorageService.downloadFile(objectPath);
         const base64Image = imageBuffer.toString("base64");
-        const mimeType = "image/jpeg"; // Default to jpeg for charging screen photos
+        const mimeType = "image/jpeg";
         const dataUrl = `data:${mimeType};base64,${base64Image}`;
 
-        // Analyze using AI vision
         const { analyzeChargingScreenshot } = await import("./replit_integrations/image/client");
         const result = await analyzeChargingScreenshot(dataUrl);
         

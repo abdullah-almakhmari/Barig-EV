@@ -120,46 +120,30 @@ export function ActiveSessionBanner() {
     setOcrConfidence(null);
     try {
       const csrfToken = await getCsrfToken();
-      const res = await fetch("/api/uploads/request-url", {
+      
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await fetch("/api/uploads/upload", {
         method: "POST",
         headers: { 
-          "Content-Type": "application/json",
           "x-csrf-token": csrfToken,
         },
         credentials: "include",
-        body: JSON.stringify({
-          name: file.name,
-          size: file.size,
-          contentType: file.type || "image/jpeg",
-        }),
+        body: formData,
       });
 
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
-        console.error("Failed to get upload URL:", res.status, errorData);
-        throw new Error(errorData.details || errorData.error || "Failed to get upload URL");
+        console.error("Upload failed:", res.status, errorData);
+        throw new Error(errorData.errorAr || errorData.error || "Upload failed");
       }
 
-      const { uploadURL, objectPath } = await res.json();
+      const { objectPath } = await res.json();
 
-      // Upload file directly to Google Cloud Storage using presigned URL
-      const uploadRes = await fetch(uploadURL, {
-        method: "PUT",
-        body: file,
-        headers: { "Content-Type": file.type || "image/jpeg" },
-      });
-
-      // Google Cloud Storage returns 200 on success
-      if (!uploadRes.ok && uploadRes.status !== 200) {
-        console.error("GCS upload failed:", uploadRes.status, await uploadRes.text().catch(() => ""));
-        throw new Error(`Upload failed with status ${uploadRes.status}`);
-      }
-
-      // Save screenshot path
       setScreenshotPath(objectPath);
       setIsUploading(false);
       
-      // Now analyze the image with AI OCR
       setIsAnalyzing(true);
       try {
         const ocrRes = await fetch("/api/ocr/analyze-charging-screen", {
@@ -174,7 +158,6 @@ export function ActiveSessionBanner() {
 
         if (ocrRes.ok) {
           const ocrResult = await ocrRes.json();
-          // Only accept high confidence readings
           if (ocrResult.energyKwh !== null && ocrResult.confidence === "high") {
             setEnergyKwh(ocrResult.energyKwh.toString());
             setOcrConfidence(ocrResult.confidence);
@@ -185,8 +168,6 @@ export function ActiveSessionBanner() {
                 : `${ocrResult.energyKwh} kWh detected from photo`,
             });
           } else {
-            // Low/medium confidence or no detection - ignore and let user enter manually
-            // Photo is still saved for reference
             toast({ 
               title: language === "ar" ? "الصورة محفوظة" : "Photo saved",
               description: language === "ar" 
@@ -197,7 +178,6 @@ export function ActiveSessionBanner() {
         }
       } catch (ocrError) {
         console.error("OCR error:", ocrError);
-        // OCR failed but upload succeeded - user can still enter manually
       }
       setIsAnalyzing(false);
     } catch (error: any) {
@@ -210,7 +190,6 @@ export function ActiveSessionBanner() {
       setIsUploading(false);
       setIsAnalyzing(false);
     }
-    // Reset input so user can try again with same file
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
