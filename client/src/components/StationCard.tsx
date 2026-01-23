@@ -1,10 +1,43 @@
 import { useTranslation } from "react-i18next";
 import { useLanguage } from "./LanguageContext";
 import { Station } from "@shared/schema";
-import { Zap, Battery, AlertTriangle, CheckCircle, Navigation, BatteryCharging } from "lucide-react";
+import { Zap, Battery, AlertTriangle, CheckCircle, Navigation, BatteryCharging, Clock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Link, useLocation } from "wouter";
+import { useQuery } from "@tanstack/react-query";
+
+interface VerificationSummary {
+  working: number;
+  notWorking: number;
+  busy: number;
+  totalVotes: number;
+  leadingVote: string | null;
+  isVerified: boolean;
+  isStrongVerified: boolean;
+  lastVerifiedAt: string | null;
+}
+
+function formatTimeAgo(isoString: string, t: (key: string, options?: any) => string): string {
+  const date = new Date(isoString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMinutes = Math.floor(diffMs / (1000 * 60));
+  
+  if (diffMinutes < 1) {
+    return t("verify.justNow");
+  } else if (diffMinutes < 60) {
+    return t("verify.minutesAgo", { count: diffMinutes });
+  } else {
+    const diffHours = Math.floor(diffMinutes / 60);
+    if (diffHours < 24) {
+      return t("verify.hoursAgo", { count: diffHours });
+    } else {
+      const diffDays = Math.floor(diffHours / 24);
+      return t("verify.daysAgo", { count: diffDays });
+    }
+  }
+}
 
 interface StationCardProps {
   station: Station;
@@ -19,6 +52,16 @@ export function StationCard({ station, variant = "full" }: StationCardProps) {
   const isAr = language === "ar";
   const name = isAr ? station.nameAr : station.name;
   const city = isAr ? station.cityAr : station.city;
+
+  const { data: verificationSummary } = useQuery<VerificationSummary>({
+    queryKey: ['/api/stations', station.id, 'verification-summary'],
+    queryFn: async () => {
+      const res = await fetch(`/api/stations/${station.id}/verification-summary`);
+      if (!res.ok) throw new Error('Failed to fetch verification summary');
+      return res.json();
+    },
+    staleTime: 60000,
+  });
 
   const getAvailabilityStatus = () => {
     if (station.status === "OFFLINE") {
@@ -81,6 +124,12 @@ export function StationCard({ station, variant = "full" }: StationCardProps) {
             <Navigation className="w-3 h-3 me-1" />
             {city}
           </p>
+          {verificationSummary?.lastVerifiedAt && (
+            <p className="text-xs text-muted-foreground mt-1 flex items-center">
+              <Clock className="w-3 h-3 me-1" />
+              {t("status.verifiedAgo", { time: formatTimeAgo(verificationSummary.lastVerifiedAt, t) })}
+            </p>
+          )}
         </div>
         <div className="flex flex-col items-end gap-1">
           <Badge variant="secondary" className="font-mono text-xs">
