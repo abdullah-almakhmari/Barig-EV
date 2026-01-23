@@ -191,6 +191,30 @@ export async function registerRoutes(
     }
   });
 
+  // Delete station - only the user who added it can delete
+  app.delete("/api/stations/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const stationId = Number(req.params.id);
+      const userId = req.user?.id;
+
+      const station = await storage.getStation(stationId);
+      if (!station) {
+        return res.status(404).json({ message: "Station not found" });
+      }
+
+      // Check if the user is the owner of this station
+      if (station.addedByUserId !== userId) {
+        return res.status(403).json({ message: "You can only delete stations you added" });
+      }
+
+      await storage.deleteStation(stationId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting station:", error);
+      res.status(500).json({ message: "Failed to delete station" });
+    }
+  });
+
   app.get(api.stations.getReports.path, async (req, res) => {
     const reports = await storage.getReports(Number(req.params.id));
     res.json(reports);

@@ -20,6 +20,7 @@ export interface IStorage {
   updateStationTrustLevel(id: number, trustLevel: string): Promise<Station | undefined>;
   updateStationVisibility(id: number, isHidden: boolean): Promise<Station | undefined>;
   updateStationApprovalStatus(id: number, approvalStatus: string): Promise<Station | undefined>;
+  deleteStation(id: number): Promise<void>;
   getAllStationsForAdmin(): Promise<Station[]>;
   getReports(stationId: number): Promise<Report[]>;
   getReportById(id: number): Promise<Report | undefined>;
@@ -163,6 +164,10 @@ export class DatabaseStorage implements IStorage {
       .where(eq(stations.id, id))
       .returning();
     return updated;
+  }
+
+  async deleteStation(id: number): Promise<void> {
+    await db.delete(stations).where(eq(stations.id, id));
   }
 
   async getAllStationsForAdmin(): Promise<Station[]> {

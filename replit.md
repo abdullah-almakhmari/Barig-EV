@@ -147,6 +147,20 @@ Preferred communication style: Simple, everyday language.
   3. POST `/api/charging-sessions/:id/end` with `screenshotPath` - Save path with session
 - **Bilingual Support**: Full Arabic/English translations for upload UI
 
+### User Station Deletion - January 2026
+- **Purpose**: Allow users to delete stations they added themselves to fix incorrect entries
+- **Authorization**: Users can ONLY delete stations where `addedByUserId` matches their user ID
+- **Security**: Backend validates ownership before allowing deletion
+- **UI/UX**:
+  - "You added this station" badge appears for station owners
+  - Delete button with confirmation dialog
+  - Redirects to home after successful deletion
+- **Implementation**:
+  - Backend: `DELETE /api/stations/:id` with ownership check
+  - Frontend: `StationDetails.tsx` with AlertDialog confirmation
+  - Storage: `deleteStation()` method in `server/storage.ts`
+- **Bilingual Support**: Arabic/English translations
+
 ### AI-Powered OCR for Charging Screen Photos - January 2026
 - **Purpose**: Automatically extract kWh energy values from uploaded charging screen photos
 - **Technology**: OpenAI GPT-4o Vision via Replit AI Integrations

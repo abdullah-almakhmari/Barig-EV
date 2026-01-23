@@ -1,11 +1,23 @@
+import { useState } from "react";
 import { useRoute } from "wouter";
 import { useStation, useStationReports } from "@/hooks/use-stations";
 import { useTranslation } from "react-i18next";
 import { useLanguage } from "@/components/LanguageContext";
-import { Loader2, Navigation, Clock, ShieldCheck, MapPin, BatteryCharging, Home, Phone, MessageCircle, AlertTriangle, CheckCircle2, XCircle, Users, ShieldAlert, ThumbsUp, ThumbsDown, Zap, Shield } from "lucide-react";
+import { Loader2, Navigation, Clock, ShieldCheck, MapPin, BatteryCharging, Home, Phone, MessageCircle, AlertTriangle, CheckCircle2, XCircle, Users, ShieldAlert, ThumbsUp, ThumbsDown, Zap, Shield, Trash2 } from "lucide-react";
+import { useLocation } from "wouter";
 import { api } from "@shared/routes";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { ReportDialog } from "@/components/ReportDialog";
 import { ChargingSessionDialog } from "@/components/ChargingSessionDialog";
 import { TrustedUserBadge } from "@/components/TrustedUserBadge";
@@ -217,6 +229,28 @@ export default function StationDetails() {
   });
 
   const isAdmin = user?.role === "admin";
+  const [, navigate] = useLocation();
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  // Delete station mutation - only for station owner
+  const deleteStationMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest('DELETE', `/api/stations/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [api.stations.list.path] });
+      toast({
+        title: t("station.deleteSuccess"),
+      });
+      navigate("/");
+    },
+    onError: () => {
+      toast({
+        title: t("station.deleteError"),
+        variant: "destructive",
+      });
+    },
+  });
 
   if (isLoading) return <div className="flex justify-center p-20"><Loader2 className="animate-spin text-primary" /></div>;
   if (!station) return <div className="p-20 text-center">{t("common.error")}</div>;
@@ -356,6 +390,25 @@ export default function StationDetails() {
             <div className="mt-2">
               <TrustScoreBadge stationId={id} />
             </div>
+            
+            {/* Show if user is the owner */}
+            {user && station.addedByUserId === user.id && (
+              <div className="mt-2 flex items-center gap-2">
+                <Badge variant="secondary" className="text-xs">
+                  {t("station.youAdded")}
+                </Badge>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                  onClick={() => setShowDeleteConfirm(true)}
+                  data-testid="button-delete-station"
+                >
+                  <Trash2 className="w-4 h-4 mr-1" />
+                  {t("station.delete")}
+                </Button>
+              </div>
+            )}
           </div>
 
           <div className="flex gap-2 flex-wrap">
@@ -598,6 +651,33 @@ export default function StationDetails() {
           </div>
         </details>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("station.delete")}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t("station.deleteConfirm")}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteStationMutation.mutate()}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleteStationMutation.isPending}
+              data-testid="button-confirm-delete"
+            >
+              {deleteStationMutation.isPending ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                t("station.delete")
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
