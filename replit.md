@@ -152,9 +152,10 @@ Preferred communication style: Simple, everyday language.
 - **Technology**: OpenAI GPT-4o Vision via Replit AI Integrations
 - **Features**:
   - Auto-detects energy (kWh) from charger display photos
-  - Shows AI confidence level (high/medium/low) with visual badge
-  - Auto-fills energy field when value is detected
-  - Falls back to manual entry if OCR fails
+  - Only accepts high-confidence readings (ignores unclear images)
+  - Auto-fills energy field only when AI is confident
+  - Falls back to manual entry for unclear/unreadable photos
+  - Photo is always saved for reference regardless of OCR result
   - Rate limited (5 OCR requests per 15 minutes)
 - **Security**:
   - Server-side image fetching (prevents SSRF)
@@ -164,8 +165,8 @@ Preferred communication style: Simple, everyday language.
   - Backend: `server/replit_integrations/image/client.ts` - `analyzeChargingScreenshot()` function
   - API: `POST /api/ocr/analyze-charging-screen` with `{ objectPath: "/objects/..." }`
   - Frontend: `ActiveSessionBanner.tsx` - calls OCR after photo upload
-- **UI States**:
-  - "Uploading..." - file being sent to storage
-  - "Reading with AI..." - OCR analysis in progress
-  - "AI detected" badge - shows when value was auto-detected
+- **Behavior**:
+  - High confidence: Auto-fills energy value, shows success message
+  - Low/medium confidence: Saves photo, asks user to enter value manually
+  - No detection: Saves photo, asks user to enter value manually
 - **Bilingual Support**: Arabic/English for all OCR feedback messages

@@ -171,7 +171,8 @@ export function ActiveSessionBanner() {
 
         if (ocrRes.ok) {
           const ocrResult = await ocrRes.json();
-          if (ocrResult.energyKwh !== null) {
+          // Only accept high confidence readings
+          if (ocrResult.energyKwh !== null && ocrResult.confidence === "high") {
             setEnergyKwh(ocrResult.energyKwh.toString());
             setOcrConfidence(ocrResult.confidence);
             toast({ 
@@ -181,12 +182,13 @@ export function ActiveSessionBanner() {
                 : `${ocrResult.energyKwh} kWh detected from photo`,
             });
           } else {
+            // Low/medium confidence or no detection - ignore and let user enter manually
+            // Photo is still saved for reference
             toast({ 
-              title: language === "ar" ? "لم يتم العثور على قيمة الطاقة" : "Energy not detected",
+              title: language === "ar" ? "الصورة محفوظة" : "Photo saved",
               description: language === "ar" 
-                ? "يرجى إدخال القيمة يدوياً" 
-                : "Please enter the value manually",
-              variant: "destructive",
+                ? "يرجى إدخال قيمة الطاقة يدوياً" 
+                : "Please enter the energy value manually",
             });
           }
         }
