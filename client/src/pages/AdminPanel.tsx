@@ -462,7 +462,7 @@ export default function AdminPanel() {
                   {session.screenshotPath && (
                     <div className="aspect-video bg-muted relative">
                       <img
-                        src={`/objects/${session.screenshotPath}`}
+                        src={session.screenshotPath.startsWith('/') ? session.screenshotPath : `/${session.screenshotPath}`}
                         alt="Session screenshot"
                         className="w-full h-full object-cover"
                       />
@@ -624,7 +624,7 @@ export default function AdminPanel() {
           {selectedScreenshot && (
             <div className="relative">
               <img
-                src={`/objects/${selectedScreenshot}`}
+                src={selectedScreenshot.startsWith('/') ? selectedScreenshot : `/${selectedScreenshot}`}
                 alt="Charger screenshot"
                 className="w-full rounded-lg"
                 data-testid="admin-screenshot-image"

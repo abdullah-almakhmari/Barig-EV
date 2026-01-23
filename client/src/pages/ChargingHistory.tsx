@@ -164,7 +164,7 @@ export default function ChargingHistory() {
           {selectedScreenshot && (
             <div className="relative">
               <img
-                src={`/objects/${selectedScreenshot}`}
+                src={selectedScreenshot.startsWith('/') ? selectedScreenshot : `/${selectedScreenshot}`}
                 alt="Charger screenshot"
                 className="w-full rounded-lg"
                 data-testid="screenshot-image"
