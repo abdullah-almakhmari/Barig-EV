@@ -49,7 +49,7 @@ function App() {
               <Onboarding />
               <ActiveSessionBanner />
               <Header />
-              <main className="flex-1 container mx-auto px-4 py-4 overflow-y-auto pwa-main-content">
+              <main className="flex-1 container mx-auto px-4 py-3 overflow-y-auto pwa-main-content scroll-container">
                 <div className="page-transition">
                   <Router />
                 </div>

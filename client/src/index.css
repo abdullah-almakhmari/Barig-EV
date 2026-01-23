@@ -439,3 +439,114 @@ img.interactive {
 .splash-fade-out {
   animation: splash-fade-out 0.3s ease-out 0.5s forwards;
 }
+
+/* Native App Card Styles */
+@media all and (display-mode: standalone) {
+  .card-native {
+    background: hsl(var(--card));
+    border-radius: 16px;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  
+  .card-native:active {
+    transform: scale(0.98);
+  }
+}
+
+/* Native-like list items */
+.list-item-native {
+  transition: background-color 0.1s ease;
+}
+
+.list-item-native:active {
+  background-color: hsl(var(--muted) / 0.5);
+}
+
+/* iOS-style large title */
+.title-large {
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+/* Native action sheet animation */
+@keyframes action-sheet-in {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.action-sheet {
+  animation: action-sheet-in 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* Glass effect for modals */
+.glass-effect {
+  background: hsl(var(--background) / 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+/* Native toggle switch track */
+.toggle-track {
+  width: 51px;
+  height: 31px;
+  border-radius: 15.5px;
+  transition: background-color 0.2s ease;
+}
+
+/* Floating action button */
+.fab {
+  width: 56px;
+  height: 56px;
+  border-radius: 28px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.fab:active {
+  transform: scale(0.95);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+/* Status bar color match for dark/light */
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+  }
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    color-scheme: light;
+  }
+}
+
+/* Haptic feedback visual indicator */
+.haptic-press {
+  transition: opacity 0.05s ease;
+}
+
+.haptic-press:active {
+  opacity: 0.7;
+}
+
+/* Smooth momentum scrolling for all scrollable areas */
+.momentum-scroll {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* Pull to refresh visual */
+.ptr-indicator {
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
