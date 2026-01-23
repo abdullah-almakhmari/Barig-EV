@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { LanguageProvider } from "@/components/LanguageContext";
 import { Header } from "@/components/Header";
+import { MobileNav } from "@/components/MobileNav";
 import { ActiveSessionBanner } from "@/components/ActiveSessionBanner";
 import { Onboarding } from "@/components/Onboarding";
 import { HelmetProvider } from "react-helmet-async";
@@ -46,9 +47,10 @@ function App() {
               <Onboarding />
               <ActiveSessionBanner />
               <Header />
-              <main className="flex-1 container mx-auto px-4 py-4 overflow-y-auto">
+              <main className="flex-1 container mx-auto px-4 py-4 overflow-y-auto pwa-main-content">
                 <Router />
               </main>
+              <MobileNav />
             </div>
             <Toaster />
           </TooltipProvider>

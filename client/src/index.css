@@ -155,6 +155,37 @@
   a, button {
     -webkit-tap-highlight-color: transparent;
   }
+  
+  body {
+    overscroll-behavior-y: contain;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  
+  .pwa-header {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+  
+  .pwa-bottom-nav {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  
+  .pwa-main-content {
+    padding-bottom: calc(4rem + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* PWA Bottom Navigation */
+.pwa-bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  background: hsl(var(--background) / 0.95);
+  backdrop-filter: blur(10px);
+  border-top: 1px solid hsl(var(--border));
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 /* Mobile Container Improvements */
@@ -162,5 +193,17 @@
   .container {
     padding-left: 16px;
     padding-right: 16px;
+  }
+}
+
+/* Hide scrollbar in PWA mode but allow scrolling */
+@media all and (display-mode: standalone) {
+  ::-webkit-scrollbar {
+    display: none;
+  }
+  
+  * {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
   }
 }

@@ -5,12 +5,17 @@ import { MapPin, Plus, Languages, Zap, Navigation, History, LogIn, LogOut, User,
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useIsPWA, useIsMobile } from "@/hooks/use-pwa";
 
 export function Header() {
   const { language, setLanguage } = useLanguage();
   const { t } = useTranslation();
   const [location] = useLocation();
   const { user, isLoading, isAuthenticated } = useAuth();
+  const isPWA = useIsPWA();
+  const isMobile = useIsMobile();
+  
+  const showMobileNav = isPWA && isMobile;
 
   const toggleLanguage = () => {
     setLanguage(language === "ar" ? "en" : "ar");
@@ -23,7 +28,7 @@ export function Header() {
   };
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/60">
+    <header className={`sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/60 ${isPWA ? 'pwa-header' : ''}`}>
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2 group">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-emerald-600 flex items-center justify-center text-white shadow-lg shadow-primary/20 group-hover:shadow-primary/40 transition-all">
@@ -35,62 +40,66 @@ export function Header() {
         </Link>
 
         <nav className="flex items-center gap-1 sm:gap-2">
-          <Link href="/">
-            <Button
-              variant={location === "/" ? "secondary" : "ghost"}
-              className="gap-2 font-medium"
-              data-testid="button-nav-map"
-            >
-              <MapPin className="w-4 h-4" />
-              <span className="hidden sm:inline">{t("nav.map")}</span>
-            </Button>
-          </Link>
+          {!showMobileNav && (
+            <>
+              <Link href="/">
+                <Button
+                  variant={location === "/" ? "secondary" : "ghost"}
+                  className="gap-2 font-medium"
+                  data-testid="button-nav-map"
+                >
+                  <MapPin className="w-4 h-4" />
+                  <span className="hidden sm:inline">{t("nav.map")}</span>
+                </Button>
+              </Link>
 
-          <Link href="/nearby">
-            <Button
-              variant={location === "/nearby" ? "secondary" : "ghost"}
-              className="gap-2 font-medium"
-              data-testid="button-nav-nearby"
-            >
-              <Navigation className="w-4 h-4" />
-              <span className="hidden sm:inline">{t("nav.nearby")}</span>
-            </Button>
-          </Link>
+              <Link href="/nearby">
+                <Button
+                  variant={location === "/nearby" ? "secondary" : "ghost"}
+                  className="gap-2 font-medium"
+                  data-testid="button-nav-nearby"
+                >
+                  <Navigation className="w-4 h-4" />
+                  <span className="hidden sm:inline">{t("nav.nearby")}</span>
+                </Button>
+              </Link>
 
-          <Link href="/add">
-            <Button
-              variant={location === "/add" ? "secondary" : "ghost"}
-              className="gap-2 font-medium"
-              data-testid="button-nav-add"
-            >
-              <Plus className="w-4 h-4" />
-              <span className="hidden sm:inline">{t("nav.add")}</span>
-            </Button>
-          </Link>
+              <Link href="/add">
+                <Button
+                  variant={location === "/add" ? "secondary" : "ghost"}
+                  className="gap-2 font-medium"
+                  data-testid="button-nav-add"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span className="hidden sm:inline">{t("nav.add")}</span>
+                </Button>
+              </Link>
 
-          <Link href="/history">
-            <Button
-              variant={location === "/history" ? "secondary" : "ghost"}
-              className="gap-2 font-medium"
-              data-testid="button-nav-history"
-            >
-              <History className="w-4 h-4" />
-              <span className="hidden sm:inline">{t("nav.history")}</span>
-            </Button>
-          </Link>
+              <Link href="/history">
+                <Button
+                  variant={location === "/history" ? "secondary" : "ghost"}
+                  className="gap-2 font-medium"
+                  data-testid="button-nav-history"
+                >
+                  <History className="w-4 h-4" />
+                  <span className="hidden sm:inline">{t("nav.history")}</span>
+                </Button>
+              </Link>
 
-          <Link href="/stats">
-            <Button
-              variant={location === "/stats" ? "secondary" : "ghost"}
-              className="gap-2 font-medium"
-              data-testid="button-nav-stats"
-            >
-              <BarChart3 className="w-4 h-4" />
-              <span className="hidden sm:inline">{language === "ar" ? "إحصائيات" : "Stats"}</span>
-            </Button>
-          </Link>
+              <Link href="/stats">
+                <Button
+                  variant={location === "/stats" ? "secondary" : "ghost"}
+                  className="gap-2 font-medium"
+                  data-testid="button-nav-stats"
+                >
+                  <BarChart3 className="w-4 h-4" />
+                  <span className="hidden sm:inline">{language === "ar" ? "إحصائيات" : "Stats"}</span>
+                </Button>
+              </Link>
 
-          <div className="w-px h-6 bg-border mx-2" />
+              <div className="w-px h-6 bg-border mx-2" />
+            </>
+          )}
 
           {user?.role === "admin" && (
             <Link href="/admin">
