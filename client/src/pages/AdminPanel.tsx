@@ -100,6 +100,23 @@ export default function AdminPanel() {
     return Object.values(grouped);
   }, [reports]);
 
+  const groupedScreenshots = useMemo(() => {
+    if (!sessionsWithScreenshots) return [];
+    const grouped = sessionsWithScreenshots.reduce((acc, session) => {
+      const key = session.userId || "unknown";
+      if (!acc[key]) {
+        acc[key] = {
+          userId: session.userId,
+          userEmail: session.userEmail,
+          sessions: [],
+        };
+      }
+      acc[key].sessions.push(session);
+      return acc;
+    }, {} as Record<string, { userId: string | null; userEmail?: string; sessions: typeof sessionsWithScreenshots }>);
+    return Object.values(grouped).sort((a, b) => b.sessions.length - a.sessions.length);
+  }, [sessionsWithScreenshots]);
+
   const updateReportMutation = useMutation({
     mutationFn: async ({ id, reviewStatus }: { id: number; reviewStatus: string }) => {
       return await apiRequest("PATCH", `/api/admin/reports/${id}/review`, { reviewStatus });
@@ -594,48 +611,86 @@ export default function AdminPanel() {
               </CardContent>
             </Card>
           ) : (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {sessionsWithScreenshots.map((session) => (
-                <Card 
-                  key={session.id} 
-                  className="overflow-hidden hover-elevate cursor-pointer"
-                  onClick={() => session.screenshotPath && setSelectedScreenshot(session.screenshotPath)}
-                  data-testid={`session-screenshot-card-${session.id}`}
-                >
-                  {session.screenshotPath && (
-                    <div className="aspect-video bg-muted relative">
-                      <img
-                        src={session.screenshotPath.startsWith('/') ? session.screenshotPath : `/${session.screenshotPath}`}
-                        alt="Session screenshot"
-                        className="w-full h-full object-cover"
-                      />
-                      <div className="absolute top-2 right-2 rtl:right-auto rtl:left-2">
-                        <Badge className="bg-blue-500">
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+                <Users className="w-4 h-4" />
+                {isArabic 
+                  ? `${groupedScreenshots.length} مستخدم • ${sessionsWithScreenshots.length} صورة`
+                  : `${groupedScreenshots.length} users • ${sessionsWithScreenshots.length} photos`}
+              </div>
+              <Accordion type="multiple" className="space-y-2">
+                {groupedScreenshots.map((group) => (
+                  <AccordionItem 
+                    key={group.userId || "unknown"} 
+                    value={group.userId || "unknown"}
+                    className="border rounded-lg overflow-hidden"
+                  >
+                    <AccordionTrigger className="px-4 py-3 hover:no-underline hover-elevate" data-testid={`user-screenshots-${group.userId}`}>
+                      <div className="flex items-center gap-3 flex-1">
+                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                          <Users className="w-5 h-5 text-primary" />
+                        </div>
+                        <div className="text-start flex-1 min-w-0">
+                          <div className="font-medium truncate">
+                            {group.userEmail || (isArabic ? "مستخدم غير معروف" : "Unknown user")}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {isArabic 
+                              ? `${group.sessions.length} صورة`
+                              : `${group.sessions.length} photo${group.sessions.length > 1 ? "s" : ""}`}
+                          </div>
+                        </div>
+                        <Badge variant="secondary" className="shrink-0">
                           <Camera className="w-3 h-3 mr-1 rtl:ml-1 rtl:mr-0" />
-                          {isArabic ? "صورة" : "Photo"}
+                          {group.sessions.length}
                         </Badge>
                       </div>
-                    </div>
-                  )}
-                  <CardContent className="p-3">
-                    <div className="font-medium text-sm mb-1">
-                      {isArabic ? session.stationNameAr || session.stationName : session.stationName}
-                    </div>
-                    <div className="text-xs text-muted-foreground space-y-1">
-                      <div className="flex items-center gap-2">
-                        <BatteryCharging className="w-3 h-3" />
-                        {session.energyKwh ? `${session.energyKwh.toFixed(1)} kWh` : "-"}
+                    </AccordionTrigger>
+                    <AccordionContent className="px-4 pb-4">
+                      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 pt-2">
+                        {group.sessions.map((session) => (
+                          <Card 
+                            key={session.id} 
+                            className="overflow-hidden hover-elevate cursor-pointer"
+                            onClick={() => session.screenshotPath && setSelectedScreenshot(session.screenshotPath)}
+                            data-testid={`session-screenshot-card-${session.id}`}
+                          >
+                            {session.screenshotPath && (
+                              <div className="aspect-video bg-muted relative">
+                                <img
+                                  src={session.screenshotPath.startsWith('/') ? session.screenshotPath : `/${session.screenshotPath}`}
+                                  alt="Session screenshot"
+                                  className="w-full h-full object-cover"
+                                />
+                                <div className="absolute top-2 right-2 rtl:right-auto rtl:left-2">
+                                  <Badge className="bg-blue-500">
+                                    <Camera className="w-3 h-3 mr-1 rtl:ml-1 rtl:mr-0" />
+                                    {isArabic ? "صورة" : "Photo"}
+                                  </Badge>
+                                </div>
+                              </div>
+                            )}
+                            <CardContent className="p-3">
+                              <div className="font-medium text-sm mb-1">
+                                {isArabic ? session.stationNameAr || session.stationName : session.stationName}
+                              </div>
+                              <div className="text-xs text-muted-foreground space-y-1">
+                                <div className="flex items-center gap-2">
+                                  <BatteryCharging className="w-3 h-3" />
+                                  {session.energyKwh ? `${session.energyKwh.toFixed(1)} kWh` : "-"}
+                                </div>
+                                <div>
+                                  {session.startTime && new Date(session.startTime).toLocaleDateString(isArabic ? "ar-OM" : "en-US")}
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
                       </div>
-                      {session.userEmail && (
-                        <div className="truncate">{session.userEmail}</div>
-                      )}
-                      <div>
-                        {session.startTime && new Date(session.startTime).toLocaleDateString(isArabic ? "ar-OM" : "en-US")}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
+              </Accordion>
             </div>
           )}
         </TabsContent>
