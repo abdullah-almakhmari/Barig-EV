@@ -3,13 +3,20 @@
   "short_name": "بارق",
   "description": "اعثر على محطات شحن السيارات الكهربائية في عُمان والخليج",
   "start_url": "/",
+  "scope": "/",
+  "id": "/",
   "display": "standalone",
-  "background_color": "#0f172a",
+  "display_override": ["standalone", "minimal-ui"],
+  "background_color": "#22c55e",
   "theme_color": "#22c55e",
   "orientation": "portrait-primary",
   "dir": "rtl",
   "lang": "ar",
   "categories": ["utilities", "navigation", "lifestyle"],
+  "prefer_related_applications": false,
+  "edge_side_panel": {
+    "preferred_width": 400
+  },
   "icons": [
     {
       "src": "/icons/icon-72x72.png",

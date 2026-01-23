@@ -8,6 +8,7 @@ import { Header } from "@/components/Header";
 import { MobileNav } from "@/components/MobileNav";
 import { ActiveSessionBanner } from "@/components/ActiveSessionBanner";
 import { Onboarding } from "@/components/Onboarding";
+import { SplashScreen } from "@/components/SplashScreen";
 import { HelmetProvider } from "react-helmet-async";
 
 // Pages
@@ -43,12 +44,15 @@ function App() {
       <QueryClientProvider client={queryClient}>
         <LanguageProvider>
           <TooltipProvider>
+            <SplashScreen />
             <div className="app-shell bg-background flex flex-col font-body">
               <Onboarding />
               <ActiveSessionBanner />
               <Header />
               <main className="flex-1 container mx-auto px-4 py-4 overflow-y-auto pwa-main-content">
-                <Router />
+                <div className="page-transition">
+                  <Router />
+                </div>
               </main>
               <MobileNav />
             </div>
