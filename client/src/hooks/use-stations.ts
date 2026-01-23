@@ -187,10 +187,13 @@ export function useEndChargingSession() {
       return res.json() as Promise<ChargingSession>;
     },
     onSuccess: (_, variables) => {
+      // Invalidate all station-related queries to refresh map and details
       queryClient.invalidateQueries({ queryKey: [api.stations.get.path, variables.stationId] });
       queryClient.invalidateQueries({ queryKey: [api.stations.list.path] });
       queryClient.invalidateQueries({ queryKey: [api.chargingSessions.list.path] });
       queryClient.invalidateQueries({ queryKey: [api.chargingSessions.getActive.path, variables.stationId] });
+      // Also invalidate verification summary to update status display
+      queryClient.invalidateQueries({ queryKey: ['/api/stations', variables.stationId, 'verification-summary'] });
     },
   });
 }
