@@ -27,70 +27,70 @@ export function Onboarding() {
 
   return (
     <div 
-      className="fixed inset-0 z-50 flex items-center justify-center bg-background/95 backdrop-blur-sm p-3 sm:p-4 overflow-y-auto"
+      className="fixed inset-0 z-50 flex items-start justify-center bg-background/95 backdrop-blur-sm p-2 pt-16 overflow-y-auto"
       dir={isRTL ? "rtl" : "ltr"}
       data-testid="onboarding-overlay"
     >
-      <Card className="relative max-w-md w-full p-5 sm:p-6 shadow-lg my-auto">
+      <Card className="relative w-full max-w-sm p-4 shadow-lg">
         <button
           onClick={handleDismiss}
-          className="absolute top-3 end-3 text-muted-foreground hover-elevate p-1 rounded"
+          className="absolute top-2 end-2 text-muted-foreground hover-elevate p-1 rounded z-10"
           aria-label={t("onboarding.skip")}
           data-testid="button-onboarding-skip"
         >
-          <X className="w-5 h-5" />
+          <X className="w-4 h-4" />
         </button>
 
-        <div className="flex flex-col items-center text-center space-y-4 sm:space-y-5">
-          <div className="flex items-center gap-2 text-primary">
-            <Zap className="w-7 h-7" />
-            <span className="text-xl font-bold">{t("app.title")}</span>
+        <div className="flex flex-col items-center text-center space-y-3">
+          <div className="flex items-center gap-1.5 text-primary">
+            <Zap className="w-6 h-6" />
+            <span className="text-lg font-bold">{t("app.title")}</span>
           </div>
 
-          <h1 className="text-lg sm:text-xl font-semibold text-foreground leading-tight" data-testid="text-onboarding-headline">
+          <h1 className="text-base font-semibold text-foreground leading-tight" data-testid="text-onboarding-headline">
             {t("onboarding.headline")}
           </h1>
 
-          <p className="text-muted-foreground text-xs sm:text-sm leading-relaxed px-2">
+          <p className="text-muted-foreground text-xs leading-relaxed">
             {t("onboarding.problem")}
           </p>
 
-          <div className="flex items-start gap-3 bg-muted/50 rounded-lg p-3 w-full">
-            <Users className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+          <div className="flex items-start gap-2 bg-muted/50 rounded-md p-2.5 w-full">
+            <Users className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
             <div className="text-start">
-              <p className="font-medium text-foreground text-sm">{t("onboarding.trustTitle")}</p>
-              <p className="text-muted-foreground text-xs mt-1">{t("onboarding.trustDesc")}</p>
+              <p className="font-medium text-foreground text-xs">{t("onboarding.trustTitle")}</p>
+              <p className="text-muted-foreground text-[10px] mt-0.5 leading-relaxed">{t("onboarding.trustDesc")}</p>
             </div>
           </div>
 
-          <ul className="w-full space-y-2.5 text-start">
-            <li className="flex items-center gap-2.5">
-              <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                <MapPin className="w-3.5 h-3.5 text-primary" />
+          <ul className="w-full space-y-2 text-start">
+            <li className="flex items-center gap-2">
+              <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <MapPin className="w-3 h-3 text-primary" />
               </div>
-              <span className="text-xs sm:text-sm text-foreground">{t("onboarding.howTo1")}</span>
+              <span className="text-xs text-foreground">{t("onboarding.howTo1")}</span>
             </li>
-            <li className="flex items-center gap-2.5">
-              <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                <CheckCircle className="w-3.5 h-3.5 text-primary" />
+            <li className="flex items-center gap-2">
+              <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <CheckCircle className="w-3 h-3 text-primary" />
               </div>
-              <span className="text-xs sm:text-sm text-foreground">{t("onboarding.howTo2")}</span>
+              <span className="text-xs text-foreground">{t("onboarding.howTo2")}</span>
             </li>
-            <li className="flex items-center gap-2.5">
-              <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                <Users className="w-3.5 h-3.5 text-primary" />
+            <li className="flex items-center gap-2">
+              <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <Users className="w-3 h-3 text-primary" />
               </div>
-              <span className="text-xs sm:text-sm text-foreground">{t("onboarding.howTo3")}</span>
+              <span className="text-xs text-foreground">{t("onboarding.howTo3")}</span>
             </li>
           </ul>
 
           <Button 
             onClick={handleDismiss} 
-            className="w-full mt-2"
-            size="default"
+            className="w-full"
+            size="sm"
             data-testid="button-onboarding-start"
           >
-            {t("onboarding.getStarted")}
+            <span>{t("onboarding.getStarted")}</span>
           </Button>
         </div>
       </Card>
