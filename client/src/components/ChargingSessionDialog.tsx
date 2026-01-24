@@ -5,11 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Zap, BatteryCharging, Battery, Gauge, Car, Plus, Camera, Check } from "lucide-react";
+import { Loader2, Zap, BatteryCharging, Battery, Gauge, Car, Plus, Camera, Check, X } from "lucide-react";
 import { useStartChargingSession, useEndChargingSession, useActiveSession, useVehicles, useUserVehicles, useCreateUserVehicle } from "@/hooks/use-stations";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
-import { getCsrfToken } from "@/lib/queryClient";
+import { getCsrfToken, apiRequest, queryClient } from "@/lib/queryClient";
+import { useMutation } from "@tanstack/react-query";
+import { api } from "@shared/routes";
 import type { ChargingSession, EvVehicle, UserVehicleWithDetails } from "@shared/schema";
 
 interface ChargingSessionDialogProps {
@@ -77,6 +79,28 @@ export function ChargingSessionDialog({ stationId, availableChargers, totalCharg
   const startSession = useStartChargingSession();
   const endSession = useEndChargingSession();
   const createUserVehicle = useCreateUserVehicle();
+
+  // Cancel session mutation (deletes without recording)
+  const cancelSessionMutation = useMutation({
+    mutationFn: async (sessionId: number) => {
+      return apiRequest("DELETE", `/api/charging-sessions/${sessionId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [api.chargingSessions.getActive.path, stationId] });
+      queryClient.invalidateQueries({ queryKey: [api.chargingSessions.list.path] });
+      queryClient.invalidateQueries({ queryKey: [api.stations.get.path, stationId] });
+      queryClient.invalidateQueries({ queryKey: [api.stations.list.path] });
+      queryClient.invalidateQueries({ queryKey: ["/api/charging-sessions/my-active"] });
+      toast({ 
+        title: i18n.language === "ar" ? "تم إلغاء الجلسة" : "Session cancelled",
+        description: i18n.language === "ar" ? "لن يتم حفظ هذه الجلسة في السجل" : "This session will not be saved to history"
+      });
+      setOpenEnd(false);
+    },
+    onError: () => {
+      toast({ title: t("common.error"), variant: "destructive" });
+    },
+  });
   
   const isArabic = i18n.language === "ar";
   const isLoggedIn = !!user;
@@ -403,19 +427,36 @@ export function ChargingSessionDialog({ stationId, availableChargers, totalCharg
                   </Button>
                 </div>
               </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setOpenEnd(false)}>
-                  {t("common.cancel")}
-                </Button>
+              <DialogFooter className="flex flex-col sm:flex-row gap-2">
                 <Button 
-                  onClick={handleEndSession}
-                  disabled={endSession.isPending || isUploading || !!batteryEndError}
-                  className="bg-emerald-500 hover:bg-emerald-600"
-                  data-testid="button-confirm-end-session"
+                  variant="destructive"
+                  onClick={() => {
+                    if (activeSession) {
+                      cancelSessionMutation.mutate(activeSession.id);
+                    }
+                  }}
+                  disabled={cancelSessionMutation.isPending || endSession.isPending}
+                  className="w-full sm:w-auto"
+                  data-testid="button-cancel-session"
                 >
-                  {endSession.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {t("charging.endSession")}
+                  {cancelSessionMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  <X className="mr-2 h-4 w-4" />
+                  {isArabic ? "إلغاء (بدون حفظ)" : "Cancel (don't save)"}
                 </Button>
+                <div className="flex gap-2 w-full sm:w-auto">
+                  <Button variant="outline" onClick={() => setOpenEnd(false)} className="flex-1 sm:flex-none">
+                    {t("common.cancel")}
+                  </Button>
+                  <Button 
+                    onClick={handleEndSession}
+                    disabled={endSession.isPending || isUploading || !!batteryEndError}
+                    className="bg-emerald-500 hover:bg-emerald-600 flex-1 sm:flex-none"
+                    data-testid="button-confirm-end-session"
+                  >
+                    {endSession.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    {t("charging.endSession")}
+                  </Button>
+                </div>
               </DialogFooter>
             </DialogContent>
           </Dialog>

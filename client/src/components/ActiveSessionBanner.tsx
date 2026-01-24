@@ -294,6 +294,31 @@ export function ActiveSessionBanner() {
     });
   };
 
+  // Cancel session mutation (deletes without recording)
+  const cancelSessionMutation = useMutation({
+    mutationFn: async (sessionId: number) => {
+      return apiRequest("DELETE", `/api/charging-sessions/${sessionId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/charging-sessions/my-active"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/charging-sessions"] });
+      if (data?.station) {
+        queryClient.invalidateQueries({ queryKey: [api.stations.get.path, data.station.id] });
+        queryClient.invalidateQueries({ queryKey: [api.stations.list.path] });
+      }
+      toast({ 
+        title: language === "ar" ? "تم إلغاء الجلسة" : "Session cancelled",
+        description: language === "ar" ? "لن يتم حفظ هذه الجلسة في السجل" : "This session will not be saved to history"
+      });
+      setShowEndDialog(false);
+    },
+    onError: () => {
+      toast({ title: t("common.error"), variant: "destructive" });
+    },
+  });
+
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+
   return (
     <>
     <div className="bg-orange-500 text-white px-4 py-3" data-testid="active-session-banner">
@@ -481,19 +506,36 @@ export function ActiveSessionBanner() {
             </Button>
           </div>
         </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => setShowEndDialog(false)}>
-            {t("common.cancel")}
-          </Button>
+        <DialogFooter className="flex flex-col sm:flex-row gap-2">
           <Button 
-            onClick={confirmEndSession}
-            disabled={endSessionMutation.isPending || isUploading || isAnalyzing || !!batteryEndError}
-            className="bg-emerald-500 hover:bg-emerald-600"
-            data-testid="button-confirm-end-session-banner"
+            variant="destructive"
+            onClick={() => {
+              if (data?.session) {
+                cancelSessionMutation.mutate(data.session.id);
+              }
+            }}
+            disabled={cancelSessionMutation.isPending || endSessionMutation.isPending}
+            className="w-full sm:w-auto"
+            data-testid="button-cancel-session-banner"
           >
-            {endSessionMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {t("charging.endSession")}
+            {cancelSessionMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            <X className="mr-2 h-4 w-4" />
+            {language === "ar" ? "إلغاء (بدون حفظ)" : "Cancel (don't save)"}
           </Button>
+          <div className="flex gap-2 w-full sm:w-auto">
+            <Button variant="outline" onClick={() => setShowEndDialog(false)} className="flex-1 sm:flex-none">
+              {t("common.cancel")}
+            </Button>
+            <Button 
+              onClick={confirmEndSession}
+              disabled={endSessionMutation.isPending || isUploading || isAnalyzing || !!batteryEndError}
+              className="bg-emerald-500 hover:bg-emerald-600 flex-1 sm:flex-none"
+              data-testid="button-confirm-end-session-banner"
+            >
+              {endSessionMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {t("charging.endSession")}
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>

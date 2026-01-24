@@ -125,6 +125,15 @@ export const api = {
         404: errorSchemas.notFound,
       },
     },
+    cancel: {
+      method: 'DELETE' as const,
+      path: '/api/charging-sessions/:id',
+      responses: {
+        200: z.object({ message: z.string() }),
+        400: errorSchemas.validation,
+        404: errorSchemas.notFound,
+      },
+    },
     list: {
       method: 'GET' as const,
       path: '/api/charging-sessions',
