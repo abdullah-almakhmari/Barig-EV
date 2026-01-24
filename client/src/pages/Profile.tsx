@@ -257,21 +257,25 @@ export default function Profile() {
               </AvatarFallback>
             </Avatar>
             <button
-              onClick={() => fileInputRef.current?.click()}
+              onClick={() => {
+                console.log("[Profile] Camera button clicked");
+                fileInputRef.current?.click();
+              }}
               disabled={isUploadingImage}
-              className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+              className="absolute -bottom-1 -right-1 flex items-center justify-center bg-primary text-primary-foreground rounded-full w-8 h-8 shadow-lg cursor-pointer hover-elevate"
               data-testid="button-upload-profile-image"
             >
               {isUploadingImage ? (
-                <Loader2 className="w-6 h-6 text-white animate-spin" />
+                <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
-                <Camera className="w-6 h-6 text-white" />
+                <Camera className="w-4 h-4" />
               )}
             </button>
             <input
               ref={fileInputRef}
               type="file"
               accept="image/*"
+              capture="environment"
               onChange={handleProfileImageUpload}
               className="hidden"
               data-testid="input-profile-image"
