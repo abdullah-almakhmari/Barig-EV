@@ -45,6 +45,8 @@ export interface IStorage {
   updateUserVehicle(id: number, vehicle: Partial<InsertUserVehicle>): Promise<UserVehicle | undefined>;
   deleteUserVehicle(id: number): Promise<void>;
   setDefaultUserVehicle(userId: string, vehicleId: number): Promise<void>;
+  // User profile
+  updateUserProfileImage(userId: string, profileImageUrl: string | null): Promise<{ profileImageUrl: string | null } | undefined>;
   // Verification methods
   submitVerification(stationId: number, userId: string, vote: string): Promise<StationVerification>;
   getVerificationSummary(stationId: number): Promise<VerificationSummary>;

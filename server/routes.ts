@@ -648,6 +648,28 @@ export async function registerRoutes(
     res.json(null);
   });
 
+  // Update user profile image
+  app.patch("/api/user/profile-image", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      const { profileImageUrl } = req.body;
+      if (typeof profileImageUrl !== "string" && profileImageUrl !== null) {
+        return res.status(400).json({ message: "Invalid profile image URL" });
+      }
+      const updatedUser = await storage.updateUserProfileImage(userId, profileImageUrl);
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      res.json({ success: true, profileImageUrl: updatedUser.profileImageUrl });
+    } catch (err) {
+      console.error("Error updating profile image:", err);
+      res.status(500).json({ message: "Failed to update profile image" });
+    }
+  });
+
   // Vehicles
   app.get(api.vehicles.list.path, async (req, res) => {
     const vehicles = await storage.getVehicles();
