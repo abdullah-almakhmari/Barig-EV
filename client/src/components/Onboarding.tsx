@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -6,38 +6,73 @@ import { Zap, Users, MapPin, CheckCircle, X } from "lucide-react";
 
 const ONBOARDING_STORAGE_KEY = "bariq_onboarding_dismissed";
 
+function safeLocalStorage() {
+  try {
+    localStorage.setItem("test", "test");
+    localStorage.removeItem("test");
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function Onboarding() {
   const { t, i18n } = useTranslation();
   const [isVisible, setIsVisible] = useState(false);
   const isRTL = i18n.language === "ar";
 
   useEffect(() => {
-    const dismissed = localStorage.getItem(ONBOARDING_STORAGE_KEY);
-    if (!dismissed) {
+    try {
+      if (safeLocalStorage()) {
+        const dismissed = localStorage.getItem(ONBOARDING_STORAGE_KEY);
+        if (!dismissed) {
+          setIsVisible(true);
+        }
+      } else {
+        const dismissed = sessionStorage.getItem(ONBOARDING_STORAGE_KEY);
+        if (!dismissed) {
+          setIsVisible(true);
+        }
+      }
+    } catch {
       setIsVisible(true);
     }
   }, []);
 
-  const handleDismiss = () => {
-    localStorage.setItem(ONBOARDING_STORAGE_KEY, "true");
+  const handleDismiss = useCallback(() => {
+    try {
+      if (safeLocalStorage()) {
+        localStorage.setItem(ONBOARDING_STORAGE_KEY, "true");
+      } else {
+        sessionStorage.setItem(ONBOARDING_STORAGE_KEY, "true");
+      }
+    } catch {
+      console.log("Storage not available");
+    }
     setIsVisible(false);
-  };
+  }, []);
 
   if (!isVisible) return null;
 
   return (
     <div 
-      className="fixed inset-0 z-50 flex flex-col bg-background"
+      className="fixed inset-0 z-50 flex flex-col bg-background overflow-auto"
       dir={isRTL ? "rtl" : "ltr"}
+      style={{ touchAction: "pan-y" }}
       data-testid="onboarding-overlay"
     >
       <button
         onClick={handleDismiss}
-        className="absolute top-4 end-4 text-muted-foreground hover-elevate p-1 rounded z-10"
+        onTouchEnd={(e) => {
+          e.preventDefault();
+          handleDismiss();
+        }}
+        className="absolute top-4 end-4 text-muted-foreground hover-elevate p-3 rounded z-10"
+        style={{ touchAction: "manipulation" }}
         aria-label={t("onboarding.skip")}
         data-testid="button-onboarding-skip"
       >
-        <X className="w-5 h-5" />
+        <X className="w-6 h-6" />
       </button>
 
       <div className="flex-1 flex flex-col items-center justify-center px-6 py-8 text-center space-y-5">
@@ -84,11 +119,16 @@ export function Onboarding() {
         </ul>
       </div>
 
-      <div className="px-6 pb-8 pt-4">
+      <div className="px-6 pb-8 pt-4 safe-area-inset-bottom">
         <Button 
-          onClick={handleDismiss} 
+          onClick={handleDismiss}
+          onTouchEnd={(e) => {
+            e.preventDefault();
+            handleDismiss();
+          }}
           className="w-full"
           size="lg"
+          style={{ touchAction: "manipulation", minHeight: "48px" }}
           data-testid="button-onboarding-start"
         >
           {t("onboarding.getStarted")}
