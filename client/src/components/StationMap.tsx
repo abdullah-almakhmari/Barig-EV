@@ -285,10 +285,15 @@ export function StationMap({ stations }: StationMapProps) {
     ? "fixed inset-0 z-50 bg-background" 
     : "h-full w-full rounded-2xl overflow-hidden border border-border shadow-inner bg-muted/20 relative";
 
+  // Create a hash of station statuses to force re-render when statuses change
+  const stationsHash = useMemo(() => {
+    return stations.map(s => `${s.id}:${s.status}:${s.availableChargers}`).join(',');
+  }, [stations]);
+
   return (
     <div className={mapContainerClass}>
       <MapContainer 
-        key={`map-${stations.length}`}
+        key={`map-${stationsHash}`}
         center={center} 
         zoom={11} 
         style={{ height: "100%", width: "100%", zIndex: 0 }}
