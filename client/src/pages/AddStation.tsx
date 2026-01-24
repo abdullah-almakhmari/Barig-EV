@@ -12,9 +12,18 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, PlusCircle, MapPin, Navigation, Home, Building2, Phone, Check, Banknote } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { MapPicker } from "@/components/MapPicker";
 import { SEO } from "@/components/SEO";
+
+const GCC_COUNTRY_CODES = [
+  { code: "+968", country: "عُمان", countryEn: "Oman", flag: "🇴🇲" },
+  { code: "+971", country: "الإمارات", countryEn: "UAE", flag: "🇦🇪" },
+  { code: "+966", country: "السعودية", countryEn: "Saudi", flag: "🇸🇦" },
+  { code: "+973", country: "البحرين", countryEn: "Bahrain", flag: "🇧🇭" },
+  { code: "+974", country: "قطر", countryEn: "Qatar", flag: "🇶🇦" },
+  { code: "+965", country: "الكويت", countryEn: "Kuwait", flag: "🇰🇼" },
+];
 
 // Extend schema for form validation if needed (e.g. string to number coercion happens in hook)
 const formSchema = insertStationSchema.extend({
@@ -57,6 +66,16 @@ export default function AddStation() {
 
   const stationType = form.watch("stationType");
   const isFree = form.watch("isFree");
+  const [phoneCountryCode, setPhoneCountryCode] = useState("+968");
+  const [whatsappCountryCode, setWhatsappCountryCode] = useState("+968");
+
+  useEffect(() => {
+    if (stationType === "HOME") {
+      form.setValue("powerKw", 11);
+    } else {
+      form.setValue("powerKw", 22);
+    }
+  }, [stationType, form]);
 
   function getMyLocation() {
     if (!navigator.geolocation) {
@@ -378,9 +397,28 @@ export default function AddStation() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>{t("add.contactPhone")}</FormLabel>
-                        <FormControl>
-                          <Input placeholder="+968 9XXX XXXX" {...field} value={field.value || ""} />
-                        </FormControl>
+                        <div className="flex gap-2">
+                          <Select value={phoneCountryCode} onValueChange={setPhoneCountryCode}>
+                            <SelectTrigger className="w-[100px]">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {GCC_COUNTRY_CODES.map((c) => (
+                                <SelectItem key={c.code} value={c.code}>
+                                  {c.flag} {c.code}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormControl>
+                            <Input 
+                              placeholder="9XXX XXXX" 
+                              {...field} 
+                              value={field.value?.replace(/^\+\d+\s*/, "") || ""} 
+                              onChange={(e) => field.onChange(`${phoneCountryCode} ${e.target.value}`)}
+                            />
+                          </FormControl>
+                        </div>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -391,9 +429,28 @@ export default function AddStation() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>{t("add.contactWhatsapp")}</FormLabel>
-                        <FormControl>
-                          <Input placeholder="+968 9XXX XXXX" {...field} value={field.value || ""} />
-                        </FormControl>
+                        <div className="flex gap-2">
+                          <Select value={whatsappCountryCode} onValueChange={setWhatsappCountryCode}>
+                            <SelectTrigger className="w-[100px]">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {GCC_COUNTRY_CODES.map((c) => (
+                                <SelectItem key={c.code} value={c.code}>
+                                  {c.flag} {c.code}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormControl>
+                            <Input 
+                              placeholder="9XXX XXXX" 
+                              {...field} 
+                              value={field.value?.replace(/^\+\d+\s*/, "") || ""} 
+                              onChange={(e) => field.onChange(`${whatsappCountryCode} ${e.target.value}`)}
+                            />
+                          </FormControl>
+                        </div>
                         <FormMessage />
                       </FormItem>
                     )}
