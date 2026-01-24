@@ -73,6 +73,15 @@ export default function ChargingHistory() {
     return language === "ar" ? station.nameAr : station.name;
   };
 
+  const allTimeTotals = useMemo(() => {
+    if (!sessions) return { totalEnergy: 0, totalDuration: 0, totalCost: 0 };
+    return sessions.reduce((acc, session) => {
+      if (session.energyKwh) acc.totalEnergy += session.energyKwh;
+      if (session.durationMinutes) acc.totalDuration += session.durationMinutes;
+      return acc;
+    }, { totalEnergy: 0, totalDuration: 0, totalCost: 0 });
+  }, [sessions]);
+
   const groupedSessions = useMemo(() => {
     if (!sessions) return [];
     
@@ -132,6 +141,39 @@ export default function ChargingHistory() {
           </p>
         </div>
       </div>
+
+      {allTimeTotals.totalEnergy > 0 && (
+        <Card className="p-4 mb-6 bg-gradient-to-r from-emerald-500/10 to-primary/10 border-emerald-200 dark:border-emerald-800" data-testid="all-time-totals-card">
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                <Zap className="w-5 h-5 text-emerald-600" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">
+                  {language === "ar" ? "إجمالي الطاقة المشحونة" : "Total Energy Charged"}
+                </p>
+                <p className="text-2xl font-bold text-emerald-600" data-testid="total-kwh-value">
+                  {allTimeTotals.totalEnergy.toFixed(1)} kWh
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center">
+                <Banknote className="w-5 h-5 text-amber-600" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">
+                  {language === "ar" ? "التكلفة التقديرية" : "Estimated Cost"}
+                </p>
+                <p className="text-2xl font-bold text-amber-600" data-testid="total-cost-value">
+                  {(allTimeTotals.totalEnergy * electricityRate).toFixed(3)} {currencySymbol}
+                </p>
+              </div>
+            </div>
+          </div>
+        </Card>
+      )}
 
       {groupedSessions.length > 0 ? (
         <Accordion type="multiple" className="space-y-3">
