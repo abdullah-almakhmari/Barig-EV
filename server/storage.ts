@@ -382,7 +382,7 @@ export class DatabaseStorage implements IStorage {
     const userVehiclesList = await db.select().from(userVehicles).where(eq(userVehicles.userId, userId)).orderBy(desc(userVehicles.createdAt));
     const result: UserVehicleWithDetails[] = [];
     for (const uv of userVehiclesList) {
-      const evVehicle = await this.getVehicle(uv.evVehicleId);
+      const evVehicle = uv.evVehicleId ? await this.getVehicle(uv.evVehicleId) : undefined;
       result.push({ ...uv, evVehicle });
     }
     return result;
@@ -391,7 +391,7 @@ export class DatabaseStorage implements IStorage {
   async getUserVehicle(id: number): Promise<UserVehicleWithDetails | undefined> {
     const [uv] = await db.select().from(userVehicles).where(eq(userVehicles.id, id));
     if (!uv) return undefined;
-    const evVehicle = await this.getVehicle(uv.evVehicleId);
+    const evVehicle = uv.evVehicleId ? await this.getVehicle(uv.evVehicleId) : undefined;
     return { ...uv, evVehicle };
   }
 
@@ -412,6 +412,15 @@ export class DatabaseStorage implements IStorage {
   async setDefaultUserVehicle(userId: string, vehicleId: number): Promise<void> {
     await db.update(userVehicles).set({ isDefault: false, updatedAt: new Date() }).where(eq(userVehicles.userId, userId));
     await db.update(userVehicles).set({ isDefault: true, updatedAt: new Date() }).where(eq(userVehicles.id, vehicleId));
+  }
+
+  // User profile methods
+  async updateUserProfileImage(userId: string, profileImageUrl: string | null): Promise<{ profileImageUrl: string | null } | undefined> {
+    const [updated] = await db.update(users)
+      .set({ profileImageUrl, updatedAt: new Date() })
+      .where(eq(users.id, userId))
+      .returning({ profileImageUrl: users.profileImageUrl });
+    return updated;
   }
 
   // Verification methods
