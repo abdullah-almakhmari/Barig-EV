@@ -108,6 +108,29 @@ export function ActiveSessionBanner() {
     },
   });
 
+  // Cancel session mutation (deletes without recording) - MUST be here before any conditional returns
+  const cancelSessionMutation = useMutation({
+    mutationFn: async (sessionId: number) => {
+      return apiRequest("DELETE", `/api/charging-sessions/${sessionId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/charging-sessions/my-active"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/charging-sessions"] });
+      if (data?.station) {
+        queryClient.invalidateQueries({ queryKey: [api.stations.get.path, data.station.id] });
+        queryClient.invalidateQueries({ queryKey: [api.stations.list.path] });
+      }
+      toast({ 
+        title: language === "ar" ? "تم إلغاء الجلسة" : "Session cancelled",
+        description: language === "ar" ? "لن يتم حفظ هذه الجلسة في السجل" : "This session will not be saved to history"
+      });
+      setShowEndDialog(false);
+    },
+    onError: () => {
+      toast({ title: t("common.error"), variant: "destructive" });
+    },
+  });
+
   useEffect(() => {
     if (!data?.session?.startTime) return;
 
@@ -293,31 +316,6 @@ export function ActiveSessionBanner() {
       screenshotPath: screenshotPath || undefined,
     });
   };
-
-  // Cancel session mutation (deletes without recording)
-  const cancelSessionMutation = useMutation({
-    mutationFn: async (sessionId: number) => {
-      return apiRequest("DELETE", `/api/charging-sessions/${sessionId}`);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/charging-sessions/my-active"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/charging-sessions"] });
-      if (data?.station) {
-        queryClient.invalidateQueries({ queryKey: [api.stations.get.path, data.station.id] });
-        queryClient.invalidateQueries({ queryKey: [api.stations.list.path] });
-      }
-      toast({ 
-        title: language === "ar" ? "تم إلغاء الجلسة" : "Session cancelled",
-        description: language === "ar" ? "لن يتم حفظ هذه الجلسة في السجل" : "This session will not be saved to history"
-      });
-      setShowEndDialog(false);
-    },
-    onError: () => {
-      toast({ title: t("common.error"), variant: "destructive" });
-    },
-  });
-
-  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
 
   return (
     <>
