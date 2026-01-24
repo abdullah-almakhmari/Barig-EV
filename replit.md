@@ -64,6 +64,18 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Features
 
+### User Profile & Vehicle Management (January 2026)
+- **Purpose**: Allow users to manage their EV vehicles in advance, not just during charging sessions
+- **Features**:
+  - Profile page at `/profile` accessible by clicking user avatar
+  - View list of saved vehicles
+  - Add new vehicles from EV catalog or custom entry
+  - Set default vehicle (auto-selected when starting charging sessions)
+  - Delete vehicles with confirmation
+- **Component**: `client/src/pages/Profile.tsx`
+- **Access**: Click user avatar in header when logged in
+- **Bilingual Support**: Full Arabic/English with RTL support
+
 ### First-Visit Onboarding (January 2026)
 - **Purpose**: Professional one-screen welcome for first-time visitors
 - **Display Logic**: Shows only on first visit (localStorage key: "bariq_onboarding_dismissed")

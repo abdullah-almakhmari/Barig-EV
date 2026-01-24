@@ -197,12 +197,14 @@ export function Header() {
           {!isLoading && (
             isAuthenticated ? (
               <div className="flex items-center gap-2">
-                <Avatar className="w-8 h-8">
-                  <AvatarImage src={user?.profileImageUrl || undefined} />
-                  <AvatarFallback className="bg-primary/10 text-primary text-xs">
-                    {getInitials(user?.firstName, user?.lastName)}
-                  </AvatarFallback>
-                </Avatar>
+                <Link href="/profile" data-testid="link-profile">
+                  <Avatar className="w-8 h-8 cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all">
+                    <AvatarImage src={user?.profileImageUrl || undefined} />
+                    <AvatarFallback className="bg-primary/10 text-primary text-xs">
+                      {getInitials(user?.firstName, user?.lastName)}
+                    </AvatarFallback>
+                  </Avatar>
+                </Link>
                 <Button 
                   variant="ghost" 
                   size="icon" 

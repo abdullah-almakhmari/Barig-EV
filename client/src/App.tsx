@@ -21,6 +21,7 @@ import ChargingStats from "@/pages/ChargingStats";
 import AuthPage from "@/pages/AuthPage";
 import AdminPanel from "@/pages/AdminPanel";
 import Contact from "@/pages/Contact";
+import Profile from "@/pages/Profile";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -32,6 +33,7 @@ function Router() {
       <Route path="/nearby" component={NearbyStations} />
       <Route path="/history" component={ChargingHistory} />
       <Route path="/stats" component={ChargingStats} />
+      <Route path="/profile" component={Profile} />
       <Route path="/admin" component={AdminPanel} />
       <Route path="/contact" component={Contact} />
       <Route path="/station/:id" component={StationDetails} />
