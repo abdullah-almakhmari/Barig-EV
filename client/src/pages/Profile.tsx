@@ -155,28 +155,44 @@ export default function Profile() {
       formData.append("file", file);
 
       console.log("[Profile] Getting fresh CSRF token...");
-      const csrfToken = await getCsrfToken(true);
-      console.log("[Profile] CSRF token obtained:", csrfToken ? "yes" : "no");
+      let csrfToken: string;
+      try {
+        csrfToken = await getCsrfToken(true);
+        console.log("[Profile] CSRF token obtained:", csrfToken ? "yes" : "no");
+      } catch (csrfError: any) {
+        console.error("[Profile] Failed to get CSRF token:", csrfError);
+        throw new Error(isArabic ? "فشل في الحصول على رمز الأمان - يرجى تسجيل الخروج والدخول مجدداً" : "Failed to get security token - please log out and log in again");
+      }
       
       console.log("[Profile] Uploading file to server...");
-      const uploadResponse = await fetch("/api/uploads/upload", {
-        method: "POST",
-        body: formData,
-        credentials: "include",
-        headers: {
-          "x-csrf-token": csrfToken,
-        },
-      });
+      let uploadResponse: Response;
+      try {
+        uploadResponse = await fetch("/api/uploads/upload", {
+          method: "POST",
+          body: formData,
+          credentials: "include",
+          headers: {
+            "x-csrf-token": csrfToken,
+          },
+        });
+      } catch (fetchError: any) {
+        console.error("[Profile] Network error during upload:", fetchError);
+        throw new Error(isArabic ? "خطأ في الشبكة - تحقق من اتصال الإنترنت" : "Network error - check your internet connection");
+      }
 
       console.log("[Profile] Upload response status:", uploadResponse.status);
       
       if (!uploadResponse.ok) {
         const errorText = await uploadResponse.text();
         console.error("[Profile] Upload failed:", uploadResponse.status, errorText);
-        let errorMessage = `Upload failed (${uploadResponse.status})`;
+        let errorMessage = isArabic ? `فشل الرفع (${uploadResponse.status})` : `Upload failed (${uploadResponse.status})`;
         try {
           const errorData = JSON.parse(errorText);
-          errorMessage = errorData.error || errorData.message || errorMessage;
+          if (uploadResponse.status === 403) {
+            errorMessage = isArabic ? "رمز الأمان غير صالح - يرجى تسجيل الخروج والدخول مجدداً" : "Security token invalid - please log out and log in again";
+          } else {
+            errorMessage = (isArabic ? errorData.messageAr : null) || errorData.error || errorData.message || errorMessage;
+          }
         } catch {
           if (errorText) errorMessage = errorText;
         }
