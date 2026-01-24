@@ -25,7 +25,7 @@ const VEHICLE_STORAGE_KEY = "bariq_selected_user_vehicle";
 // Pricing constants (shared with ChargingStats)
 const ELECTRICITY_STORAGE_KEY = "bariq_electricity_rate";
 const CURRENCY_STORAGE_KEY = "bariq_currency";
-const DEFAULT_ELECTRICITY_RATE = 0.1;
+const DEFAULT_ELECTRICITY_RATE = 0.014;
 const DEFAULT_CURRENCY = "OMR";
 
 const CURRENCIES = [
