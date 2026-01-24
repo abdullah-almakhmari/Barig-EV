@@ -167,6 +167,17 @@ export async function registerRoutes(
     try {
       const input = api.stations.create.input.parse(req.body);
       const userId = req.user?.id;
+      
+      // Check for duplicate location (within 50 meters)
+      const existingStation = await storage.getStationByLocation(input.lat, input.lng, 50);
+      if (existingStation) {
+        return res.status(400).json({
+          message: "A station already exists at this location",
+          messageAr: "توجد محطة بالفعل في هذا الموقع",
+          field: "location",
+        });
+      }
+      
       const station = await storage.createStation({ ...input, addedByUserId: userId }, true);
       res.status(201).json(station);
     } catch (err) {

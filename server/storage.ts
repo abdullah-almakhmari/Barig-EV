@@ -14,6 +14,7 @@ import { eq, desc, and, ilike, or, ne, gte, sql, isNotNull } from "drizzle-orm";
 export interface IStorage {
   getStations(filters?: { search?: string; city?: string; type?: string }): Promise<Station[]>;
   getStation(id: number): Promise<Station | undefined>;
+  getStationByLocation(lat: number, lng: number, radiusMeters?: number): Promise<Station | undefined>;
   createStation(station: InsertStation, isUserSubmitted?: boolean): Promise<Station>;
   updateStationAvailability(id: number, availableChargers: number): Promise<Station | undefined>;
   updateStationStatus(id: number, status: string): Promise<Station | undefined>;
@@ -116,6 +117,21 @@ export class DatabaseStorage implements IStorage {
   async getStation(id: number): Promise<Station | undefined> {
     const [station] = await db.select().from(stations).where(eq(stations.id, id));
     return station;
+  }
+
+  async getStationByLocation(lat: number, lng: number, radiusMeters: number = 50): Promise<Station | undefined> {
+    // Use Haversine formula to find stations within radius
+    // Convert radius from meters to approximate degrees (at equator, 1 degree ≈ 111,320 meters)
+    const radiusDegrees = radiusMeters / 111320;
+    
+    const result = await db.select().from(stations).where(
+      and(
+        sql`ABS(${stations.lat} - ${lat}) < ${radiusDegrees}`,
+        sql`ABS(${stations.lng} - ${lng}) < ${radiusDegrees}`
+      )
+    ).limit(1);
+    
+    return result[0];
   }
 
   async createStation(insertStation: InsertStation, isUserSubmitted: boolean = false): Promise<Station> {
