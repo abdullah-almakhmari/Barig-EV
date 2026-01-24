@@ -15,7 +15,7 @@ import { User, Car, Star, Trash2, Plus, Loader2, Check, Zap, Camera } from "luci
 import { useToast } from "@/hooks/use-toast";
 import { Redirect } from "wouter";
 import { SEO } from "@/components/SEO";
-import { queryClient, apiRequest } from "@/lib/queryClient";
+import { queryClient, apiRequest, getCsrfToken } from "@/lib/queryClient";
 import type { EvVehicle } from "@shared/schema";
 
 export default function Profile() {
@@ -153,10 +153,14 @@ export default function Profile() {
       const formData = new FormData();
       formData.append("file", file);
 
+      const csrfToken = await getCsrfToken();
       const uploadResponse = await fetch("/api/uploads/upload", {
         method: "POST",
         body: formData,
         credentials: "include",
+        headers: {
+          "x-csrf-token": csrfToken,
+        },
       });
 
       if (!uploadResponse.ok) {
