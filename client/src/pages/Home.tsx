@@ -42,15 +42,15 @@ export default function Home() {
   const stationList = stations || [];
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
+    <div className="flex flex-col h-[calc(100vh-120px)] animate-in fade-in duration-500">
       <SEO />
-      {/* Hero / Filter Section */}
-      <div className="rounded-3xl bg-gradient-to-br from-emerald-900 to-primary p-6 text-white shadow-xl shadow-emerald-900/10">
-        <h1 className="text-2xl sm:text-3xl font-bold mb-2">{t("hero.title")}</h1>
-        <p className="text-emerald-100 mb-6 max-w-xl">{t("hero.subtitle")}</p>
+      {/* Hero / Filter Section - Compact */}
+      <div className="rounded-2xl bg-gradient-to-br from-emerald-900 to-primary p-4 text-white shadow-xl shadow-emerald-900/10 mb-3">
+        <h1 className="text-lg sm:text-xl font-bold mb-1">{t("hero.title")}</h1>
+        <p className="text-emerald-100 text-sm mb-3">{t("hero.subtitle")}</p>
         
         <Select value={typeFilter} onValueChange={setTypeFilter}>
-          <SelectTrigger className="w-full sm:w-[200px] h-12 rounded-xl bg-white/10 border-white/20 text-white focus:ring-white/30">
+          <SelectTrigger className="w-full sm:w-[200px] h-10 rounded-xl bg-white/10 border-white/20 text-white focus:ring-white/30">
             <Filter className="w-4 h-4 me-2" />
             <SelectValue placeholder={t("filter.all")} />
           </SelectTrigger>
@@ -63,38 +63,38 @@ export default function Home() {
         </Select>
       </div>
 
-      {/* Main Content */}
-      <Tabs defaultValue="map" className="w-full">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold flex items-center gap-2">
-            <span className="bg-primary/10 text-primary p-1.5 rounded-lg">
+      {/* Main Content - Fills remaining space */}
+      <Tabs defaultValue="map" className="flex-1 flex flex-col min-h-0">
+        <div className="flex justify-between items-center mb-2">
+          <h2 className="text-lg font-bold flex items-center gap-2">
+            <span className="bg-primary/10 text-primary px-2 py-0.5 rounded-lg text-sm">
               {stationList.length}
             </span>
             {t("nav.list")}
           </h2>
-          <TabsList className="grid w-[200px] grid-cols-2 rounded-xl">
-            <TabsTrigger value="map" className="rounded-lg">{t("nav.map")}</TabsTrigger>
-            <TabsTrigger value="list" className="rounded-lg">{t("nav.list")}</TabsTrigger>
+          <TabsList className="grid w-[180px] grid-cols-2 rounded-xl h-9">
+            <TabsTrigger value="map" className="rounded-lg text-sm">{t("nav.map")}</TabsTrigger>
+            <TabsTrigger value="list" className="rounded-lg text-sm">{t("nav.list")}</TabsTrigger>
           </TabsList>
         </div>
 
-        <TabsContent value="map" className="h-[280px] sm:h-[350px] mt-0">
+        <TabsContent value="map" className="flex-1 mt-0 min-h-0">
           <StationMap stations={stationList} />
         </TabsContent>
         
-        <TabsContent value="list" className="mt-0">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <TabsContent value="list" className="flex-1 mt-0 overflow-y-auto min-h-0">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {stationList.slice(0, visibleCount).map((station) => (
               <StationCard key={station.id} station={station} />
             ))}
             {stationList.length === 0 && (
-              <div className="col-span-full py-20 text-center text-muted-foreground">
+              <div className="col-span-full py-12 text-center text-muted-foreground">
                 {t("station.noResults")}
               </div>
             )}
           </div>
           {stationList.length > visibleCount && (
-            <div className="flex justify-center mt-6">
+            <div className="flex justify-center mt-4 pb-4">
               <Button 
                 variant="outline" 
                 onClick={() => setVisibleCount(prev => prev + STATIONS_PER_PAGE)}
