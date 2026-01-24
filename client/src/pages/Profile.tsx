@@ -164,7 +164,9 @@ export default function Profile() {
       });
 
       if (!uploadResponse.ok) {
-        throw new Error("Failed to upload image");
+        const errorData = await uploadResponse.json().catch(() => ({}));
+        console.error("Upload failed:", uploadResponse.status, errorData);
+        throw new Error(errorData.error || errorData.message || "Failed to upload image");
       }
 
       const uploadData = await uploadResponse.json();

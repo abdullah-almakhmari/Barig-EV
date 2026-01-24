@@ -44,10 +44,12 @@ export function registerObjectStorageRoutes(app: Express): void {
   });
 
   app.post("/api/uploads/upload", upload.single("file"), async (req: Request, res: Response) => {
+    console.log(`[Upload] Received upload request`);
     try {
       const file = req.file;
       
       if (!file) {
+        console.log(`[Upload] No file in request`);
         return res.status(400).json({
           error: "No file provided",
           errorAr: "لم يتم تقديم ملف",
