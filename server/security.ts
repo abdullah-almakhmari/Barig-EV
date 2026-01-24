@@ -24,10 +24,11 @@ export function ensureCsrfToken(req: Request): string {
 
 export const csrfTokenEndpoint: RequestHandler = (req: Request, res: Response) => {
   const token = ensureCsrfToken(req);
+  const isProduction = process.env.NODE_ENV === "production";
   res.cookie(CSRF_COOKIE_NAME, token, {
     httpOnly: false,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
+    secure: isProduction,
+    sameSite: isProduction ? "none" : "lax",
     maxAge: 7 * 24 * 60 * 60 * 1000,
   });
   res.json({ csrfToken: token });

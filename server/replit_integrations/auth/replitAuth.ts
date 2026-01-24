@@ -27,16 +27,18 @@ export function getSession() {
     ttl: sessionTtl,
     tableName: "sessions",
   });
+  const isProduction = process.env.NODE_ENV === "production";
   return session({
     secret: process.env.SESSION_SECRET!,
     store: sessionStore,
     resave: false,
     saveUninitialized: false,
+    proxy: isProduction,
     cookie: {
       httpOnly: true,
       secure: true,
       maxAge: sessionTtl,
-      sameSite: "lax",
+      sameSite: isProduction ? "none" : "lax",
     },
   });
 }
