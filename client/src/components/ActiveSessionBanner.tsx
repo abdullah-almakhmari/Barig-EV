@@ -113,25 +113,53 @@ export function ActiveSessionBanner() {
   };
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !data?.session) return;
-
-    setIsUploading(true);
-    setOcrConfidence(null);
     try {
-      const csrfToken = await getCsrfToken();
+      const file = e.target.files?.[0];
+      if (!file || !data?.session) return;
+
+      const maxSizeMB = 8;
+      if (file.size > maxSizeMB * 1024 * 1024) {
+        toast({ 
+          title: language === "ar" ? "الصورة كبيرة جداً" : "Image too large",
+          description: language === "ar" 
+            ? `الحد الأقصى ${maxSizeMB} ميجابايت` 
+            : `Maximum size is ${maxSizeMB}MB`,
+          variant: "destructive" 
+        });
+        if (fileInputRef.current) {
+          fileInputRef.current.value = "";
+        }
+        return;
+      }
+
+      setIsUploading(true);
+      setOcrConfidence(null);
+      
+      let csrfToken: string;
+      try {
+        csrfToken = await getCsrfToken();
+      } catch (err) {
+        console.error("Failed to get CSRF token:", err);
+        throw new Error(language === "ar" ? "خطأ في الأمان" : "Security error");
+      }
       
       const formData = new FormData();
       formData.append("file", file);
 
-      const res = await fetch("/api/uploads/upload", {
-        method: "POST",
-        headers: { 
-          "x-csrf-token": csrfToken,
-        },
-        credentials: "include",
-        body: formData,
-      });
+      let res: Response;
+      try {
+        res = await fetch("/api/uploads/upload", {
+          method: "POST",
+          headers: { 
+            "x-csrf-token": csrfToken,
+          },
+          credentials: "include",
+          body: formData,
+        });
+      } catch (networkError) {
+        console.error("Network error during upload:", networkError);
+        throw new Error(language === "ar" ? "خطأ في الشبكة" : "Network error");
+      }
 
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
@@ -139,7 +167,18 @@ export function ActiveSessionBanner() {
         throw new Error(errorData.errorAr || errorData.error || "Upload failed");
       }
 
-      const { objectPath } = await res.json();
+      let uploadResult;
+      try {
+        uploadResult = await res.json();
+      } catch (parseError) {
+        console.error("Failed to parse upload response:", parseError);
+        throw new Error(language === "ar" ? "خطأ في الخادم" : "Server error");
+      }
+
+      const { objectPath } = uploadResult;
+      if (!objectPath) {
+        throw new Error(language === "ar" ? "فشل حفظ الصورة" : "Failed to save image");
+      }
 
       setScreenshotPath(objectPath);
       setIsUploading(false);
@@ -175,23 +214,37 @@ export function ActiveSessionBanner() {
                 : "Please enter the energy value manually",
             });
           }
+        } else {
+          toast({ 
+            title: language === "ar" ? "الصورة محفوظة" : "Photo saved",
+            description: language === "ar" 
+              ? "يرجى إدخال قيمة الطاقة يدوياً" 
+              : "Please enter the energy value manually",
+          });
         }
       } catch (ocrError) {
         console.error("OCR error:", ocrError);
+        toast({ 
+          title: language === "ar" ? "الصورة محفوظة" : "Photo saved",
+          description: language === "ar" 
+            ? "يرجى إدخال قيمة الطاقة يدوياً" 
+            : "Please enter the energy value manually",
+        });
       }
       setIsAnalyzing(false);
     } catch (error: any) {
       console.error("Upload error:", error);
       toast({ 
         title: language === "ar" ? "فشل رفع الصورة" : "Photo upload failed",
-        description: error.message || t("common.error"),
+        description: error?.message || t("common.error"),
         variant: "destructive" 
       });
       setIsUploading(false);
       setIsAnalyzing(false);
-    }
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
+    } finally {
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
     }
   };
 
