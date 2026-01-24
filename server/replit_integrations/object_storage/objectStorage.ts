@@ -69,15 +69,27 @@ export class ObjectStorageService {
     return result.value as unknown as Buffer;
   }
 
-  async downloadToResponse(objectPath: string, res: Response, cacheTtlSec: number = 3600): Promise<void> {
+  async downloadToResponse(objectPath: string, res: Response, cacheTtlSec: number = 3600, contentType?: string): Promise<void> {
     const client = await getClient();
     const objectName = this.extractObjectName(objectPath);
     
     try {
       const stream = client.downloadAsStream(objectName);
       
+      // Try to infer content type from file extension or use provided contentType
+      let mimeType = contentType || "application/octet-stream";
+      if (!contentType) {
+        if (objectName.match(/\.(jpg|jpeg)$/i)) mimeType = "image/jpeg";
+        else if (objectName.match(/\.png$/i)) mimeType = "image/png";
+        else if (objectName.match(/\.gif$/i)) mimeType = "image/gif";
+        else if (objectName.match(/\.webp$/i)) mimeType = "image/webp";
+        else if (objectName.match(/\.svg$/i)) mimeType = "image/svg+xml";
+        // For UUIDs without extensions, assume image/jpeg as most common for profile pictures
+        else if (objectPath.includes("/uploads/")) mimeType = "image/jpeg";
+      }
+      
       res.set({
-        "Content-Type": "application/octet-stream",
+        "Content-Type": mimeType,
         "Cache-Control": `public, max-age=${cacheTtlSec}`,
       });
 

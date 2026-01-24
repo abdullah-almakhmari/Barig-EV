@@ -216,7 +216,7 @@ export default function Profile() {
           <div className="relative group">
             <Avatar className="w-16 h-16">
               <AvatarImage 
-                src={user.profileImageUrl?.startsWith("/objects/") ? user.profileImageUrl : user.profileImageUrl || undefined} 
+                src={user.profileImageUrl || undefined} 
               />
               <AvatarFallback className="bg-primary/20 text-primary text-lg">
                 {getInitials(user.firstName, user.lastName)}
