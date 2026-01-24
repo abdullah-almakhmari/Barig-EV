@@ -15,6 +15,21 @@ import { useState, useEffect, useRef } from "react";
 import { api } from "@shared/routes";
 import { Badge } from "@/components/ui/badge";
 
+// Pricing constants (shared with ChargingStats)
+const ELECTRICITY_STORAGE_KEY = "bariq_electricity_rate";
+const CURRENCY_STORAGE_KEY = "bariq_currency";
+const DEFAULT_ELECTRICITY_RATE = 0.1;
+const DEFAULT_CURRENCY = "OMR";
+
+const CURRENCIES = [
+  { code: "OMR", nameAr: "ريال عماني", nameEn: "Omani Rial", symbol: "ر.ع" },
+  { code: "AED", nameAr: "درهم إماراتي", nameEn: "UAE Dirham", symbol: "د.إ" },
+  { code: "SAR", nameAr: "ريال سعودي", nameEn: "Saudi Riyal", symbol: "ر.س" },
+  { code: "KWD", nameAr: "دينار كويتي", nameEn: "Kuwaiti Dinar", symbol: "د.ك" },
+  { code: "BHD", nameAr: "دينار بحريني", nameEn: "Bahraini Dinar", symbol: "د.ب" },
+  { code: "QAR", nameAr: "ريال قطري", nameEn: "Qatari Riyal", symbol: "ر.ق" },
+];
+
 interface ActiveSessionResponse {
   session: ChargingSession;
   station: Station | null;
@@ -38,6 +53,26 @@ export function ActiveSessionBanner() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [ocrConfidence, setOcrConfidence] = useState<"high" | "medium" | "low" | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [electricityRate, setElectricityRate] = useState(DEFAULT_ELECTRICITY_RATE);
+  const [currency, setCurrency] = useState(DEFAULT_CURRENCY);
+
+  // Load pricing settings from localStorage
+  useEffect(() => {
+    const savedRate = localStorage.getItem(ELECTRICITY_STORAGE_KEY);
+    if (savedRate) {
+      const rate = parseFloat(savedRate);
+      if (!isNaN(rate) && rate > 0) setElectricityRate(rate);
+    }
+    const savedCurrency = localStorage.getItem(CURRENCY_STORAGE_KEY);
+    if (savedCurrency && CURRENCIES.some(c => c.code === savedCurrency)) {
+      setCurrency(savedCurrency);
+    }
+  }, []);
+
+  // Calculate estimated cost
+  const estimatedCost = energyKwh ? (parseFloat(energyKwh) * electricityRate) : 0;
+  const selectedCurrency = CURRENCIES.find(c => c.code === currency) || CURRENCIES[0];
+  const currencySymbol = language === "ar" ? selectedCurrency.symbol : selectedCurrency.code;
 
   const { data, isLoading } = useQuery<ActiveSessionResponse | null>({
     queryKey: ["/api/charging-sessions/my-active"],
@@ -389,6 +424,15 @@ export function ActiveSessionBanner() {
               />
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">kWh</span>
             </div>
+            {estimatedCost > 0 && (
+              <div className="flex items-center gap-2 p-2 bg-emerald-50 dark:bg-emerald-950/30 rounded-md border border-emerald-200 dark:border-emerald-800">
+                <Zap className="w-4 h-4 text-emerald-600" />
+                <span className="text-sm text-emerald-700 dark:text-emerald-400">
+                  {language === "ar" ? "التكلفة التقديرية:" : "Estimated cost:"}{" "}
+                  <span className="font-semibold">{estimatedCost.toFixed(3)} {currencySymbol}</span>
+                </span>
+              </div>
+            )}
           </div>
           <div className="space-y-2">
             <Label className="flex items-center gap-2">
