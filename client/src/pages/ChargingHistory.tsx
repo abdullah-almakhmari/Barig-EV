@@ -2,15 +2,21 @@ import { useState, useMemo, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useLanguage } from "@/components/LanguageContext";
 import { useChargingSessions, useStations } from "@/hooks/use-stations";
-import { Loader2, BatteryCharging, Clock, Zap, Battery, Camera, ChevronDown, MapPin, Banknote } from "lucide-react";
+import { Loader2, BatteryCharging, Clock, Zap, Battery, Camera, ChevronDown, MapPin, Banknote, Trash2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { Link } from "wouter";
 import { SEO } from "@/components/SEO";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { api } from "@shared/routes";
 import type { ChargingSession } from "@shared/schema";
 
 // Pricing constants (shared with ChargingStats)
@@ -40,11 +46,32 @@ type GroupedSessions = {
 export default function ChargingHistory() {
   const { t } = useTranslation();
   const { language } = useLanguage();
+  const { toast } = useToast();
   const { data: sessions, isLoading } = useChargingSessions();
   const { data: stations } = useStations();
   const [selectedScreenshot, setSelectedScreenshot] = useState<string | null>(null);
   const [electricityRate, setElectricityRate] = useState(DEFAULT_ELECTRICITY_RATE);
   const [currency, setCurrency] = useState(DEFAULT_CURRENCY);
+
+  const resetMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest("DELETE", "/api/charging-sessions/reset-all");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [api.chargingSessions.list.path] });
+      toast({
+        title: language === "ar" ? "تم بنجاح" : "Success",
+        description: language === "ar" ? "تم حذف جميع جلسات الشحن" : "All charging sessions deleted",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        variant: "destructive",
+        title: language === "ar" ? "خطأ" : "Error",
+        description: error.messageAr || error.message || (language === "ar" ? "حدث خطأ" : "An error occurred"),
+      });
+    }
+  });
 
   // Load pricing settings from localStorage
   useEffect(() => {
@@ -130,16 +157,62 @@ export default function ChargingHistory() {
   return (
     <div className="max-w-4xl mx-auto pb-20">
       <SEO title={t("charging.history")} />
-      <div className="flex items-center gap-3 mb-6">
-        <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-          <BatteryCharging className="w-6 h-6 text-primary" />
+      <div className="flex items-center justify-between gap-3 mb-6">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+            <BatteryCharging className="w-6 h-6 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold">{t("charging.history")}</h1>
+            <p className="text-muted-foreground text-sm">
+              {sessions?.length || 0} {language === "ar" ? "جلسة" : "sessions"} • {groupedSessions.length} {language === "ar" ? "محطة" : "stations"}
+            </p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-2xl font-bold">{t("charging.history")}</h1>
-          <p className="text-muted-foreground text-sm">
-            {sessions?.length || 0} {language === "ar" ? "جلسة" : "sessions"} • {groupedSessions.length} {language === "ar" ? "محطة" : "stations"}
-          </p>
-        </div>
+        
+        {sessions && sessions.length > 0 && (
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button 
+                variant="outline" 
+                size="sm"
+                className="text-destructive border-destructive/30 hover:bg-destructive/10"
+                data-testid="button-reset-history"
+              >
+                <Trash2 className="w-4 h-4 me-1" />
+                {language === "ar" ? "تصفير" : "Reset"}
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>
+                  {language === "ar" ? "إعادة تصفير السجل" : "Reset Charging History"}
+                </AlertDialogTitle>
+                <AlertDialogDescription>
+                  {language === "ar" 
+                    ? "سيتم حذف جميع جلسات الشحن السابقة نهائياً. هذا الإجراء لا يمكن التراجع عنه."
+                    : "All your previous charging sessions will be permanently deleted. This action cannot be undone."}
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter className="gap-2">
+                <AlertDialogCancel>
+                  {language === "ar" ? "إلغاء" : "Cancel"}
+                </AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => resetMutation.mutate()}
+                  disabled={resetMutation.isPending}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  {resetMutation.isPending ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    language === "ar" ? "حذف الكل" : "Delete All"
+                  )}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
       </div>
 
       {allTimeTotals.totalEnergy > 0 && (

@@ -37,6 +37,7 @@ export interface IStorage {
   getUserActiveSession(userId: string): Promise<ChargingSession | undefined>;
   getSessionById(sessionId: number): Promise<ChargingSession | undefined>;
   deleteSession(sessionId: number): Promise<void>;
+  deleteAllUserSessions(userId: string): Promise<number>;
   getVehicles(): Promise<EvVehicle[]>;
   getVehicle(id: number): Promise<EvVehicle | undefined>;
   getUserVehicles(userId: string): Promise<UserVehicleWithDetails[]>;
@@ -365,6 +366,13 @@ export class DatabaseStorage implements IStorage {
 
   async deleteSession(sessionId: number): Promise<void> {
     await db.delete(chargingSessions).where(eq(chargingSessions.id, sessionId));
+  }
+
+  async deleteAllUserSessions(userId: string): Promise<number> {
+    const result = await db.delete(chargingSessions)
+      .where(eq(chargingSessions.userId, userId))
+      .returning();
+    return result.length;
   }
 
   async getVehicles(): Promise<EvVehicle[]> {

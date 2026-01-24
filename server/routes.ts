@@ -620,6 +620,34 @@ export async function registerRoutes(
     }
   });
 
+  // Delete all user's charging sessions (reset history)
+  app.delete("/api/charging-sessions/reset-all", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      // Check if user has an active session
+      const activeSession = await storage.getUserActiveSession(userId);
+      if (activeSession) {
+        return res.status(400).json({ 
+          message: "Cannot reset while you have an active charging session",
+          messageAr: "لا يمكن إعادة التصفير أثناء وجود جلسة شحن نشطة"
+        });
+      }
+      
+      const deletedCount = await storage.deleteAllUserSessions(userId);
+      res.json({ 
+        message: "All charging sessions deleted successfully",
+        messageAr: "تم حذف جميع جلسات الشحن بنجاح",
+        deletedCount 
+      });
+    } catch (err) {
+      throw err;
+    }
+  });
+
   app.get(api.chargingSessions.list.path, isAuthenticated, async (req: any, res) => {
     const stationId = req.query.stationId ? Number(req.query.stationId) : undefined;
     const userId = req.user?.id;
