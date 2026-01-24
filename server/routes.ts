@@ -643,8 +643,12 @@ export async function registerRoutes(
         messageAr: "تم حذف جميع جلسات الشحن بنجاح",
         deletedCount 
       });
-    } catch (err) {
-      throw err;
+    } catch (err: any) {
+      console.error("Error resetting charging sessions:", err);
+      res.status(500).json({ 
+        message: "Failed to reset charging history",
+        messageAr: "فشل في إعادة تصفير سجل الشحن"
+      });
     }
   });
 
