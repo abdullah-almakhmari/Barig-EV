@@ -45,9 +45,7 @@ export function Header() {
 
   const endSessionMutation = useMutation({
     mutationFn: async (sessionId: number) => {
-      return apiRequest("POST", `/api/charging-sessions/${sessionId}/end`, {
-        stationId: activeSession?.stationId,
-      });
+      return apiRequest("POST", `/api/charging-sessions/${sessionId}/end`, {});
     },
   });
 
@@ -71,6 +69,7 @@ export function Header() {
       try {
         await endSessionMutation.mutateAsync(activeSession.id);
       } catch (e) {
+        console.error("Failed to end session:", e);
       }
     }
     await performLogout();
