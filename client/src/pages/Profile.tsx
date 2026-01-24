@@ -275,7 +275,6 @@ export default function Profile() {
               ref={fileInputRef}
               type="file"
               accept="image/*"
-              capture="environment"
               onChange={handleProfileImageUpload}
               className="hidden"
               data-testid="input-profile-image"
