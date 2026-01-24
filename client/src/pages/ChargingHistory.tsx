@@ -1,8 +1,8 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useLanguage } from "@/components/LanguageContext";
 import { useChargingSessions, useStations } from "@/hooks/use-stations";
-import { Loader2, BatteryCharging, Clock, Zap, Battery, Camera, ChevronDown, MapPin } from "lucide-react";
+import { Loader2, BatteryCharging, Clock, Zap, Battery, Camera, ChevronDown, MapPin, Banknote } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -12,6 +12,21 @@ import { ar } from "date-fns/locale";
 import { Link } from "wouter";
 import { SEO } from "@/components/SEO";
 import type { ChargingSession } from "@shared/schema";
+
+// Pricing constants (shared with ChargingStats)
+const ELECTRICITY_STORAGE_KEY = "bariq_electricity_rate";
+const CURRENCY_STORAGE_KEY = "bariq_currency";
+const DEFAULT_ELECTRICITY_RATE = 0.1;
+const DEFAULT_CURRENCY = "OMR";
+
+const CURRENCIES = [
+  { code: "OMR", nameAr: "ريال عماني", nameEn: "Omani Rial", symbol: "ر.ع" },
+  { code: "AED", nameAr: "درهم إماراتي", nameEn: "UAE Dirham", symbol: "د.إ" },
+  { code: "SAR", nameAr: "ريال سعودي", nameEn: "Saudi Riyal", symbol: "ر.س" },
+  { code: "KWD", nameAr: "دينار كويتي", nameEn: "Kuwaiti Dinar", symbol: "د.ك" },
+  { code: "BHD", nameAr: "دينار بحريني", nameEn: "Bahraini Dinar", symbol: "د.ب" },
+  { code: "QAR", nameAr: "ريال قطري", nameEn: "Qatari Riyal", symbol: "ر.ق" },
+];
 
 type GroupedSessions = {
   stationId: number;
@@ -28,6 +43,29 @@ export default function ChargingHistory() {
   const { data: sessions, isLoading } = useChargingSessions();
   const { data: stations } = useStations();
   const [selectedScreenshot, setSelectedScreenshot] = useState<string | null>(null);
+  const [electricityRate, setElectricityRate] = useState(DEFAULT_ELECTRICITY_RATE);
+  const [currency, setCurrency] = useState(DEFAULT_CURRENCY);
+
+  // Load pricing settings from localStorage
+  useEffect(() => {
+    const savedRate = localStorage.getItem(ELECTRICITY_STORAGE_KEY);
+    if (savedRate) {
+      const rate = parseFloat(savedRate);
+      if (!isNaN(rate) && rate > 0) setElectricityRate(rate);
+    }
+    const savedCurrency = localStorage.getItem(CURRENCY_STORAGE_KEY);
+    if (savedCurrency && CURRENCIES.some(c => c.code === savedCurrency)) {
+      setCurrency(savedCurrency);
+    }
+  }, []);
+
+  const selectedCurrency = CURRENCIES.find(c => c.code === currency) || CURRENCIES[0];
+  const currencySymbol = language === "ar" ? selectedCurrency.symbol : selectedCurrency.code;
+  
+  const calculateCost = (energyKwh: number | null) => {
+    if (!energyKwh || energyKwh <= 0) return null;
+    return (energyKwh * electricityRate).toFixed(3);
+  };
 
   const getStationName = (stationId: number) => {
     const station = stations?.find(s => s.id === stationId);
@@ -126,6 +164,12 @@ export default function ChargingHistory() {
                         {group.totalEnergy.toFixed(1)} kWh
                       </Badge>
                     )}
+                    {group.totalEnergy > 0 && (
+                      <Badge className="bg-amber-500/10 text-amber-600 border-amber-200">
+                        <Banknote className="w-3 h-3 mr-1 rtl:ml-1 rtl:mr-0" />
+                        {(group.totalEnergy * electricityRate).toFixed(3)} {currencySymbol}
+                      </Badge>
+                    )}
                     {group.totalDuration > 0 && (
                       <Badge variant="secondary">
                         <Clock className="w-3 h-3 mr-1 rtl:ml-1 rtl:mr-0" />
@@ -177,6 +221,13 @@ export default function ChargingHistory() {
                               <div className="flex items-center gap-1 text-sm text-emerald-600">
                                 <Zap className="w-3 h-3" />
                                 <span>{session.energyKwh?.toFixed(1)} kWh</span>
+                              </div>
+                            )}
+
+                            {calculateCost(session.energyKwh) && (
+                              <div className="flex items-center gap-1 text-sm text-amber-600">
+                                <Banknote className="w-3 h-3" />
+                                <span>{calculateCost(session.energyKwh)} {currencySymbol}</span>
                               </div>
                             )}
 
