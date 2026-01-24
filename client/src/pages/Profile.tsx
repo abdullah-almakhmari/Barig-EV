@@ -150,10 +150,14 @@ export default function Profile() {
 
     setIsUploadingImage(true);
     try {
+      console.log("[Profile] Starting image upload...");
       const formData = new FormData();
       formData.append("file", file);
 
+      console.log("[Profile] Getting CSRF token...");
       const csrfToken = await getCsrfToken();
+      console.log("[Profile] CSRF token obtained, uploading file...");
+      
       const uploadResponse = await fetch("/api/uploads/upload", {
         method: "POST",
         body: formData,
@@ -163,16 +167,22 @@ export default function Profile() {
         },
       });
 
+      console.log("[Profile] Upload response status:", uploadResponse.status);
+      
       if (!uploadResponse.ok) {
         const errorData = await uploadResponse.json().catch(() => ({}));
-        console.error("Upload failed:", uploadResponse.status, errorData);
-        throw new Error(errorData.error || errorData.message || "Failed to upload image");
+        console.error("[Profile] Upload failed:", uploadResponse.status, errorData);
+        const errorMessage = errorData.error || errorData.message || `Upload failed with status ${uploadResponse.status}`;
+        throw new Error(errorMessage);
       }
 
       const uploadData = await uploadResponse.json();
       const objectPath = uploadData.objectPath;
+      console.log("[Profile] File uploaded successfully:", objectPath);
 
+      console.log("[Profile] Updating profile image URL...");
       await apiRequest("PATCH", "/api/user/profile-image", { profileImageUrl: objectPath });
+      console.log("[Profile] Profile image URL updated");
 
       queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
 
@@ -180,11 +190,11 @@ export default function Profile() {
         title: isArabic ? "تم التحديث" : "Updated",
         description: isArabic ? "تم تحديث صورة الملف الشخصي" : "Profile image updated",
       });
-    } catch (error) {
-      console.error("Error uploading profile image:", error);
+    } catch (error: any) {
+      console.error("[Profile] Error uploading profile image:", error);
       toast({
         title: isArabic ? "خطأ" : "Error",
-        description: isArabic ? "فشل رفع الصورة" : "Failed to upload image",
+        description: error.message || (isArabic ? "فشل رفع الصورة" : "Failed to upload image"),
         variant: "destructive",
       });
     } finally {
