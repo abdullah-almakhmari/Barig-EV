@@ -26,8 +26,8 @@ export function ChargingSessionDialog({ stationId, availableChargers, totalCharg
   const { user } = useAuth();
   const [openStart, setOpenStart] = useState(false);
   const [openEnd, setOpenEnd] = useState(false);
-  const [batteryStart, setBatteryStart] = useState("20");
-  const [batteryEnd, setBatteryEnd] = useState("80");
+  const [batteryStart, setBatteryStart] = useState("");
+  const [batteryEnd, setBatteryEnd] = useState("");
   const [energyKwh, setEnergyKwh] = useState("");
   const [batteryEndError, setBatteryEndError] = useState("");
   const [screenshotPath, setScreenshotPath] = useState<string | null>(null);
@@ -279,7 +279,7 @@ export function ChargingSessionDialog({ stationId, availableChargers, totalCharg
                       type="number"
                       min={activeSession?.batteryStartPercent ?? 0}
                       max="100"
-                      placeholder="85"
+                      placeholder={isArabic ? "أدخل نسبة البطارية" : "Enter battery %"}
                       value={batteryEnd}
                       onChange={(e) => {
                         const val = e.target.value;
@@ -317,7 +317,7 @@ export function ChargingSessionDialog({ stationId, availableChargers, totalCharg
                       type="number"
                       min="0"
                       step="0.1"
-                      placeholder="25.5"
+                      placeholder={isArabic ? "أدخل كمية الطاقة" : "Enter energy"}
                       value={energyKwh}
                       onChange={(e) => setEnergyKwh(e.target.value)}
                       className="pr-12"
@@ -522,7 +522,7 @@ export function ChargingSessionDialog({ stationId, availableChargers, totalCharg
                     type="number"
                     min="0"
                     max="100"
-                    placeholder="20"
+                    placeholder={isArabic ? "أدخل نسبة البطارية" : "Enter battery %"}
                     value={batteryStart}
                     onChange={(e) => setBatteryStart(e.target.value)}
                     className="pr-8"

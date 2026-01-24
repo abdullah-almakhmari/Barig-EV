@@ -30,7 +30,7 @@ export function ActiveSessionBanner() {
   const [dismissed, setDismissed] = useState(false);
   const [elapsedTime, setElapsedTime] = useState("");
   const [showEndDialog, setShowEndDialog] = useState(false);
-  const [batteryEnd, setBatteryEnd] = useState("80");
+  const [batteryEnd, setBatteryEnd] = useState("");
   const [batteryEndError, setBatteryEndError] = useState("");
   const [energyKwh, setEnergyKwh] = useState("");
   const [screenshotPath, setScreenshotPath] = useState<string | null>(null);
@@ -327,7 +327,7 @@ export function ActiveSessionBanner() {
                 type="number"
                 min={data?.session?.batteryStartPercent ?? 0}
                 max="100"
-                placeholder="85"
+                placeholder={language === "ar" ? "أدخل نسبة البطارية" : "Enter battery %"}
                 value={batteryEnd}
                 onChange={(e) => {
                   const val = e.target.value;
@@ -378,7 +378,7 @@ export function ActiveSessionBanner() {
                 type="number"
                 min="0"
                 step="0.1"
-                placeholder="25.5"
+                placeholder={language === "ar" ? "أدخل كمية الطاقة" : "Enter energy"}
                 value={energyKwh}
                 onChange={(e) => {
                   setEnergyKwh(e.target.value);
