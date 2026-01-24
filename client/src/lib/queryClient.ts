@@ -2,8 +2,8 @@ import { QueryClient, QueryFunction } from "@tanstack/react-query";
 
 let csrfToken: string | null = null;
 
-async function fetchCsrfToken(): Promise<string> {
-  if (csrfToken) return csrfToken;
+async function fetchCsrfToken(forceRefresh = false): Promise<string> {
+  if (csrfToken && !forceRefresh) return csrfToken;
   
   const res = await fetch("/api/csrf-token", { credentials: "include" });
   if (res.ok) {
@@ -18,8 +18,8 @@ export function clearCsrfToken() {
   csrfToken = null;
 }
 
-export async function getCsrfToken(): Promise<string> {
-  return fetchCsrfToken();
+export async function getCsrfToken(forceRefresh = false): Promise<string> {
+  return fetchCsrfToken(forceRefresh);
 }
 
 async function throwIfResNotOk(res: Response) {

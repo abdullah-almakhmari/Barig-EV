@@ -42,15 +42,31 @@ export const validateCsrf: RequestHandler = (req: Request, res: Response, next: 
 
   const tokenFromHeader = req.headers[CSRF_TOKEN_HEADER] as string | undefined;
   const tokenFromSession = req.session?.csrfToken;
+  const userAgent = req.headers["user-agent"] || "unknown";
+  const isMobile = /mobile|android|iphone|ipad/i.test(userAgent);
+
+  console.log(`[CSRF] Validating: path=${req.path}, method=${req.method}, isMobile=${isMobile}, hasSession=${!!req.session}, hasSessionToken=${!!tokenFromSession}, hasHeaderToken=${!!tokenFromHeader}`);
 
   if (!tokenFromHeader || !tokenFromSession) {
-    console.warn(`[CSRF] Missing token - header: ${!!tokenFromHeader}, session: ${!!tokenFromSession}, path: ${req.path}`);
-    return res.status(403).json({ message: "CSRF token missing" });
+    console.warn(`[CSRF] Missing token - header: ${!!tokenFromHeader}, session: ${!!tokenFromSession}, path: ${req.path}, mobile: ${isMobile}`);
+    return res.status(403).json({ 
+      message: "CSRF token missing",
+      messageAr: "رمز الأمان مفقود - يرجى تسجيل الخروج والدخول مجدداً",
+      details: { hasHeader: !!tokenFromHeader, hasSession: !!tokenFromSession }
+    });
   }
 
-  if (!crypto.timingSafeEqual(Buffer.from(tokenFromHeader), Buffer.from(tokenFromSession))) {
-    console.warn(`[CSRF] Token mismatch on ${req.path}`);
-    return res.status(403).json({ message: "CSRF token invalid" });
+  try {
+    if (!crypto.timingSafeEqual(Buffer.from(tokenFromHeader), Buffer.from(tokenFromSession))) {
+      console.warn(`[CSRF] Token mismatch on ${req.path}, mobile: ${isMobile}`);
+      return res.status(403).json({ 
+        message: "CSRF token invalid",
+        messageAr: "رمز الأمان غير صالح - يرجى تحديث الصفحة"
+      });
+    }
+  } catch (err) {
+    console.error(`[CSRF] Token comparison error:`, err);
+    return res.status(403).json({ message: "CSRF validation error" });
   }
 
   next();

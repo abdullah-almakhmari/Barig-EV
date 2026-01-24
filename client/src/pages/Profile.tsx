@@ -154,10 +154,11 @@ export default function Profile() {
       const formData = new FormData();
       formData.append("file", file);
 
-      console.log("[Profile] Getting CSRF token...");
-      const csrfToken = await getCsrfToken();
-      console.log("[Profile] CSRF token obtained, uploading file...");
+      console.log("[Profile] Getting fresh CSRF token...");
+      const csrfToken = await getCsrfToken(true);
+      console.log("[Profile] CSRF token obtained:", csrfToken ? "yes" : "no");
       
+      console.log("[Profile] Uploading file to server...");
       const uploadResponse = await fetch("/api/uploads/upload", {
         method: "POST",
         body: formData,
@@ -170,9 +171,15 @@ export default function Profile() {
       console.log("[Profile] Upload response status:", uploadResponse.status);
       
       if (!uploadResponse.ok) {
-        const errorData = await uploadResponse.json().catch(() => ({}));
-        console.error("[Profile] Upload failed:", uploadResponse.status, errorData);
-        const errorMessage = errorData.error || errorData.message || `Upload failed with status ${uploadResponse.status}`;
+        const errorText = await uploadResponse.text();
+        console.error("[Profile] Upload failed:", uploadResponse.status, errorText);
+        let errorMessage = `Upload failed (${uploadResponse.status})`;
+        try {
+          const errorData = JSON.parse(errorText);
+          errorMessage = errorData.error || errorData.message || errorMessage;
+        } catch {
+          if (errorText) errorMessage = errorText;
+        }
         throw new Error(errorMessage);
       }
 
@@ -192,9 +199,10 @@ export default function Profile() {
       });
     } catch (error: any) {
       console.error("[Profile] Error uploading profile image:", error);
+      const errorMsg = error.message || (isArabic ? "فشل رفع الصورة" : "Failed to upload image");
       toast({
         title: isArabic ? "خطأ" : "Error",
-        description: error.message || (isArabic ? "فشل رفع الصورة" : "Failed to upload image"),
+        description: errorMsg,
         variant: "destructive",
       });
     } finally {
