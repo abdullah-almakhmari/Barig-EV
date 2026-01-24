@@ -20,6 +20,9 @@ export function useStations(filters?: { search?: string; city?: string; type?: s
       if (!res.ok) throw new Error("Failed to fetch stations");
       return api.stations.list.responses[200].parse(await res.json());
     },
+    refetchOnWindowFocus: true,
+    refetchInterval: 30000,
+    staleTime: 10000,
   });
 }
 
