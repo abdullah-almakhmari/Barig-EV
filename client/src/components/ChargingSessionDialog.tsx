@@ -26,9 +26,10 @@ export function ChargingSessionDialog({ stationId, availableChargers, totalCharg
   const { user } = useAuth();
   const [openStart, setOpenStart] = useState(false);
   const [openEnd, setOpenEnd] = useState(false);
-  const [batteryStart, setBatteryStart] = useState("");
-  const [batteryEnd, setBatteryEnd] = useState("");
+  const [batteryStart, setBatteryStart] = useState("20");
+  const [batteryEnd, setBatteryEnd] = useState("80");
   const [energyKwh, setEnergyKwh] = useState("");
+  const [batteryEndError, setBatteryEndError] = useState("");
   const [screenshotPath, setScreenshotPath] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -276,16 +277,34 @@ export function ChargingSessionDialog({ stationId, availableChargers, totalCharg
                     <Input
                       id="batteryEnd"
                       type="number"
-                      min="0"
+                      min={activeSession?.batteryStartPercent ?? 0}
                       max="100"
                       placeholder="85"
                       value={batteryEnd}
-                      onChange={(e) => setBatteryEnd(e.target.value)}
-                      className="pr-8"
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setBatteryEnd(val);
+                        if (val && activeSession?.batteryStartPercent !== null && activeSession?.batteryStartPercent !== undefined) {
+                          if (Number(val) < activeSession.batteryStartPercent) {
+                            setBatteryEndError(isArabic ? "يجب أن تكون أكبر من نسبة البداية" : "Must be greater than start percentage");
+                          } else {
+                            setBatteryEndError("");
+                          }
+                        } else {
+                          setBatteryEndError("");
+                        }
+                      }}
+                      className={`pr-8 ${batteryEndError ? "border-red-500" : ""}`}
                       data-testid="input-battery-end"
                     />
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">%</span>
                   </div>
+                  {batteryEndError && <p className="text-xs text-red-500">{batteryEndError}</p>}
+                  {activeSession?.batteryStartPercent !== null && activeSession?.batteryStartPercent !== undefined && (
+                    <p className="text-xs text-muted-foreground">
+                      {isArabic ? `نسبة البداية: ${activeSession.batteryStartPercent}%` : `Started at: ${activeSession.batteryStartPercent}%`}
+                    </p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="energyKwh" className="flex items-center gap-2">
@@ -346,7 +365,7 @@ export function ChargingSessionDialog({ stationId, availableChargers, totalCharg
                 </Button>
                 <Button 
                   onClick={handleEndSession}
-                  disabled={endSession.isPending || isUploading}
+                  disabled={endSession.isPending || isUploading || !!batteryEndError}
                   className="bg-emerald-500 hover:bg-emerald-600"
                   data-testid="button-confirm-end-session"
                 >

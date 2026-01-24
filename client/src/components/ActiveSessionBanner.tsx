@@ -30,7 +30,8 @@ export function ActiveSessionBanner() {
   const [dismissed, setDismissed] = useState(false);
   const [elapsedTime, setElapsedTime] = useState("");
   const [showEndDialog, setShowEndDialog] = useState(false);
-  const [batteryEnd, setBatteryEnd] = useState("");
+  const [batteryEnd, setBatteryEnd] = useState("80");
+  const [batteryEndError, setBatteryEndError] = useState("");
   const [energyKwh, setEnergyKwh] = useState("");
   const [screenshotPath, setScreenshotPath] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -324,16 +325,34 @@ export function ActiveSessionBanner() {
               <Input
                 id="batteryEnd"
                 type="number"
-                min="0"
+                min={data?.session?.batteryStartPercent ?? 0}
                 max="100"
                 placeholder="85"
                 value={batteryEnd}
-                onChange={(e) => setBatteryEnd(e.target.value)}
-                className="pr-8"
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setBatteryEnd(val);
+                  if (val && data?.session?.batteryStartPercent !== null && data?.session?.batteryStartPercent !== undefined) {
+                    if (Number(val) < data.session.batteryStartPercent) {
+                      setBatteryEndError(language === "ar" ? "يجب أن تكون أكبر من نسبة البداية" : "Must be greater than start percentage");
+                    } else {
+                      setBatteryEndError("");
+                    }
+                  } else {
+                    setBatteryEndError("");
+                  }
+                }}
+                className={`pr-8 ${batteryEndError ? "border-red-500" : ""}`}
                 data-testid="input-battery-end-banner"
               />
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">%</span>
             </div>
+            {batteryEndError && <p className="text-xs text-red-500">{batteryEndError}</p>}
+            {data?.session?.batteryStartPercent !== null && data?.session?.batteryStartPercent !== undefined && (
+              <p className="text-xs text-muted-foreground">
+                {language === "ar" ? `نسبة البداية: ${data.session.batteryStartPercent}%` : `Started at: ${data.session.batteryStartPercent}%`}
+              </p>
+            )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="energyKwh" className="flex items-center gap-2">
@@ -424,7 +443,7 @@ export function ActiveSessionBanner() {
           </Button>
           <Button 
             onClick={confirmEndSession}
-            disabled={endSessionMutation.isPending || isUploading || isAnalyzing}
+            disabled={endSessionMutation.isPending || isUploading || isAnalyzing || !!batteryEndError}
             className="bg-emerald-500 hover:bg-emerald-600"
             data-testid="button-confirm-end-session-banner"
           >
