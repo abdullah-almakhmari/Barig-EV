@@ -44,8 +44,16 @@ export function registerObjectStorageRoutes(app: Express): void {
   });
 
   app.post("/api/uploads/upload", upload.single("file"), async (req: Request, res: Response) => {
-    console.log(`[Upload] Received upload request`);
+    console.log(`[Upload] Received upload request, authenticated: ${req.isAuthenticated?.() ?? false}`);
     try {
+      if (!req.isAuthenticated || !req.isAuthenticated()) {
+        console.log(`[Upload] User not authenticated`);
+        return res.status(401).json({
+          error: "Authentication required",
+          errorAr: "يجب تسجيل الدخول",
+        });
+      }
+
       const file = req.file;
       
       if (!file) {
@@ -56,7 +64,7 @@ export function registerObjectStorageRoutes(app: Express): void {
         });
       }
 
-      console.log(`[Upload] Uploading file: ${file.originalname}, size: ${file.size}, type: ${file.mimetype}`);
+      console.log(`[Upload] Uploading file: ${file.originalname}, size: ${file.size}, type: ${file.mimetype}, user: ${req.user?.id}`);
       
       const objectPath = await objectStorageService.uploadFile(file.buffer, file.mimetype);
 

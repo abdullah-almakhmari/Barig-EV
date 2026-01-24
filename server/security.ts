@@ -34,31 +34,35 @@ export const csrfTokenEndpoint: RequestHandler = (req: Request, res: Response) =
   res.json({ csrfToken: token });
 };
 
+const CSRF_EXEMPT_PATHS = [
+  "/api/uploads/upload",
+];
+
 export const validateCsrf: RequestHandler = (req: Request, res: Response, next: NextFunction) => {
   const safeMethod = ["GET", "HEAD", "OPTIONS"].includes(req.method);
   if (safeMethod) {
     return next();
   }
 
+  if (CSRF_EXEMPT_PATHS.some(path => req.path === path || req.path.startsWith(path))) {
+    console.log(`[CSRF] Exempt path: ${req.path}`);
+    return next();
+  }
+
   const tokenFromHeader = req.headers[CSRF_TOKEN_HEADER] as string | undefined;
   const tokenFromSession = req.session?.csrfToken;
-  const userAgent = req.headers["user-agent"] || "unknown";
-  const isMobile = /mobile|android|iphone|ipad/i.test(userAgent);
-
-  console.log(`[CSRF] Validating: path=${req.path}, method=${req.method}, isMobile=${isMobile}, hasSession=${!!req.session}, hasSessionToken=${!!tokenFromSession}, hasHeaderToken=${!!tokenFromHeader}`);
 
   if (!tokenFromHeader || !tokenFromSession) {
-    console.warn(`[CSRF] Missing token - header: ${!!tokenFromHeader}, session: ${!!tokenFromSession}, path: ${req.path}, mobile: ${isMobile}`);
+    console.warn(`[CSRF] Missing token - header: ${!!tokenFromHeader}, session: ${!!tokenFromSession}, path: ${req.path}`);
     return res.status(403).json({ 
       message: "CSRF token missing",
-      messageAr: "رمز الأمان مفقود - يرجى تسجيل الخروج والدخول مجدداً",
-      details: { hasHeader: !!tokenFromHeader, hasSession: !!tokenFromSession }
+      messageAr: "رمز الأمان مفقود - يرجى تسجيل الخروج والدخول مجدداً"
     });
   }
 
   try {
     if (!crypto.timingSafeEqual(Buffer.from(tokenFromHeader), Buffer.from(tokenFromSession))) {
-      console.warn(`[CSRF] Token mismatch on ${req.path}, mobile: ${isMobile}`);
+      console.warn(`[CSRF] Token mismatch on ${req.path}`);
       return res.status(403).json({ 
         message: "CSRF token invalid",
         messageAr: "رمز الأمان غير صالح - يرجى تحديث الصفحة"
