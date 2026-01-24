@@ -205,6 +205,77 @@ export default function AdminPanel() {
         <p className="text-slate-300">{t("admin.description")}</p>
       </div>
 
+      {/* Dashboard Statistics */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card className="bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-amber-500/20 rounded-lg">
+                <FileWarning className="w-5 h-5 text-amber-600" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">{isArabic ? "البلاغات" : "Reports"}</p>
+                <p className="text-2xl font-bold text-amber-600">
+                  {reportsLoading ? "..." : reports?.filter(r => r.reviewStatus === "pending" || !r.reviewStatus).length || 0}
+                </p>
+                <p className="text-xs text-muted-foreground">{isArabic ? "قيد المراجعة" : "Pending"}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-blue-500/20 rounded-lg">
+                <MapPin className="w-5 h-5 text-blue-600" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">{isArabic ? "المحطات" : "Stations"}</p>
+                <p className="text-2xl font-bold text-blue-600">
+                  {stationsLoading ? "..." : stations?.filter(s => s.approvalStatus === "pending").length || 0}
+                </p>
+                <p className="text-xs text-muted-foreground">{isArabic ? "تنتظر الموافقة" : "Pending"}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-purple-50 dark:bg-purple-950/30 border-purple-200 dark:border-purple-800">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-purple-500/20 rounded-lg">
+                <MessageCircle className="w-5 h-5 text-purple-600" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">{isArabic ? "الرسائل" : "Messages"}</p>
+                <p className="text-2xl font-bold text-purple-600">
+                  {messagesLoading ? "..." : contactMessages?.filter(m => m.status === "unread").length || 0}
+                </p>
+                <p className="text-xs text-muted-foreground">{isArabic ? "غير مقروءة" : "Unread"}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-emerald-500/20 rounded-lg">
+                <Camera className="w-5 h-5 text-emerald-600" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">{isArabic ? "الصور" : "Screenshots"}</p>
+                <p className="text-2xl font-bold text-emerald-600">
+                  {sessionsLoading ? "..." : sessionsWithScreenshots?.length || 0}
+                </p>
+                <p className="text-xs text-muted-foreground">{isArabic ? "جلسات شحن" : "Sessions"}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       <Tabs defaultValue="reports" className="w-full">
         <TabsList className="grid w-full sm:w-[750px] grid-cols-5 rounded-xl">
           <TabsTrigger value="reports" className="rounded-lg flex items-center gap-2" data-testid="tab-reports">
