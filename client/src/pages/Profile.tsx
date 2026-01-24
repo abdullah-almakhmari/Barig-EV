@@ -139,10 +139,10 @@ export default function Profile() {
       return;
     }
 
-    if (file.size > 5 * 1024 * 1024) {
+    if (file.size > 10 * 1024 * 1024) {
       toast({
         title: isArabic ? "خطأ" : "Error",
-        description: isArabic ? "الصورة كبيرة جداً (الحد الأقصى 5 ميجابايت)" : "Image is too large (max 5MB)",
+        description: isArabic ? "الصورة كبيرة جداً (الحد الأقصى 10 ميجابايت)" : "Image is too large (max 10MB)",
         variant: "destructive",
       });
       return;
