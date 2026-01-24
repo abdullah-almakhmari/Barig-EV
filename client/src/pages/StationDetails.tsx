@@ -475,6 +475,7 @@ export default function StationDetails() {
             stationId={id}
             availableChargers={station.availableChargers ?? 0}
             totalChargers={station.chargerCount ?? 1}
+            stationStatus={station.status ?? undefined}
           />
         </div>
       </div>
