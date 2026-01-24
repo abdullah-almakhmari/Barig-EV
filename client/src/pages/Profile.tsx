@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/hooks/use-auth";
 import { useUserVehicles, useVehicles, useCreateUserVehicle, useDeleteUserVehicle, useSetDefaultUserVehicle } from "@/hooks/use-stations";
@@ -10,10 +10,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { User, Car, Star, Trash2, Plus, Loader2, Check, Zap } from "lucide-react";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { User, Car, Star, Trash2, Plus, Loader2, Check, Zap, Camera } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Redirect } from "wouter";
 import { SEO } from "@/components/SEO";
+import { queryClient, apiRequest } from "@/lib/queryClient";
 import type { EvVehicle } from "@shared/schema";
 
 export default function Profile() {
@@ -33,6 +35,8 @@ export default function Profile() {
   const [nickname, setNickname] = useState("");
   const [showCustomVehicle, setShowCustomVehicle] = useState(false);
   const [customVehicleName, setCustomVehicleName] = useState("");
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (authLoading) {
     return (
@@ -116,6 +120,75 @@ export default function Profile() {
     setCustomVehicleName("");
   };
 
+  const getInitials = (firstName?: string | null, lastName?: string | null) => {
+    const first = firstName?.charAt(0)?.toUpperCase() || "";
+    const last = lastName?.charAt(0)?.toUpperCase() || "";
+    return first + last || "U";
+  };
+
+  const handleProfileImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast({
+        title: isArabic ? "خطأ" : "Error",
+        description: isArabic ? "يرجى اختيار صورة" : "Please select an image file",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: isArabic ? "خطأ" : "Error",
+        description: isArabic ? "الصورة كبيرة جداً (الحد الأقصى 5 ميجابايت)" : "Image is too large (max 5MB)",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsUploadingImage(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const uploadResponse = await fetch("/api/uploads/upload", {
+        method: "POST",
+        body: formData,
+        credentials: "include",
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error("Failed to upload image");
+      }
+
+      const uploadData = await uploadResponse.json();
+      const objectPath = uploadData.objectPath;
+
+      await apiRequest("PATCH", "/api/user/profile-image", { profileImageUrl: objectPath });
+
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+
+      toast({
+        title: isArabic ? "تم التحديث" : "Updated",
+        description: isArabic ? "تم تحديث صورة الملف الشخصي" : "Profile image updated",
+      });
+    } catch (error) {
+      console.error("Error uploading profile image:", error);
+      toast({
+        title: isArabic ? "خطأ" : "Error",
+        description: isArabic ? "فشل رفع الصورة" : "Failed to upload image",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploadingImage(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
+
   const groupedCatalog = catalogVehicles?.reduce((acc, vehicle) => {
     const brand = vehicle.brand || "Other";
     if (!acc[brand]) acc[brand] = [];
@@ -134,14 +207,44 @@ export default function Profile() {
 
       <div className="rounded-xl bg-gradient-to-br from-primary/20 to-emerald-600/20 p-6 shadow-lg">
         <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center">
-            <User className="w-8 h-8 text-primary" />
+          <div className="relative group">
+            <Avatar className="w-16 h-16">
+              <AvatarImage 
+                src={user.profileImageUrl?.startsWith("/objects/") ? user.profileImageUrl : user.profileImageUrl || undefined} 
+              />
+              <AvatarFallback className="bg-primary/20 text-primary text-lg">
+                {getInitials(user.firstName, user.lastName)}
+              </AvatarFallback>
+            </Avatar>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isUploadingImage}
+              className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+              data-testid="button-upload-profile-image"
+            >
+              {isUploadingImage ? (
+                <Loader2 className="w-6 h-6 text-white animate-spin" />
+              ) : (
+                <Camera className="w-6 h-6 text-white" />
+              )}
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleProfileImageUpload}
+              className="hidden"
+              data-testid="input-profile-image"
+            />
           </div>
           <div>
             <h1 className="text-2xl font-bold">
               {user.firstName} {user.lastName}
             </h1>
             <p className="text-muted-foreground">{user.email}</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {isArabic ? "اضغط على الصورة لتغييرها" : "Click on the image to change it"}
+            </p>
           </div>
         </div>
       </div>
