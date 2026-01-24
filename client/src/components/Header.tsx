@@ -1,21 +1,80 @@
+import { useState } from "react";
 import { useLanguage } from "./LanguageContext";
 import { useTranslation } from "react-i18next";
 import { Link, useLocation } from "wouter";
-import { MapPin, Plus, Languages, Zap, Navigation, History, LogIn, LogOut, User, Shield, BarChart3, MessageCircle } from "lucide-react";
+import { MapPin, Plus, Languages, Zap, Navigation, History, LogIn, LogOut, User, Shield, BarChart3, MessageCircle, AlertTriangle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useIsPWA, useIsMobile } from "@/hooks/use-pwa";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { apiRequest, getCsrfToken } from "@/lib/queryClient";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export function Header() {
   const { language, setLanguage } = useLanguage();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [location] = useLocation();
   const { user, isLoading, isAuthenticated } = useAuth();
   const isPWA = useIsPWA();
   const isMobile = useIsMobile();
+  const [showLogoutWarning, setShowLogoutWarning] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   
   const showMobileNav = isPWA && isMobile;
+  const isArabic = i18n.language === "ar";
+
+  const { data: activeSession } = useQuery({
+    queryKey: ["/api/charging-sessions/my-active"],
+    queryFn: async () => {
+      const res = await fetch("/api/charging-sessions/my-active", { credentials: "include" });
+      if (!res.ok) return null;
+      return res.json();
+    },
+    enabled: isAuthenticated,
+  });
+
+  const endSessionMutation = useMutation({
+    mutationFn: async (sessionId: number) => {
+      return apiRequest("POST", `/api/charging-sessions/${sessionId}/end`, {
+        stationId: activeSession?.stationId,
+      });
+    },
+  });
+
+  const handleLogoutClick = async () => {
+    if (activeSession) {
+      setShowLogoutWarning(true);
+    } else {
+      performLogout();
+    }
+  };
+
+  const performLogout = async () => {
+    setIsLoggingOut(true);
+    await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
+    window.location.href = "/";
+  };
+
+  const handleEndSessionAndLogout = async () => {
+    if (activeSession) {
+      setIsLoggingOut(true);
+      try {
+        await endSessionMutation.mutateAsync(activeSession.id);
+      } catch (e) {
+      }
+    }
+    await performLogout();
+  };
 
   const toggleLanguage = () => {
     setLanguage(language === "ar" ? "en" : "ar");
@@ -28,6 +87,7 @@ export function Header() {
   };
 
   return (
+    <>
     <header className={`sticky top-0 z-50 w-full ${showMobileNav ? '' : 'border-b'} bg-background/95 backdrop-blur-xl supports-[backdrop-filter]:bg-background/80 ${isPWA ? 'pwa-header' : ''}`}>
       <div className={`container mx-auto px-4 ${showMobileNav ? 'h-14' : 'h-16'} flex items-center justify-between`}>
         <Link href="/" className="flex items-center gap-2 group native-press">
@@ -148,13 +208,11 @@ export function Header() {
                   variant="ghost" 
                   size="icon" 
                   className="rounded-full" 
-                  onClick={() => {
-                    fetch("/api/auth/logout", { method: "POST", credentials: "include" })
-                      .then(() => window.location.href = "/");
-                  }}
+                  onClick={handleLogoutClick}
+                  disabled={isLoggingOut}
                   data-testid="button-logout"
                 >
-                  <LogOut className="w-5 h-5" />
+                  {isLoggingOut ? <Loader2 className="w-5 h-5 animate-spin" /> : <LogOut className="w-5 h-5" />}
                 </Button>
               </div>
             ) : (
@@ -169,5 +227,35 @@ export function Header() {
         </nav>
       </div>
     </header>
+
+    <AlertDialog open={showLogoutWarning} onOpenChange={setShowLogoutWarning}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle className="flex items-center gap-2">
+            <AlertTriangle className="w-5 h-5 text-amber-500" />
+            {isArabic ? "جلسة شحن نشطة" : "Active Charging Session"}
+          </AlertDialogTitle>
+          <AlertDialogDescription>
+            {isArabic 
+              ? "لديك جلسة شحن نشطة حالياً. ماذا تريد أن تفعل؟" 
+              : "You have an active charging session. What would you like to do?"}
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter className="flex-col gap-2 sm:flex-row">
+          <AlertDialogCancel disabled={isLoggingOut}>
+            {isArabic ? "إلغاء" : "Cancel"}
+          </AlertDialogCancel>
+          <AlertDialogAction
+            onClick={handleEndSessionAndLogout}
+            disabled={isLoggingOut}
+            className="bg-amber-500 hover:bg-amber-600"
+          >
+            {isLoggingOut && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+            {isArabic ? "إنهاء الجلسة وتسجيل الخروج" : "End session & logout"}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }
