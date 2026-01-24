@@ -56,9 +56,13 @@ export function Onboarding() {
 
   return (
     <div 
-      className="fixed inset-0 z-50 flex flex-col bg-background overflow-auto"
+      className="fixed inset-0 z-[9999] flex flex-col bg-background overflow-auto"
       dir={isRTL ? "rtl" : "ltr"}
-      style={{ touchAction: "pan-y" }}
+      style={{ 
+        touchAction: "pan-y",
+        paddingTop: "env(safe-area-inset-top, 20px)",
+        paddingBottom: "env(safe-area-inset-bottom, 20px)",
+      }}
       data-testid="onboarding-overlay"
     >
       <button
@@ -67,15 +71,18 @@ export function Onboarding() {
           e.preventDefault();
           handleDismiss();
         }}
-        className="absolute top-4 end-4 text-muted-foreground hover-elevate p-3 rounded z-10"
-        style={{ touchAction: "manipulation" }}
+        className="absolute end-4 text-muted-foreground hover-elevate p-3 rounded-full bg-muted/50 z-10"
+        style={{ 
+          touchAction: "manipulation",
+          top: "calc(env(safe-area-inset-top, 20px) + 8px)",
+        }}
         aria-label={t("onboarding.skip")}
         data-testid="button-onboarding-skip"
       >
         <X className="w-6 h-6" />
       </button>
 
-      <div className="flex-1 flex flex-col items-center justify-center px-6 py-8 text-center space-y-5">
+      <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 text-center space-y-5">
         <div className="flex items-center gap-2 text-primary">
           <Zap className="w-8 h-8" />
           <span className="text-2xl font-bold">{t("app.title")}</span>
@@ -119,16 +126,19 @@ export function Onboarding() {
         </ul>
       </div>
 
-      <div className="px-6 pb-8 pt-4 safe-area-inset-bottom">
+      <div 
+        className="px-6 pt-4"
+        style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 20px) + 16px)" }}
+      >
         <Button 
           onClick={handleDismiss}
           onTouchEnd={(e) => {
             e.preventDefault();
             handleDismiss();
           }}
-          className="w-full"
+          className="w-full text-lg font-semibold"
           size="lg"
-          style={{ touchAction: "manipulation", minHeight: "48px" }}
+          style={{ touchAction: "manipulation", minHeight: "52px" }}
           data-testid="button-onboarding-start"
         >
           {t("onboarding.getStarted")}
