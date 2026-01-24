@@ -237,11 +237,13 @@ export default function Profile() {
               data-testid="input-profile-image"
             />
           </div>
-          <div>
-            <h1 className="text-2xl font-bold">
+          <div className="flex-1 min-w-0">
+            <h1 className="text-2xl font-bold truncate">
               {user.firstName} {user.lastName}
             </h1>
-            <p className="text-muted-foreground">{user.email}</p>
+            <p className="text-muted-foreground text-sm truncate" dir="ltr">
+              {user.email}
+            </p>
             <p className="text-xs text-muted-foreground mt-1">
               {isArabic ? "اضغط على الصورة لتغييرها" : "Click on the image to change it"}
             </p>
