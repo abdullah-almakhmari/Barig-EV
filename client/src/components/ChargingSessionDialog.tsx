@@ -1,15 +1,15 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Zap, BatteryCharging, Battery, Gauge, Car, Plus, Camera, Check, X } from "lucide-react";
+import { Loader2, Zap, BatteryCharging, Battery, Gauge, Car, Plus, Check, X } from "lucide-react";
 import { useStartChargingSession, useEndChargingSession, useActiveSession, useVehicles, useUserVehicles, useCreateUserVehicle } from "@/hooks/use-stations";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
-import { getCsrfToken, apiRequest, queryClient } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useMutation } from "@tanstack/react-query";
 import { api } from "@shared/routes";
 import type { ChargingSession, EvVehicle, UserVehicleWithDetails } from "@shared/schema";
@@ -48,9 +48,6 @@ export function ChargingSessionDialog({ stationId, availableChargers, totalCharg
   const [batteryEnd, setBatteryEnd] = useState("");
   const [energyKwh, setEnergyKwh] = useState("");
   const [batteryEndError, setBatteryEndError] = useState("");
-  const [screenshotPath, setScreenshotPath] = useState<string | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedUserVehicleId, setSelectedUserVehicleId] = useState<string>("");
   const [showAddVehicle, setShowAddVehicle] = useState(false);
   const [selectedCatalogVehicleId, setSelectedCatalogVehicleId] = useState<string>("");
@@ -209,52 +206,6 @@ export function ChargingSessionDialog({ stationId, availableChargers, totalCharg
     }
   };
 
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setIsUploading(true);
-    try {
-      const csrfToken = await getCsrfToken();
-      const res = await fetch("/api/uploads/request-url", {
-        method: "POST",
-        headers: { 
-          "Content-Type": "application/json",
-          "x-csrf-token": csrfToken,
-        },
-        credentials: "include",
-        body: JSON.stringify({
-          name: file.name,
-          size: file.size,
-          contentType: file.type || "image/jpeg",
-        }),
-      });
-
-      if (!res.ok) {
-        throw new Error("Failed to get upload URL");
-      }
-
-      const { uploadURL, objectPath } = await res.json();
-
-      const uploadRes = await fetch(uploadURL, {
-        method: "PUT",
-        body: file,
-        headers: { "Content-Type": file.type || "image/jpeg" },
-      });
-
-      if (!uploadRes.ok) {
-        throw new Error("Failed to upload file");
-      }
-
-      setScreenshotPath(objectPath);
-      toast({ title: t("charging.screenshotUploaded") });
-    } catch {
-      toast({ title: t("common.error"), variant: "destructive" });
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
   const handleEndSession = async () => {
     if (!activeSession) return;
     try {
@@ -263,13 +214,11 @@ export function ChargingSessionDialog({ stationId, availableChargers, totalCharg
         stationId,
         batteryEndPercent: batteryEnd ? Number(batteryEnd) : undefined,
         energyKwh: energyKwh ? Number(energyKwh) : undefined,
-        screenshotPath: screenshotPath || undefined,
       });
       toast({ title: t("charging.sessionEnded"), description: t("charging.sessionEndedDesc") });
       setOpenEnd(false);
       setBatteryEnd("");
       setEnergyKwh("");
-      setScreenshotPath(null);
     } catch (error: any) {
       toast({ variant: "destructive", title: t("common.error"), description: error.message });
     }
@@ -395,38 +344,6 @@ export function ChargingSessionDialog({ stationId, availableChargers, totalCharg
                     </div>
                   )}
                 </div>
-                <div className="space-y-2">
-                  <Label className="flex items-center gap-2">
-                    <Camera className="w-4 h-4" />
-                    {t("charging.screenshot")}
-                  </Label>
-                  <p className="text-sm text-muted-foreground">{t("charging.screenshotHint")}</p>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    capture="environment"
-                    ref={fileInputRef}
-                    onChange={handleFileSelect}
-                    className="hidden"
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={isUploading}
-                    className="w-full"
-                    data-testid="button-upload-screenshot-details"
-                  >
-                    {isUploading ? (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    ) : screenshotPath ? (
-                      <Check className="mr-2 h-4 w-4 text-emerald-500" />
-                    ) : (
-                      <Camera className="mr-2 h-4 w-4" />
-                    )}
-                    {screenshotPath ? t("charging.screenshotUploaded") : t("charging.uploadScreenshot")}
-                  </Button>
-                </div>
               </div>
               <DialogFooter className="flex flex-col sm:flex-row gap-2">
                 <Button 
@@ -450,7 +367,7 @@ export function ChargingSessionDialog({ stationId, availableChargers, totalCharg
                   </Button>
                   <Button 
                     onClick={handleEndSession}
-                    disabled={endSession.isPending || isUploading || !!batteryEndError}
+                    disabled={endSession.isPending || !!batteryEndError}
                     className="bg-emerald-500 hover:bg-emerald-600 flex-1 sm:flex-none"
                     data-testid="button-confirm-end-session"
                   >
