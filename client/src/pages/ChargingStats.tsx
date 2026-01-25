@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useLanguage } from "@/components/LanguageContext";
 import { useChargingSessions, useStations } from "@/hooks/use-stations";
 import { useAuth } from "@/hooks/use-auth";
-import { Loader2, BarChart3, Zap, Clock, MapPin, TrendingUp, Fuel, Calendar, ChevronLeft, ChevronRight, Settings, Check } from "lucide-react";
+import { Loader2, BarChart3, Zap, Clock, MapPin, TrendingUp, Calendar, ChevronLeft, ChevronRight, Settings, Check } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -425,23 +425,7 @@ export default function ChargingStats() {
             </Card>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-            <Card className="p-4 bg-gradient-to-br from-green-500/5 to-emerald-500/10" data-testid="stat-savings">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center">
-                  <Fuel className="w-5 h-5 text-green-600" />
-                </div>
-                <div>
-                  <div className="text-lg font-bold text-green-600">
-                    ~{monthlyStats.petrolLitersSaved.toFixed(0)} {isArabic ? "لتر" : "L"}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    ≈ {monthlyStats.petrolMoneySaved.toFixed(2)} {isArabic ? `${selectedCurrency.symbol} توفير` : `${currency} saved`}
-                  </div>
-                </div>
-              </div>
-            </Card>
-
+          <div className="grid grid-cols-1 gap-4 mb-6">
             <Card className="p-4 bg-gradient-to-br from-blue-500/5 to-indigo-500/10" data-testid="stat-cost">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center">
