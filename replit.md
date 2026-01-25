@@ -196,3 +196,37 @@ Preferred communication style: Simple, everyday language.
   - Low/medium confidence: Saves photo, asks user to enter value manually
   - No detection: Saves photo, asks user to enter value manually
 - **Bilingual Support**: Arabic/English for all OCR feedback messages
+
+## Future Feature: Tesla Wall Connector Integration (Planned)
+
+### Overview
+Automatic charging session tracking via Tesla Wall Connector Gen 3 local API.
+
+### How It Will Work
+1. **Local Bridge Device** (Raspberry Pi or similar) runs on user's home network
+2. **Polls Tesla Wall Connector** every 30 seconds via local API:
+   - `http://<CHARGER_IP>/api/1/vitals` - Real-time charging data
+   - `http://<CHARGER_IP>/api/1/lifetime` - Cumulative statistics
+3. **Detects charging events automatically**:
+   - `vehicle_connected` + `contactor_closed` → Start session
+   - `contactor_closed` = false → End session
+4. **Sends data to Bariq server** via secure API endpoint
+5. **Creates/updates charging sessions** without user intervention
+
+### Available Data from Tesla Wall Connector Gen 3
+- `session_energy_wh` - Energy charged in current session (Wh)
+- `vehicle_connected` - Is vehicle plugged in
+- `contactor_closed` - Is charging active
+- `session_s` - Current session duration (seconds)
+- `vehicle_current_a` - Current draw (amps)
+- `voltageA_v`, `voltageB_v`, `voltageC_v` - Voltage per phase
+
+### Implementation Requirements
+1. **New API endpoint**: `POST /api/charging-sessions/auto-create` (authenticated via API key)
+2. **Bridge script** for Raspberry Pi (Python or Node.js)
+3. **User setup flow**: Link home charger IP + generate API key
+4. **Station matching**: Associate home charger with user's HOME station
+
+### Reference
+- Python library: `tesla-wall-connector` (PyPI)
+- API is undocumented but stable since 2021
