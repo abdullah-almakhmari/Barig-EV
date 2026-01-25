@@ -2,17 +2,20 @@ import { useState, useMemo, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useLanguage } from "@/components/LanguageContext";
 import { useChargingSessions, useStations, useUserVehicles } from "@/hooks/use-stations";
-import { Loader2, BatteryCharging, Clock, Zap, Battery, Camera, ChevronDown, MapPin, Banknote, Car, RefreshCw } from "lucide-react";
+import { Loader2, BatteryCharging, Clock, Zap, Battery, Camera, ChevronDown, MapPin, Banknote, Car, RefreshCw, Trash2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { Link } from "wouter";
 import { SEO } from "@/components/SEO";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import type { ChargingSession } from "@shared/schema";
 
 // Pricing constants (shared with ChargingStats)
@@ -51,6 +54,8 @@ export default function ChargingHistory() {
   const [currency, setCurrency] = useState(DEFAULT_CURRENCY);
   const [selectedVehicleId, setSelectedVehicleId] = useState<string>("all");
   const [isRecalculating, setIsRecalculating] = useState(false);
+  const [sessionToDelete, setSessionToDelete] = useState<ChargingSession | null>(null);
+  const { toast } = useToast();
 
   const handleRecalculate = () => {
     setIsRecalculating(true);
@@ -58,6 +63,27 @@ export default function ChargingHistory() {
       setIsRecalculating(false);
     }, 1200);
   };
+
+  const deleteSessionMutation = useMutation({
+    mutationFn: async (sessionId: number) => {
+      await apiRequest("DELETE", `/api/charging-sessions/${sessionId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/charging-sessions"] });
+      toast({
+        title: isArabic ? "تم الحذف" : "Deleted",
+        description: isArabic ? "تم حذف الجلسة بنجاح" : "Session deleted successfully",
+      });
+      setSessionToDelete(null);
+    },
+    onError: () => {
+      toast({
+        title: isArabic ? "خطأ" : "Error",
+        description: isArabic ? "فشل حذف الجلسة" : "Failed to delete session",
+        variant: "destructive",
+      });
+    },
+  });
 
   // Load pricing settings from localStorage
   useEffect(() => {
@@ -346,6 +372,19 @@ export default function ChargingHistory() {
                                 <span>{language === "ar" ? "صورة" : "Photo"}</span>
                               </button>
                             )}
+
+                            <button
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setSessionToDelete(session);
+                              }}
+                              className="flex items-center gap-1 text-sm text-destructive hover:underline"
+                              data-testid={`delete-btn-${session.id}`}
+                            >
+                              <Trash2 className="w-3 h-3" />
+                              <span>{language === "ar" ? "حذف" : "Delete"}</span>
+                            </button>
                           </div>
                         </div>
                       </div>
@@ -391,6 +430,58 @@ export default function ChargingHistory() {
               />
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!sessionToDelete} onOpenChange={() => setSessionToDelete(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>
+              {isArabic ? "تأكيد الحذف" : "Confirm Delete"}
+            </DialogTitle>
+            <DialogDescription>
+              {isArabic 
+                ? "هل أنت متأكد من حذف هذه الجلسة؟ سيتم إعادة حساب الإحصائيات تلقائياً."
+                : "Are you sure you want to delete this session? Statistics will be recalculated automatically."
+              }
+            </DialogDescription>
+          </DialogHeader>
+          {sessionToDelete && (
+            <div className="p-3 bg-muted rounded-lg text-sm">
+              <p className="font-medium">{getStationName(sessionToDelete.stationId)}</p>
+              <p className="text-muted-foreground">
+                {sessionToDelete.startTime && format(
+                  new Date(sessionToDelete.startTime),
+                  "PPp",
+                  { locale: isArabic ? ar : undefined }
+                )}
+              </p>
+              {sessionToDelete.energyKwh && (
+                <p className="text-emerald-600">{sessionToDelete.energyKwh.toFixed(1)} kWh</p>
+              )}
+            </div>
+          )}
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={() => setSessionToDelete(null)}
+              data-testid="cancel-delete-btn"
+            >
+              {isArabic ? "إلغاء" : "Cancel"}
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => sessionToDelete && deleteSessionMutation.mutate(sessionToDelete.id)}
+              disabled={deleteSessionMutation.isPending}
+              data-testid="confirm-delete-btn"
+            >
+              {deleteSessionMutation.isPending ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                isArabic ? "حذف" : "Delete"
+              )}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

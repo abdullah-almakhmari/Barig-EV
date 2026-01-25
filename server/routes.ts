@@ -580,7 +580,7 @@ export async function registerRoutes(
     }
   });
 
-  // Cancel/delete a charging session (only own active sessions)
+  // Cancel/delete a charging session (own sessions only)
   app.delete(api.chargingSessions.cancel.path, isAuthenticated, async (req: any, res) => {
     try {
       const sessionId = Number(req.params.id);
@@ -591,30 +591,27 @@ export async function registerRoutes(
         return res.status(404).json({ message: "Session not found" });
       }
       
-      // Only allow canceling own sessions
+      // Only allow deleting own sessions
       if (session.userId !== userId) {
-        return res.status(403).json({ message: "You can only cancel your own sessions" });
+        return res.status(403).json({ message: "You can only delete your own sessions" });
       }
       
-      // Only allow canceling active sessions
-      if (!session.isActive) {
-        return res.status(400).json({ message: "Can only cancel active sessions" });
-      }
-      
-      // Restore available chargers
-      const station = await storage.getStation(session.stationId);
-      if (station) {
-        const available = station.availableChargers ?? 0;
-        const total = station.chargerCount ?? 1;
-        if (available < total) {
-          await storage.updateStationAvailability(session.stationId, available + 1);
+      // If session is active, restore available chargers
+      if (session.isActive) {
+        const station = await storage.getStation(session.stationId);
+        if (station) {
+          const available = station.availableChargers ?? 0;
+          const total = station.chargerCount ?? 1;
+          if (available < total) {
+            await storage.updateStationAvailability(session.stationId, available + 1);
+          }
         }
       }
       
       // Delete the session
       await storage.deleteSession(sessionId);
       
-      res.json({ message: "Session cancelled successfully" });
+      res.json({ message: "Session deleted successfully" });
     } catch (err) {
       throw err;
     }
