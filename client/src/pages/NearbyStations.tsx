@@ -4,10 +4,12 @@ import { useQuery } from "@tanstack/react-query";
 import { Station } from "@shared/schema";
 import { StationCard } from "@/components/StationCard";
 import { useLanguage } from "@/components/LanguageContext";
-import { Loader2, MapPin, Navigation, RefreshCw, AlertCircle } from "lucide-react";
+import { Loader2, Navigation, RefreshCw, AlertCircle, Building2, Home, LayoutGrid } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { SEO } from "@/components/SEO";
+
+type StationTypeFilter = "ALL" | "PUBLIC" | "HOME";
 
 function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const R = 6371;
@@ -24,9 +26,11 @@ function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: numbe
 export default function NearbyStations() {
   const { t } = useTranslation();
   const { language } = useLanguage();
+  const isArabic = language === "ar";
   const [userLocation, setUserLocation] = useState<{lat: number; lng: number} | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [isGettingLocation, setIsGettingLocation] = useState(true);
+  const [stationTypeFilter, setStationTypeFilter] = useState<StationTypeFilter>("ALL");
 
   const { data: stations = [], isLoading } = useQuery<Station[]>({
     queryKey: ["/api/stations"],
@@ -67,11 +71,23 @@ export default function NearbyStations() {
   }, []);
 
   const sortedStations = userLocation
-    ? [...stations].map(station => ({
-        ...station,
-        distance: calculateDistance(userLocation.lat, userLocation.lng, station.lat, station.lng)
-      })).sort((a, b) => a.distance - b.distance)
+    ? [...stations]
+        .filter(station => {
+          if (stationTypeFilter === "ALL") return true;
+          return station.stationType === stationTypeFilter;
+        })
+        .map(station => ({
+          ...station,
+          distance: calculateDistance(userLocation.lat, userLocation.lng, station.lat, station.lng)
+        }))
+        .sort((a, b) => a.distance - b.distance)
     : [];
+
+  const filterOptions: { value: StationTypeFilter; labelAr: string; labelEn: string; icon: typeof LayoutGrid }[] = [
+    { value: "ALL", labelAr: "الكل", labelEn: "All", icon: LayoutGrid },
+    { value: "PUBLIC", labelAr: "عامة", labelEn: "Public", icon: Building2 },
+    { value: "HOME", labelAr: "منزلية", labelEn: "Home", icon: Home },
+  ];
 
   if (isGettingLocation) {
     return (
@@ -98,7 +114,7 @@ export default function NearbyStations() {
   return (
     <div className="container mx-auto px-4 py-6">
       <SEO title={t("nearby.title")} />
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
             <Navigation className="w-5 h-5 text-primary" />
@@ -108,6 +124,26 @@ export default function NearbyStations() {
         <Button variant="outline" size="icon" onClick={getUserLocation} data-testid="button-refresh-location">
           <RefreshCw className="w-4 h-4" />
         </Button>
+      </div>
+
+      <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
+        {filterOptions.map((option) => {
+          const Icon = option.icon;
+          const isActive = stationTypeFilter === option.value;
+          return (
+            <Button
+              key={option.value}
+              variant={isActive ? "default" : "outline"}
+              size="sm"
+              onClick={() => setStationTypeFilter(option.value)}
+              className={`flex items-center gap-2 whitespace-nowrap ${isActive ? "" : "bg-background"}`}
+              data-testid={`button-filter-${option.value.toLowerCase()}`}
+            >
+              <Icon className="w-4 h-4" />
+              {isArabic ? option.labelAr : option.labelEn}
+            </Button>
+          );
+        })}
       </div>
 
       {isLoading ? (
