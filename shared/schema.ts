@@ -21,6 +21,8 @@ export const stations = pgTable("stations", {
   city: text("city").notNull(),
   cityAr: text("city_ar").notNull(),
   address: text("address"),
+  description: text("description"),
+  descriptionAr: text("description_ar"),
   status: text("status").default("OPERATIONAL"),
   trustLevel: text("trust_level").default("NORMAL"),
   stationType: text("station_type").default("PUBLIC"),

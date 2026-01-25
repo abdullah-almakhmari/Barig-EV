@@ -258,6 +258,7 @@ export default function StationDetails() {
   const isAr = language === "ar";
   const name = isAr ? station.nameAr : station.name;
   const city = isAr ? station.cityAr : station.city;
+  const description = isAr ? (station.descriptionAr || station.description) : (station.description || station.descriptionAr);
   
   const primaryStatus = getPrimaryStatus(
     verificationSummary, 
@@ -385,6 +386,13 @@ export default function StationDetails() {
               <span className="text-muted-foreground/50">•</span>
               <span className="uppercase tracking-wide">{station.operator}</span>
             </div>
+            
+            {/* Station Description */}
+            {description && (
+              <div className="mt-3 p-3 bg-muted/50 rounded-lg">
+                <p className="text-sm text-muted-foreground leading-relaxed">{description}</p>
+              </div>
+            )}
             
             {/* Trust Score Badge - Feature Flagged */}
             <div className="mt-2">

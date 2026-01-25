@@ -218,6 +218,27 @@ export default function AddStation() {
               )}
             />
 
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t("add.descriptionLabel")}</FormLabel>
+                  <FormControl>
+                    <Textarea 
+                      placeholder={t("add.descriptionPlaceholder")} 
+                      {...field}
+                      value={field.value || ""}
+                      rows={3}
+                      className="resize-none"
+                      data-testid="input-description"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                <FormField
                 control={form.control}
