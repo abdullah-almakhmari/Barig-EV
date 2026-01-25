@@ -1,9 +1,9 @@
 import { useMemo, useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useLanguage } from "@/components/LanguageContext";
-import { useChargingSessions, useStations } from "@/hooks/use-stations";
+import { useChargingSessions, useStations, useUserVehicles } from "@/hooks/use-stations";
 import { useAuth } from "@/hooks/use-auth";
-import { Loader2, BarChart3, Zap, Clock, MapPin, TrendingUp, Calendar, ChevronLeft, ChevronRight, Settings, Check } from "lucide-react";
+import { Loader2, BarChart3, Zap, Clock, MapPin, TrendingUp, Calendar, ChevronLeft, ChevronRight, Settings, Check, Car } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -39,7 +39,9 @@ export default function ChargingStats() {
   const { user } = useAuth();
   const { data: sessions, isLoading } = useChargingSessions();
   const { data: stations } = useStations();
+  const { data: userVehicles = [] } = useUserVehicles();
   const [selectedMonth, setSelectedMonth] = useState(new Date());
+  const [selectedVehicleId, setSelectedVehicleId] = useState<string>("all");
   const [viewMode, setViewMode] = useState<"month" | "year">("month");
   const [electricityRate, setElectricityRate] = useState(DEFAULT_ELECTRICITY_RATE);
   const [petrolPrice, setPetrolPrice] = useState(DEFAULT_PETROL_PRICE);
@@ -112,13 +114,19 @@ export default function ChargingStats() {
     return isArabic ? station.nameAr : station.name;
   };
 
+  const filteredSessions = useMemo(() => {
+    if (!sessions) return [];
+    if (selectedVehicleId === "all") return sessions;
+    return sessions.filter(session => session.userVehicleId === selectedVehicleId);
+  }, [sessions, selectedVehicleId]);
+
   const monthlyStats = useMemo(() => {
-    if (!sessions) return null;
+    if (!filteredSessions.length) return null;
 
     const monthStart = startOfMonth(selectedMonth);
     const monthEnd = endOfMonth(selectedMonth);
 
-    const monthSessions = sessions.filter(s => {
+    const monthSessions = filteredSessions.filter(s => {
       if (!s.startTime) return false;
       const sessionDate = new Date(s.startTime);
       return sessionDate >= monthStart && sessionDate <= monthEnd;
@@ -150,10 +158,10 @@ export default function ChargingStats() {
       petrolMoneySaved,
       sessions: monthSessions,
     };
-  }, [sessions, selectedMonth, electricityRate, petrolPrice]);
+  }, [filteredSessions, selectedMonth, electricityRate, petrolPrice]);
 
   const yearlyData = useMemo(() => {
-    if (!sessions) return [];
+    if (!filteredSessions.length) return [];
 
     const months = [];
     for (let i = 11; i >= 0; i--) {
@@ -161,7 +169,7 @@ export default function ChargingStats() {
       const monthStart = startOfMonth(month);
       const monthEnd = endOfMonth(month);
 
-      const monthSessions = sessions.filter(s => {
+      const monthSessions = filteredSessions.filter(s => {
         if (!s.startTime) return false;
         const sessionDate = new Date(s.startTime);
         return sessionDate >= monthStart && sessionDate <= monthEnd;
@@ -181,7 +189,7 @@ export default function ChargingStats() {
     }
 
     return months;
-  }, [sessions, selectedMonth, isArabic]);
+  }, [filteredSessions, selectedMonth, isArabic]);
 
   const formatDuration = (minutes: number) => {
     if (minutes < 60) return `${minutes} ${isArabic ? "دقيقة" : "min"}`;
@@ -337,6 +345,27 @@ export default function ChargingStats() {
           </DialogContent>
         </Dialog>
       </div>
+
+      {userVehicles.length > 0 && (
+        <div className="mb-6">
+          <Select value={selectedVehicleId} onValueChange={setSelectedVehicleId}>
+            <SelectTrigger className="w-full" data-testid="select-vehicle-filter">
+              <Car className="w-4 h-4 me-2" />
+              <SelectValue placeholder={isArabic ? "جميع السيارات" : "All vehicles"} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">
+                {isArabic ? "جميع السيارات" : "All vehicles"}
+              </SelectItem>
+              {userVehicles.map((vehicle) => (
+                <SelectItem key={vehicle.id} value={vehicle.id}>
+                  {vehicle.customName || vehicle.vehicle?.name || (isArabic ? "سيارة غير معروفة" : "Unknown vehicle")}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
       <div className="flex items-center justify-between gap-4 mb-6">
         <div className="flex items-center gap-2">

@@ -1,13 +1,14 @@
 import { useState, useMemo, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useLanguage } from "@/components/LanguageContext";
-import { useChargingSessions, useStations } from "@/hooks/use-stations";
-import { Loader2, BatteryCharging, Clock, Zap, Battery, Camera, ChevronDown, MapPin, Banknote } from "lucide-react";
+import { useChargingSessions, useStations, useUserVehicles } from "@/hooks/use-stations";
+import { Loader2, BatteryCharging, Clock, Zap, Battery, Camera, ChevronDown, MapPin, Banknote, Car } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { Link } from "wouter";
@@ -41,11 +42,14 @@ type GroupedSessions = {
 export default function ChargingHistory() {
   const { t } = useTranslation();
   const { language } = useLanguage();
+  const isArabic = language === "ar";
   const { data: sessions, isLoading } = useChargingSessions();
   const { data: stations } = useStations();
+  const { data: userVehicles = [] } = useUserVehicles();
   const [selectedScreenshot, setSelectedScreenshot] = useState<string | null>(null);
   const [electricityRate, setElectricityRate] = useState(DEFAULT_ELECTRICITY_RATE);
   const [currency, setCurrency] = useState(DEFAULT_CURRENCY);
+  const [selectedVehicleId, setSelectedVehicleId] = useState<string>("all");
 
   // Load pricing settings from localStorage
   useEffect(() => {
@@ -83,10 +87,16 @@ export default function ChargingHistory() {
     }, { totalEnergy: 0, totalDuration: 0, totalCost: 0 });
   }, [sessions]);
 
-  const groupedSessions = useMemo(() => {
+  const filteredSessions = useMemo(() => {
     if (!sessions) return [];
+    if (selectedVehicleId === "all") return sessions;
+    return sessions.filter(session => session.userVehicleId === selectedVehicleId);
+  }, [sessions, selectedVehicleId]);
+
+  const groupedSessions = useMemo(() => {
+    if (!filteredSessions.length) return [];
     
-    const grouped = sessions.reduce((acc, session) => {
+    const grouped = filteredSessions.reduce((acc, session) => {
       const key = session.stationId;
       if (!acc[key]) {
         acc[key] = {
@@ -110,7 +120,7 @@ export default function ChargingHistory() {
       const bLatest = b.sessions[0]?.startTime ? new Date(b.sessions[0].startTime).getTime() : 0;
       return bLatest - aLatest;
     });
-  }, [sessions, stations, language]);
+  }, [filteredSessions, stations, language]);
 
   const formatDuration = (minutes: number | null) => {
     if (!minutes) return "-";
@@ -131,17 +141,40 @@ export default function ChargingHistory() {
   return (
     <div className="max-w-4xl mx-auto pb-20">
       <SEO title={t("charging.history")} />
-      <div className="flex items-center gap-3 mb-6">
-        <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-          <BatteryCharging className="w-6 h-6 text-primary" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold">{t("charging.history")}</h1>
-          <p className="text-muted-foreground text-sm">
-            {sessions?.length || 0} {language === "ar" ? "جلسة" : "sessions"} • {groupedSessions.length} {language === "ar" ? "محطة" : "stations"}
-          </p>
+      <div className="flex items-center justify-between gap-3 mb-4">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+            <BatteryCharging className="w-6 h-6 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold">{t("charging.history")}</h1>
+            <p className="text-muted-foreground text-sm">
+              {filteredSessions.length} {isArabic ? "جلسة" : "sessions"} • {groupedSessions.length} {isArabic ? "محطة" : "stations"}
+            </p>
+          </div>
         </div>
       </div>
+
+      {userVehicles.length > 0 && (
+        <div className="mb-6">
+          <Select value={selectedVehicleId} onValueChange={setSelectedVehicleId}>
+            <SelectTrigger className="w-full" data-testid="select-vehicle-filter">
+              <Car className="w-4 h-4 me-2" />
+              <SelectValue placeholder={isArabic ? "جميع السيارات" : "All vehicles"} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">
+                {isArabic ? "جميع السيارات" : "All vehicles"}
+              </SelectItem>
+              {userVehicles.map((vehicle) => (
+                <SelectItem key={vehicle.id} value={vehicle.id}>
+                  {vehicle.customName || vehicle.vehicle?.name || (isArabic ? "سيارة غير معروفة" : "Unknown vehicle")}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
       {allTimeTotals.totalEnergy > 0 && (
         <Card className="p-4 mb-6 bg-gradient-to-r from-emerald-500/10 to-primary/10 border-emerald-200 dark:border-emerald-800" data-testid="all-time-totals-card">
