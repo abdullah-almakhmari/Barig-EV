@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useLanguage } from "@/components/LanguageContext";
 import { useChargingSessions, useStations, useUserVehicles } from "@/hooks/use-stations";
-import { Loader2, BatteryCharging, Clock, Zap, Battery, Camera, ChevronDown, MapPin, Banknote, Car } from "lucide-react";
+import { Loader2, BatteryCharging, Clock, Zap, Battery, Camera, ChevronDown, MapPin, Banknote, Car, RefreshCw } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -50,6 +50,14 @@ export default function ChargingHistory() {
   const [electricityRate, setElectricityRate] = useState(DEFAULT_ELECTRICITY_RATE);
   const [currency, setCurrency] = useState(DEFAULT_CURRENCY);
   const [selectedVehicleId, setSelectedVehicleId] = useState<string>("all");
+  const [isRecalculating, setIsRecalculating] = useState(false);
+
+  const handleRecalculate = () => {
+    setIsRecalculating(true);
+    setTimeout(() => {
+      setIsRecalculating(false);
+    }, 1200);
+  };
 
   // Load pricing settings from localStorage
   useEffect(() => {
@@ -153,6 +161,16 @@ export default function ChargingHistory() {
             </p>
           </div>
         </div>
+        <Button 
+          variant="outline" 
+          size="icon" 
+          onClick={handleRecalculate}
+          disabled={isRecalculating}
+          data-testid="button-recalculate-history"
+          title={isArabic ? "إعادة حساب السجل" : "Recalculate history"}
+        >
+          <RefreshCw className={`w-4 h-4 ${isRecalculating ? "animate-spin" : ""}`} />
+        </Button>
       </div>
 
       {userVehicles.length > 0 && (

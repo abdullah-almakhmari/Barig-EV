@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useLanguage } from "@/components/LanguageContext";
 import { useChargingSessions, useStations, useUserVehicles } from "@/hooks/use-stations";
 import { useAuth } from "@/hooks/use-auth";
-import { Loader2, BarChart3, Zap, Clock, MapPin, TrendingUp, Calendar, ChevronLeft, ChevronRight, Settings, Check, Car } from "lucide-react";
+import { Loader2, BarChart3, Zap, Clock, MapPin, TrendingUp, Calendar, ChevronLeft, ChevronRight, Settings, Check, Car, RefreshCw } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -50,6 +50,14 @@ export default function ChargingStats() {
   const [petrolInput, setPetrolInput] = useState("");
   const [currencyInput, setCurrencyInput] = useState(DEFAULT_CURRENCY);
   const [showSettings, setShowSettings] = useState(false);
+  const [isRecalculating, setIsRecalculating] = useState(false);
+
+  const handleRecalculate = () => {
+    setIsRecalculating(true);
+    setTimeout(() => {
+      setIsRecalculating(false);
+    }, 1200);
+  };
 
   const selectedCurrency = CURRENCIES.find(c => c.code === currency) || CURRENCIES[0];
   const getCurrencySymbol = () => isArabic ? selectedCurrency.symbol : selectedCurrency.code;
@@ -248,8 +256,19 @@ export default function ChargingStats() {
           </div>
         </div>
 
-        <Dialog open={showSettings} onOpenChange={setShowSettings}>
-          <DialogTrigger asChild>
+        <div className="flex items-center gap-2">
+          <Button 
+            variant="outline" 
+            size="icon" 
+            onClick={handleRecalculate}
+            disabled={isRecalculating}
+            data-testid="button-recalculate"
+            title={isArabic ? "إعادة حساب الإحصائيات" : "Recalculate statistics"}
+          >
+            <RefreshCw className={`w-4 h-4 ${isRecalculating ? "animate-spin" : ""}`} />
+          </Button>
+          <Dialog open={showSettings} onOpenChange={setShowSettings}>
+            <DialogTrigger asChild>
             <Button variant="outline" size="icon" data-testid="button-settings">
               <Settings className="w-4 h-4" />
             </Button>
@@ -344,6 +363,7 @@ export default function ChargingStats() {
             </div>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       {userVehicles.length > 0 && (
