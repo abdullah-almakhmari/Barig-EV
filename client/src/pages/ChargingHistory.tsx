@@ -78,20 +78,20 @@ export default function ChargingHistory() {
     return language === "ar" ? station.nameAr : station.name;
   };
 
-  const allTimeTotals = useMemo(() => {
-    if (!sessions) return { totalEnergy: 0, totalDuration: 0, totalCost: 0 };
-    return sessions.reduce((acc, session) => {
-      if (session.energyKwh) acc.totalEnergy += session.energyKwh;
-      if (session.durationMinutes) acc.totalDuration += session.durationMinutes;
-      return acc;
-    }, { totalEnergy: 0, totalDuration: 0, totalCost: 0 });
-  }, [sessions]);
-
   const filteredSessions = useMemo(() => {
     if (!sessions) return [];
     if (selectedVehicleId === "all") return sessions;
     return sessions.filter(session => session.userVehicleId !== null && String(session.userVehicleId) === selectedVehicleId);
   }, [sessions, selectedVehicleId]);
+
+  const allTimeTotals = useMemo(() => {
+    if (!filteredSessions.length) return { totalEnergy: 0, totalDuration: 0, totalCost: 0 };
+    return filteredSessions.reduce((acc, session) => {
+      if (session.energyKwh) acc.totalEnergy += session.energyKwh;
+      if (session.durationMinutes) acc.totalDuration += session.durationMinutes;
+      return acc;
+    }, { totalEnergy: 0, totalDuration: 0, totalCost: 0 });
+  }, [filteredSessions]);
 
   const groupedSessions = useMemo(() => {
     if (!filteredSessions.length) return [];
