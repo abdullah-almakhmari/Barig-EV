@@ -117,7 +117,7 @@ export default function ChargingStats() {
   const filteredSessions = useMemo(() => {
     if (!sessions) return [];
     if (selectedVehicleId === "all") return sessions;
-    return sessions.filter(session => session.userVehicleId === selectedVehicleId);
+    return sessions.filter(session => session.userVehicleId !== null && String(session.userVehicleId) === selectedVehicleId);
   }, [sessions, selectedVehicleId]);
 
   const monthlyStats = useMemo(() => {
@@ -358,8 +358,8 @@ export default function ChargingStats() {
                 {isArabic ? "جميع السيارات" : "All vehicles"}
               </SelectItem>
               {userVehicles.map((vehicle) => (
-                <SelectItem key={vehicle.id} value={vehicle.id}>
-                  {vehicle.customName || vehicle.vehicle?.name || (isArabic ? "سيارة غير معروفة" : "Unknown vehicle")}
+                <SelectItem key={vehicle.id} value={String(vehicle.id)}>
+                  {vehicle.nickname || (vehicle.evVehicle ? `${vehicle.evVehicle.brand} ${vehicle.evVehicle.model}` : (isArabic ? "سيارة غير معروفة" : "Unknown vehicle"))}
                 </SelectItem>
               ))}
             </SelectContent>
