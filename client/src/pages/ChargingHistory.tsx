@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useLanguage } from "@/components/LanguageContext";
 import { useChargingSessions, useStations, useUserVehicles } from "@/hooks/use-stations";
-import { Loader2, BatteryCharging, Clock, Zap, Battery, Camera, ChevronDown, MapPin, Banknote, Car, RefreshCw, Trash2, Upload, FileSpreadsheet } from "lucide-react";
+import { Loader2, BatteryCharging, Clock, Zap, Battery, Camera, ChevronDown, MapPin, Banknote, Car, Trash2, Upload, FileSpreadsheet } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -113,7 +113,6 @@ export default function ChargingHistory() {
     if (!selectedVehicleIsTesla) return null;
     return userVehicles.find(v => String(v.id) === selectedVehicleId);
   }, [userVehicles, selectedVehicleId, selectedVehicleIsTesla]);
-  const [isRecalculating, setIsRecalculating] = useState(false);
   const [sessionToDelete, setSessionToDelete] = useState<ChargingSession | null>(null);
   const [showImportDialog, setShowImportDialog] = useState(false);
   const [parsedSessions, setParsedSessions] = useState<ParsedSession[]>([]);
@@ -121,13 +120,6 @@ export default function ChargingHistory() {
   const [importVehicleId, setImportVehicleId] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
-
-  const handleRecalculate = () => {
-    setIsRecalculating(true);
-    setTimeout(() => {
-      setIsRecalculating(false);
-    }, 1200);
-  };
 
   const deleteSessionMutation = useMutation({
     mutationFn: async (sessionId: number) => {
@@ -325,16 +317,6 @@ export default function ChargingHistory() {
               <span className="hidden sm:inline">{t("charging.import")}</span>
             </Button>
           )}
-          <Button 
-            variant="outline" 
-            size="icon" 
-            onClick={handleRecalculate}
-            disabled={isRecalculating}
-            data-testid="button-recalculate-history"
-            title={isArabic ? "إعادة حساب السجل" : "Recalculate history"}
-          >
-            <RefreshCw className={`w-4 h-4 ${isRecalculating ? "animate-spin" : ""}`} />
-          </Button>
         </div>
       </div>
 
