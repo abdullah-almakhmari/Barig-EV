@@ -6,11 +6,6 @@ interface PullToRefreshProps {
   children: React.ReactNode;
 }
 
-function isIOSDevice() {
-  return /iPad|iPhone|iPod/.test(navigator.userAgent) || 
-    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-}
-
 function isTouchDevice() {
   return 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 }
@@ -19,35 +14,57 @@ export function PullToRefresh({ onRefresh, children }: PullToRefreshProps) {
   const [pullDistance, setPullDistance] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isEnabled, setIsEnabled] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const [isPulling, setIsPulling] = useState(false);
   const startY = useRef(0);
+  const startScrollTop = useRef(0);
 
-  const threshold = 80;
-  const maxPull = 120;
+  const threshold = 100;
+  const maxPull = 150;
 
   useEffect(() => {
     setIsEnabled(isTouchDevice());
   }, []);
 
   const handleTouchStart = useCallback((e: TouchEvent) => {
-    if (containerRef.current?.scrollTop === 0) {
+    const scrollTop = window.scrollY || document.documentElement.scrollTop;
+    startScrollTop.current = scrollTop;
+    
+    if (scrollTop <= 5) {
       startY.current = e.touches[0].clientY;
+      setIsPulling(true);
+    } else {
+      startY.current = 0;
+      setIsPulling(false);
     }
   }, []);
 
   const handleTouchMove = useCallback((e: TouchEvent) => {
-    if (!startY.current || isRefreshing) return;
+    if (!isPulling || !startY.current || isRefreshing) return;
+    
+    const currentScrollTop = window.scrollY || document.documentElement.scrollTop;
+    if (currentScrollTop > 5) {
+      setPullDistance(0);
+      setIsPulling(false);
+      return;
+    }
     
     const currentY = e.touches[0].clientY;
     const diff = currentY - startY.current;
     
-    if (diff > 0 && containerRef.current?.scrollTop === 0) {
-      e.preventDefault();
-      setPullDistance(Math.min(diff * 0.5, maxPull));
+    if (diff > 10 && currentScrollTop <= 5) {
+      setPullDistance(Math.min(diff * 0.4, maxPull));
+    } else {
+      setPullDistance(0);
     }
-  }, [isRefreshing]);
+  }, [isRefreshing, isPulling]);
 
   const handleTouchEnd = useCallback(async () => {
+    if (!isPulling) {
+      setPullDistance(0);
+      startY.current = 0;
+      return;
+    }
+    
     if (pullDistance >= threshold && !isRefreshing) {
       setIsRefreshing(true);
       setPullDistance(60);
@@ -62,20 +79,20 @@ export function PullToRefresh({ onRefresh, children }: PullToRefreshProps) {
       setPullDistance(0);
     }
     startY.current = 0;
-  }, [pullDistance, isRefreshing, onRefresh]);
+    setIsPulling(false);
+  }, [pullDistance, isRefreshing, onRefresh, isPulling]);
 
   useEffect(() => {
-    const container = containerRef.current;
-    if (!container || !isEnabled) return;
+    if (!isEnabled) return;
 
-    container.addEventListener("touchstart", handleTouchStart, { passive: true });
-    container.addEventListener("touchmove", handleTouchMove, { passive: false });
-    container.addEventListener("touchend", handleTouchEnd);
+    document.addEventListener("touchstart", handleTouchStart, { passive: true });
+    document.addEventListener("touchmove", handleTouchMove, { passive: true });
+    document.addEventListener("touchend", handleTouchEnd);
 
     return () => {
-      container.removeEventListener("touchstart", handleTouchStart);
-      container.removeEventListener("touchmove", handleTouchMove);
-      container.removeEventListener("touchend", handleTouchEnd);
+      document.removeEventListener("touchstart", handleTouchStart);
+      document.removeEventListener("touchmove", handleTouchMove);
+      document.removeEventListener("touchend", handleTouchEnd);
     };
   }, [handleTouchStart, handleTouchMove, handleTouchEnd, isEnabled]);
 
@@ -84,16 +101,16 @@ export function PullToRefresh({ onRefresh, children }: PullToRefreshProps) {
   }
 
   return (
-    <div ref={containerRef} className="h-full overflow-y-auto">
+    <div className="relative">
       {pullDistance > 0 && (
         <div 
-          className="flex justify-center items-center transition-all"
-          style={{ height: pullDistance, marginTop: -pullDistance / 2 }}
+          className="absolute left-0 right-0 flex justify-center items-center transition-all z-50"
+          style={{ top: -10, height: pullDistance }}
         >
           <div 
-            className={`w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center ${isRefreshing ? 'spin-smooth' : ''}`}
+            className={`w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center ${isRefreshing ? 'animate-spin' : ''}`}
             style={{ 
-              transform: `rotate(${pullDistance * 2}deg)`,
+              transform: `rotate(${pullDistance * 3}deg)`,
               opacity: Math.min(pullDistance / threshold, 1)
             }}
           >
@@ -101,7 +118,9 @@ export function PullToRefresh({ onRefresh, children }: PullToRefreshProps) {
           </div>
         </div>
       )}
-      {children}
+      <div style={{ transform: `translateY(${pullDistance}px)`, transition: pullDistance === 0 ? 'transform 0.2s' : 'none' }}>
+        {children}
+      </div>
     </div>
   );
 }
