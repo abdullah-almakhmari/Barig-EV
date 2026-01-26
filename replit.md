@@ -197,6 +197,21 @@ Preferred communication style: Simple, everyday language.
   - No detection: Saves photo, asks user to enter value manually
 - **Bilingual Support**: Arabic/English for all OCR feedback messages
 
+## Tesla CSV Import Feature
+
+Users can import their charging history from the Tesla app:
+1. Export CSV from Tesla app → "Previous 12 Month Charge Sessions"
+2. In Bariq: Go to History → Click "Import from Tesla" button
+3. Select CSV file, choose station and vehicle
+4. Sessions are imported automatically
+
+**CSV Format Expected:**
+- Column 1: Charging Start Time (ISO 8601 with timezone)
+- Column 2: Charging Duration (minutes)
+- Column 3: Energy Delivered (kWh)
+
+**Backend Endpoint:** `POST /api/charging-sessions/import-csv`
+
 ## Future Feature: Tesla Wall Connector Integration (Planned)
 
 ### Overview

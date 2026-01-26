@@ -645,6 +645,85 @@ export async function registerRoutes(
     res.json(null);
   });
 
+  // Import charging sessions from Tesla CSV export
+  app.post("/api/charging-sessions/import-csv", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const { sessions, stationId, userVehicleId } = req.body;
+      
+      if (!Array.isArray(sessions) || sessions.length === 0) {
+        return res.status(400).json({ message: "No sessions to import" });
+      }
+
+      if (!stationId || typeof stationId !== "number") {
+        return res.status(400).json({ message: "Station ID is required" });
+      }
+
+      // Verify station exists
+      const station = await storage.getStation(stationId);
+      if (!station) {
+        return res.status(404).json({ message: "Station not found" });
+      }
+
+      // Verify user vehicle if provided
+      if (userVehicleId) {
+        const vehicle = await storage.getUserVehicle(userVehicleId);
+        if (!vehicle || vehicle.userId !== userId) {
+          return res.status(404).json({ message: "Vehicle not found" });
+        }
+      }
+
+      let importedCount = 0;
+      let skippedCount = 0;
+
+      for (const session of sessions) {
+        try {
+          const startTime = new Date(session.startTime);
+          const durationMinutes = Math.round(session.durationMinutes);
+          const energyKwh = session.energyKwh;
+
+          // Skip sessions with no energy (likely aborted charges)
+          if (!energyKwh || energyKwh <= 0) {
+            skippedCount++;
+            continue;
+          }
+
+          // Calculate end time
+          const endTime = new Date(startTime.getTime() + durationMinutes * 60 * 1000);
+
+          await storage.createCompletedSession({
+            stationId,
+            userId,
+            userVehicleId: userVehicleId || null,
+            startTime,
+            endTime,
+            durationMinutes,
+            energyKwh,
+          });
+
+          importedCount++;
+        } catch (err) {
+          console.error("Error importing session:", err);
+          skippedCount++;
+        }
+      }
+
+      res.json({ 
+        success: true, 
+        imported: importedCount, 
+        skipped: skippedCount,
+        message: `Imported ${importedCount} sessions${skippedCount > 0 ? `, skipped ${skippedCount}` : ''}`
+      });
+    } catch (err) {
+      console.error("Error importing CSV:", err);
+      res.status(500).json({ message: "Failed to import sessions" });
+    }
+  });
+
   // Update user profile image
   app.patch("/api/user/profile-image", isAuthenticated, async (req: any, res) => {
     try {

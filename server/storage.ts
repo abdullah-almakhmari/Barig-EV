@@ -31,6 +31,15 @@ export interface IStorage {
   createReport(report: InsertReport): Promise<Report>;
   startChargingSession(stationId: number, batteryStartPercent?: number, userVehicleId?: number, userId?: string, customVehicleName?: string): Promise<ChargingSession>;
   endChargingSession(sessionId: number, batteryEndPercent?: number, energyKwh?: number, screenshotPath?: string): Promise<ChargingSession | undefined>;
+  createCompletedSession(session: {
+    stationId: number;
+    userId?: string;
+    userVehicleId?: number | null;
+    startTime: Date;
+    endTime: Date;
+    durationMinutes: number;
+    energyKwh: number;
+  }): Promise<ChargingSession>;
   getChargingSessions(stationId?: number, userId?: string): Promise<ChargingSession[]>;
   getChargingSessionsWithScreenshots(): Promise<(ChargingSession & { stationName?: string; stationNameAr?: string; userEmail?: string })[]>;
   getActiveSession(stationId: number): Promise<ChargingSession | undefined>;
@@ -263,6 +272,28 @@ export class DatabaseStorage implements IStorage {
       startTime: new Date(),
     }).returning();
     return session;
+  }
+
+  async createCompletedSession(session: {
+    stationId: number;
+    userId?: string;
+    userVehicleId?: number | null;
+    startTime: Date;
+    endTime: Date;
+    durationMinutes: number;
+    energyKwh: number;
+  }): Promise<ChargingSession> {
+    const [created] = await db.insert(chargingSessions).values({
+      stationId: session.stationId,
+      userId: session.userId,
+      userVehicleId: session.userVehicleId,
+      startTime: session.startTime,
+      endTime: session.endTime,
+      durationMinutes: session.durationMinutes,
+      energyKwh: session.energyKwh,
+      isActive: false,
+    }).returning();
+    return created;
   }
 
   async endChargingSession(sessionId: number, batteryEndPercent?: number, energyKwh?: number, screenshotPath?: string): Promise<ChargingSession | undefined> {
