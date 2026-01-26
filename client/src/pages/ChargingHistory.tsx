@@ -65,6 +65,8 @@ const CURRENCIES = [
   { code: "QAR", nameAr: "ريال قطري", nameEn: "Qatari Riyal", symbol: "ر.ق" },
 ];
 
+const VEHICLE_FILTER_KEY = "bariq_history_vehicle_filter";
+
 type GroupedSessions = {
   stationId: number;
   stationName: string;
@@ -85,7 +87,15 @@ export default function ChargingHistory() {
   const [selectedScreenshot, setSelectedScreenshot] = useState<string | null>(null);
   const [electricityRate, setElectricityRate] = useState(DEFAULT_ELECTRICITY_RATE);
   const [currency, setCurrency] = useState(DEFAULT_CURRENCY);
-  const [selectedVehicleId, setSelectedVehicleId] = useState<string>("all");
+  const [selectedVehicleId, setSelectedVehicleId] = useState<string>(() => {
+    const saved = localStorage.getItem(VEHICLE_FILTER_KEY);
+    return saved || "all";
+  });
+
+  // Save vehicle filter to localStorage when changed
+  useEffect(() => {
+    localStorage.setItem(VEHICLE_FILTER_KEY, selectedVehicleId);
+  }, [selectedVehicleId]);
 
   // Check if the currently selected vehicle is a Tesla
   const selectedVehicleIsTesla = useMemo(() => {
