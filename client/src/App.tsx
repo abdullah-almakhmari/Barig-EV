@@ -11,6 +11,7 @@ import { Onboarding } from "@/components/Onboarding";
 import { SplashScreen } from "@/components/SplashScreen";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { PullToRefresh } from "@/components/PullToRefresh";
+import { ScrollToTop } from "@/components/ScrollToTop";
 import { HelmetProvider } from "react-helmet-async";
 
 // Pages
@@ -56,7 +57,7 @@ function App() {
                 <Onboarding />
                 <ActiveSessionBanner />
                 <Header />
-                <main className="flex-1 container mx-auto px-4 py-3 overflow-hidden pwa-main-content">
+                <main className="flex-1 container mx-auto px-4 py-3 overflow-auto pwa-main-content">
                   <PullToRefresh onRefresh={async () => {
                     await queryClient.invalidateQueries();
                     window.location.reload();
@@ -67,6 +68,7 @@ function App() {
                   </PullToRefresh>
                 </main>
                 <MobileNav />
+                <ScrollToTop />
               </div>
               <Toaster />
             </TooltipProvider>
