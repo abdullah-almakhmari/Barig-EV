@@ -86,6 +86,8 @@ export default function Profile() {
   const handleSetDefault = async (vehicleId: number) => {
     try {
       await setDefaultVehicle.mutateAsync(vehicleId);
+      // Sync selected vehicle across all pages
+      localStorage.setItem("bariq_selected_vehicle", String(vehicleId));
       toast({
         title: isArabic ? "تم التحديث" : "Updated",
         description: isArabic ? "تم تعيين السيارة الافتراضية" : "Default vehicle set",

@@ -65,7 +65,7 @@ const CURRENCIES = [
   { code: "QAR", nameAr: "ريال قطري", nameEn: "Qatari Riyal", symbol: "ر.ق" },
 ];
 
-const VEHICLE_FILTER_KEY = "bariq_history_vehicle_filter";
+const VEHICLE_FILTER_KEY = "bariq_selected_vehicle";
 
 type GroupedSessions = {
   stationId: number;
