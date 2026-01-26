@@ -1,21 +1,33 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { RefreshCw } from "lucide-react";
-import { useIsPWA } from "@/hooks/use-pwa";
 
 interface PullToRefreshProps {
   onRefresh: () => Promise<void>;
   children: React.ReactNode;
 }
 
+function isIOSDevice() {
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+}
+
+function isTouchDevice() {
+  return 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+}
+
 export function PullToRefresh({ onRefresh, children }: PullToRefreshProps) {
   const [pullDistance, setPullDistance] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isEnabled, setIsEnabled] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const startY = useRef(0);
-  const isPWA = useIsPWA();
 
   const threshold = 80;
   const maxPull = 120;
+
+  useEffect(() => {
+    setIsEnabled(isTouchDevice());
+  }, []);
 
   const handleTouchStart = useCallback((e: TouchEvent) => {
     if (containerRef.current?.scrollTop === 0) {
@@ -54,7 +66,7 @@ export function PullToRefresh({ onRefresh, children }: PullToRefreshProps) {
 
   useEffect(() => {
     const container = containerRef.current;
-    if (!container || !isPWA) return;
+    if (!container || !isEnabled) return;
 
     container.addEventListener("touchstart", handleTouchStart, { passive: true });
     container.addEventListener("touchmove", handleTouchMove, { passive: false });
@@ -65,9 +77,9 @@ export function PullToRefresh({ onRefresh, children }: PullToRefreshProps) {
       container.removeEventListener("touchmove", handleTouchMove);
       container.removeEventListener("touchend", handleTouchEnd);
     };
-  }, [handleTouchStart, handleTouchMove, handleTouchEnd, isPWA]);
+  }, [handleTouchStart, handleTouchMove, handleTouchEnd, isEnabled]);
 
-  if (!isPWA) {
+  if (!isEnabled) {
     return <>{children}</>;
   }
 
