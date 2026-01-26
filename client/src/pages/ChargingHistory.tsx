@@ -81,6 +81,23 @@ export default function ChargingHistory() {
   const { data: sessions, isLoading } = useChargingSessions();
   const { data: stations } = useStations();
   const { data: userVehicles = [] } = useUserVehicles();
+  
+  // Check if user has a Tesla vehicle
+  const hasTeslaVehicle = useMemo(() => {
+    return userVehicles.some(vehicle => 
+      vehicle.evVehicle?.brand?.toLowerCase().includes('tesla') ||
+      vehicle.nickname?.toLowerCase().includes('tesla')
+    );
+  }, [userVehicles]);
+
+  // Get Tesla vehicles only for import
+  const teslaVehicles = useMemo(() => {
+    return userVehicles.filter(vehicle => 
+      vehicle.evVehicle?.brand?.toLowerCase().includes('tesla') ||
+      vehicle.nickname?.toLowerCase().includes('tesla')
+    );
+  }, [userVehicles]);
+
   const [selectedScreenshot, setSelectedScreenshot] = useState<string | null>(null);
   const [electricityRate, setElectricityRate] = useState(DEFAULT_ELECTRICITY_RATE);
   const [currency, setCurrency] = useState(DEFAULT_CURRENCY);
@@ -280,16 +297,18 @@ export default function ChargingHistory() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={() => setShowImportDialog(true)}
-            data-testid="button-import-csv"
-            className="gap-1"
-          >
-            <Upload className="w-4 h-4" />
-            <span className="hidden sm:inline">{t("charging.import")}</span>
-          </Button>
+          {hasTeslaVehicle && (
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => setShowImportDialog(true)}
+              data-testid="button-import-csv"
+              className="gap-1"
+            >
+              <Upload className="w-4 h-4" />
+              <span className="hidden sm:inline">{t("charging.import")}</span>
+            </Button>
+          )}
           <Button 
             variant="outline" 
             size="icon" 
@@ -648,7 +667,7 @@ export default function ChargingHistory() {
                   </Select>
                 </div>
 
-                {userVehicles.length > 0 && (
+                {teslaVehicles.length > 0 && (
                   <div>
                     <Label>{t("charging.selectVehicle")}</Label>
                     <Select value={importVehicleId} onValueChange={setImportVehicleId}>
@@ -656,7 +675,7 @@ export default function ChargingHistory() {
                         <SelectValue placeholder={t("charging.selectVehicle")} />
                       </SelectTrigger>
                       <SelectContent>
-                        {userVehicles.map((vehicle) => (
+                        {teslaVehicles.map((vehicle) => (
                           <SelectItem key={vehicle.id} value={String(vehicle.id)}>
                             {vehicle.nickname || (vehicle.evVehicle ? `${vehicle.evVehicle.brand} ${vehicle.evVehicle.model}` : (isArabic ? "سيارة" : "Vehicle"))}
                           </SelectItem>
