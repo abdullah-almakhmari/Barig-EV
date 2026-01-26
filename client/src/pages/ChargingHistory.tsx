@@ -82,26 +82,27 @@ export default function ChargingHistory() {
   const { data: stations } = useStations();
   const { data: userVehicles = [] } = useUserVehicles();
   
-  // Check if user has a Tesla vehicle
-  const hasTeslaVehicle = useMemo(() => {
-    return userVehicles.some(vehicle => 
-      vehicle.evVehicle?.brand?.toLowerCase().includes('tesla') ||
-      vehicle.nickname?.toLowerCase().includes('tesla')
-    );
-  }, [userVehicles]);
-
-  // Get Tesla vehicles only for import
-  const teslaVehicles = useMemo(() => {
-    return userVehicles.filter(vehicle => 
-      vehicle.evVehicle?.brand?.toLowerCase().includes('tesla') ||
-      vehicle.nickname?.toLowerCase().includes('tesla')
-    );
-  }, [userVehicles]);
-
   const [selectedScreenshot, setSelectedScreenshot] = useState<string | null>(null);
   const [electricityRate, setElectricityRate] = useState(DEFAULT_ELECTRICITY_RATE);
   const [currency, setCurrency] = useState(DEFAULT_CURRENCY);
   const [selectedVehicleId, setSelectedVehicleId] = useState<string>("all");
+
+  // Check if the currently selected vehicle is a Tesla
+  const selectedVehicleIsTesla = useMemo(() => {
+    if (selectedVehicleId === "all") return false;
+    const selectedVehicle = userVehicles.find(v => String(v.id) === selectedVehicleId);
+    if (!selectedVehicle) return false;
+    return (
+      selectedVehicle.evVehicle?.brand?.toLowerCase().includes('tesla') ||
+      selectedVehicle.nickname?.toLowerCase().includes('tesla')
+    );
+  }, [userVehicles, selectedVehicleId]);
+
+  // Get the selected Tesla vehicle for import
+  const selectedTeslaVehicle = useMemo(() => {
+    if (!selectedVehicleIsTesla) return null;
+    return userVehicles.find(v => String(v.id) === selectedVehicleId);
+  }, [userVehicles, selectedVehicleId, selectedVehicleIsTesla]);
   const [isRecalculating, setIsRecalculating] = useState(false);
   const [sessionToDelete, setSessionToDelete] = useState<ChargingSession | null>(null);
   const [showImportDialog, setShowImportDialog] = useState(false);
@@ -297,11 +298,16 @@ export default function ChargingHistory() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {hasTeslaVehicle && (
+          {selectedVehicleIsTesla && (
             <Button 
               variant="outline" 
               size="sm"
-              onClick={() => setShowImportDialog(true)}
+              onClick={() => {
+                setShowImportDialog(true);
+                if (selectedTeslaVehicle) {
+                  setImportVehicleId(String(selectedTeslaVehicle.id));
+                }
+              }}
               data-testid="button-import-csv"
               className="gap-1"
             >
@@ -667,21 +673,17 @@ export default function ChargingHistory() {
                   </Select>
                 </div>
 
-                {teslaVehicles.length > 0 && (
-                  <div>
-                    <Label>{t("charging.selectVehicle")}</Label>
-                    <Select value={importVehicleId} onValueChange={setImportVehicleId}>
-                      <SelectTrigger className="w-full mt-2" data-testid="select-import-vehicle">
-                        <SelectValue placeholder={t("charging.selectVehicle")} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {teslaVehicles.map((vehicle) => (
-                          <SelectItem key={vehicle.id} value={String(vehicle.id)}>
-                            {vehicle.nickname || (vehicle.evVehicle ? `${vehicle.evVehicle.brand} ${vehicle.evVehicle.model}` : (isArabic ? "سيارة" : "Vehicle"))}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                {selectedTeslaVehicle && (
+                  <div className="p-3 bg-primary/5 rounded-lg border border-primary/20">
+                    <Label className="text-muted-foreground text-xs">
+                      {isArabic ? "السيارة المختارة" : "Selected Vehicle"}
+                    </Label>
+                    <p className="font-medium text-primary mt-1">
+                      {selectedTeslaVehicle.nickname || 
+                        (selectedTeslaVehicle.evVehicle 
+                          ? `${selectedTeslaVehicle.evVehicle.brand} ${selectedTeslaVehicle.evVehicle.model}` 
+                          : "Tesla")}
+                    </p>
                   </div>
                 )}
 
