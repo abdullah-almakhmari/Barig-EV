@@ -20,6 +20,7 @@ import { ar } from "date-fns/locale";
 const ELECTRICITY_STORAGE_KEY = "bariq_electricity_rate";
 const PETROL_STORAGE_KEY = "bariq_petrol_price";
 const CURRENCY_STORAGE_KEY = "bariq_currency";
+const STATS_VEHICLE_FILTER_KEY = "bariq_stats_vehicle_filter";
 const DEFAULT_ELECTRICITY_RATE = 0.014;
 const DEFAULT_PETROL_PRICE = 0.239;
 const DEFAULT_CURRENCY = "OMR";
@@ -41,7 +42,15 @@ export default function ChargingStats() {
   const { data: stations } = useStations();
   const { data: userVehicles = [] } = useUserVehicles();
   const [selectedMonth, setSelectedMonth] = useState(new Date());
-  const [selectedVehicleId, setSelectedVehicleId] = useState<string>("all");
+  const [selectedVehicleId, setSelectedVehicleId] = useState<string>(() => {
+    const saved = localStorage.getItem(STATS_VEHICLE_FILTER_KEY);
+    return saved || "all";
+  });
+
+  // Save vehicle filter to localStorage when changed
+  useEffect(() => {
+    localStorage.setItem(STATS_VEHICLE_FILTER_KEY, selectedVehicleId);
+  }, [selectedVehicleId]);
   const [viewMode, setViewMode] = useState<"month" | "year">("month");
   const [electricityRate, setElectricityRate] = useState(DEFAULT_ELECTRICITY_RATE);
   const [petrolPrice, setPetrolPrice] = useState(DEFAULT_PETROL_PRICE);
