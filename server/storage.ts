@@ -1,12 +1,13 @@
 import {
-  stations, reports, chargingSessions, evVehicles, userVehicles, users, stationVerifications, contactMessages,
+  stations, reports, chargingSessions, evVehicles, userVehicles, users, stationVerifications, contactMessages, teslaConnectors,
   type Station, type InsertStation,
   type Report, type InsertReport,
   type ChargingSession, type InsertChargingSession,
   type EvVehicle, type InsertEvVehicle,
   type UserVehicle, type InsertUserVehicle, type UserVehicleWithDetails,
   type StationVerification, type VerificationSummary,
-  type ContactMessage, type InsertContactMessage
+  type ContactMessage, type InsertContactMessage,
+  type TeslaConnector, type InsertTeslaConnector
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, ilike, or, ne, gte, sql, isNotNull } from "drizzle-orm";
@@ -65,6 +66,14 @@ export interface IStorage {
   createContactMessage(message: InsertContactMessage): Promise<ContactMessage>;
   getContactMessages(): Promise<ContactMessage[]>;
   updateContactMessageStatus(id: number, status: string, adminNotes?: string): Promise<ContactMessage | undefined>;
+  // Tesla Connectors
+  createTeslaConnector(connector: InsertTeslaConnector): Promise<TeslaConnector>;
+  getTeslaConnector(id: number): Promise<TeslaConnector | undefined>;
+  getTeslaConnectorByToken(deviceToken: string): Promise<TeslaConnector | undefined>;
+  getUserTeslaConnectors(userId: string): Promise<TeslaConnector[]>;
+  updateTeslaConnector(id: number, data: Partial<TeslaConnector>): Promise<TeslaConnector | undefined>;
+  deleteTeslaConnector(id: number): Promise<void>;
+  createChargingSession(session: InsertChargingSession): Promise<ChargingSession>;
   seed(): Promise<void>;
 }
 
@@ -767,6 +776,43 @@ export class DatabaseStorage implements IStorage {
     }
 
     console.log("Database seeded successfully");
+  }
+
+  // Tesla Connector methods
+  async createTeslaConnector(connector: InsertTeslaConnector): Promise<TeslaConnector> {
+    const [newConnector] = await db.insert(teslaConnectors).values(connector).returning();
+    return newConnector;
+  }
+
+  async getTeslaConnector(id: number): Promise<TeslaConnector | undefined> {
+    const [connector] = await db.select().from(teslaConnectors).where(eq(teslaConnectors.id, id));
+    return connector;
+  }
+
+  async getTeslaConnectorByToken(deviceToken: string): Promise<TeslaConnector | undefined> {
+    const [connector] = await db.select().from(teslaConnectors).where(eq(teslaConnectors.deviceToken, deviceToken));
+    return connector;
+  }
+
+  async getUserTeslaConnectors(userId: string): Promise<TeslaConnector[]> {
+    return await db.select().from(teslaConnectors).where(eq(teslaConnectors.userId, userId));
+  }
+
+  async updateTeslaConnector(id: number, data: Partial<TeslaConnector>): Promise<TeslaConnector | undefined> {
+    const [updated] = await db.update(teslaConnectors)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(teslaConnectors.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteTeslaConnector(id: number): Promise<void> {
+    await db.delete(teslaConnectors).where(eq(teslaConnectors.id, id));
+  }
+
+  async createChargingSession(session: InsertChargingSession): Promise<ChargingSession> {
+    const [newSession] = await db.insert(chargingSessions).values(session).returning();
+    return newSession;
   }
 }
 

@@ -855,6 +855,185 @@ export async function registerRoutes(
     res.json({ success: true });
   });
 
+  // ========== ESP32 Tesla Connector API ==========
+  
+  // Generate a unique device token
+  function generateDeviceToken(): string {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let result = '';
+    for (let i = 0; i < 32; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
+  }
+  
+  // Create/Register a Tesla Connector for a station
+  app.post("/api/tesla-connector/register", isAuthenticated, async (req: any, res) => {
+    try {
+      const { stationId, deviceName, chargerIp, userVehicleId } = req.body;
+      const userId = req.user?.id;
+      
+      if (!stationId) {
+        return res.status(400).json({ message: "Station ID is required" });
+      }
+      
+      const deviceToken = generateDeviceToken();
+      
+      const connector = await storage.createTeslaConnector({
+        stationId: Number(stationId),
+        userId,
+        deviceToken,
+        deviceName: deviceName || null,
+        chargerIp: chargerIp || null,
+        userVehicleId: userVehicleId ? Number(userVehicleId) : null,
+      });
+      
+      res.json({
+        success: true,
+        connector: {
+          id: connector.id,
+          deviceToken: connector.deviceToken,
+          stationId: connector.stationId,
+          deviceName: connector.deviceName,
+        },
+        message: "Use this token in your ESP32 code to authenticate"
+      });
+    } catch (err) {
+      console.error("[Tesla Connector] Error registering:", err);
+      res.status(500).json({ message: "Failed to register connector" });
+    }
+  });
+  
+  // Get user's Tesla Connectors
+  app.get("/api/tesla-connector/my-connectors", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.id;
+      const connectors = await storage.getUserTeslaConnectors(userId);
+      res.json(connectors);
+    } catch (err) {
+      console.error("[Tesla Connector] Error fetching connectors:", err);
+      res.status(500).json({ message: "Failed to fetch connectors" });
+    }
+  });
+  
+  // Delete a Tesla Connector
+  app.delete("/api/tesla-connector/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const connectorId = Number(req.params.id);
+      const userId = req.user?.id;
+      
+      const connector = await storage.getTeslaConnector(connectorId);
+      if (!connector) {
+        return res.status(404).json({ message: "Connector not found" });
+      }
+      if (connector.userId !== userId) {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+      
+      await storage.deleteTeslaConnector(connectorId);
+      res.json({ success: true });
+    } catch (err) {
+      console.error("[Tesla Connector] Error deleting connector:", err);
+      res.status(500).json({ message: "Failed to delete connector" });
+    }
+  });
+  
+  // ESP32 sends vitals data - no auth required (uses device token)
+  app.post("/api/tesla-connector/vitals", async (req, res) => {
+    try {
+      const { deviceToken, vitals } = req.body;
+      
+      if (!deviceToken) {
+        return res.status(400).json({ message: "Device token required" });
+      }
+      
+      const connector = await storage.getTeslaConnectorByToken(deviceToken);
+      if (!connector) {
+        return res.status(401).json({ message: "Invalid device token" });
+      }
+      
+      // Parse previous vitals to detect state changes
+      const prevVitals = connector.lastVitals ? JSON.parse(connector.lastVitals) : null;
+      const wasVehicleConnected = prevVitals?.vehicle_connected || false;
+      const isVehicleConnected = vitals.vehicle_connected || false;
+      const wasCharging = prevVitals?.contactor_closed || false;
+      const isCharging = vitals.contactor_closed || false;
+      
+      let newSessionId = connector.currentSessionId;
+      let action = null;
+      
+      // Vehicle just connected and started charging
+      if (!wasCharging && isCharging && isVehicleConnected) {
+        // Start a new charging session
+        const session = await storage.createChargingSession({
+          stationId: connector.stationId,
+          userId: connector.userId,
+          userVehicleId: connector.userVehicleId,
+          isActive: true,
+        });
+        newSessionId = session.id;
+        action = "session_started";
+        
+        // Update station status to BUSY (orange)
+        await storage.updateStationStatus(connector.stationId, "BUSY");
+      }
+      
+      // Charging just stopped
+      if (wasCharging && !isCharging && connector.currentSessionId) {
+        // End the charging session
+        const energyKwh = vitals.session_energy_wh / 1000;
+        const durationMinutes = Math.round(vitals.session_s / 60);
+        
+        await storage.endChargingSession(connector.currentSessionId, undefined, energyKwh);
+        newSessionId = null;
+        action = "session_ended";
+        
+        // Update station status back to OPERATIONAL (green)
+        await storage.updateStationStatus(connector.stationId, "OPERATIONAL");
+      }
+      
+      // Update connector with latest vitals
+      await storage.updateTeslaConnector(connector.id, {
+        isOnline: true,
+        lastSeen: new Date(),
+        lastVitals: JSON.stringify(vitals),
+        currentSessionId: newSessionId,
+      });
+      
+      res.json({
+        success: true,
+        action,
+        sessionId: newSessionId,
+        stationStatus: isCharging ? "BUSY" : "OPERATIONAL",
+      });
+    } catch (err) {
+      console.error("[Tesla Connector] Error processing vitals:", err);
+      res.status(500).json({ message: "Failed to process vitals" });
+    }
+  });
+  
+  // Get connector status (for ESP32 to check)
+  app.get("/api/tesla-connector/status/:token", async (req, res) => {
+    try {
+      const deviceToken = req.params.token;
+      const connector = await storage.getTeslaConnectorByToken(deviceToken);
+      
+      if (!connector) {
+        return res.status(401).json({ message: "Invalid device token" });
+      }
+      
+      res.json({
+        isOnline: connector.isOnline,
+        lastSeen: connector.lastSeen,
+        currentSessionId: connector.currentSessionId,
+        stationId: connector.stationId,
+      });
+    } catch (err) {
+      console.error("[Tesla Connector] Error fetching status:", err);
+      res.status(500).json({ message: "Failed to fetch status" });
+    }
+  });
+
   // Admin middleware
   const isAdmin = (req: any, res: any, next: any) => {
     if (!req.user) {
@@ -1215,7 +1394,7 @@ export async function registerRoutes(
       const id = parseInt(req.params.id);
       const { status, adminNotes } = req.body;
       
-      const updated = await storage.updateContactMessageStatus(id, status, adminNotes);
+      const updated = await storage.updateContactMessageStatus(id, String(status), adminNotes);
       if (!updated) {
         return res.status(404).json({ message: "Message not found" });
       }
