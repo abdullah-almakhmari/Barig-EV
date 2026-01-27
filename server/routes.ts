@@ -1391,10 +1391,10 @@ export async function registerRoutes(
   // Admin: Update message status
   app.patch("/api/admin/messages/:id", isAuthenticated, isAdmin, async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
-      const { status, adminNotes } = req.body;
+      const id = parseInt(String(req.params.id));
+      const { status, adminNotes } = req.body as { status: string; adminNotes?: string };
       
-      const updated = await storage.updateContactMessageStatus(id, String(status), adminNotes);
+      const updated = await storage.updateContactMessageStatus(id, status, adminNotes);
       if (!updated) {
         return res.status(404).json({ message: "Message not found" });
       }
