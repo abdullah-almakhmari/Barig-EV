@@ -119,6 +119,23 @@ export const contactMessages = pgTable("contact_messages", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// ESP32 Tesla Connectors - links stations to ESP32 devices for automatic status updates
+export const teslaConnectors = pgTable("tesla_connectors", {
+  id: serial("id").primaryKey(),
+  stationId: integer("station_id").notNull(),
+  userId: varchar("user_id").notNull(),
+  deviceToken: text("device_token").notNull(), // Unique token for ESP32 authentication
+  deviceName: text("device_name"), // e.g. "Home Charger"
+  chargerIp: text("charger_ip"), // Tesla Wall Connector IP
+  isOnline: boolean("is_online").default(false),
+  lastSeen: timestamp("last_seen"),
+  lastVitals: text("last_vitals"), // JSON string of last received vitals
+  currentSessionId: integer("current_session_id"), // Active charging session
+  userVehicleId: integer("user_vehicle_id"), // Default vehicle for auto sessions
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Trust events for idempotent rewards/penalties (persistent tracking)
 // Uses row-level locking + sliding window query for idempotency
 export const trustEvents = pgTable("trust_events", {
@@ -139,6 +156,7 @@ export const insertUserVehicleSchema = createInsertSchema(userVehicles).omit({ i
 export const insertStationVerificationSchema = createInsertSchema(stationVerifications).omit({ id: true, createdAt: true });
 export const insertTrustEventSchema = createInsertSchema(trustEvents).omit({ id: true, createdAt: true });
 export const insertContactMessageSchema = createInsertSchema(contactMessages).omit({ id: true, status: true, adminNotes: true, createdAt: true, updatedAt: true });
+export const insertTeslaConnectorSchema = createInsertSchema(teslaConnectors).omit({ id: true, isOnline: true, lastSeen: true, lastVitals: true, currentSessionId: true, createdAt: true, updatedAt: true });
 
 export type Station = typeof stations.$inferSelect;
 export type InsertStation = z.infer<typeof insertStationSchema>;
@@ -156,6 +174,29 @@ export type TrustEvent = typeof trustEvents.$inferSelect;
 export type InsertTrustEvent = z.infer<typeof insertTrustEventSchema>;
 export type ContactMessage = typeof contactMessages.$inferSelect;
 export type InsertContactMessage = z.infer<typeof insertContactMessageSchema>;
+export type TeslaConnector = typeof teslaConnectors.$inferSelect;
+export type InsertTeslaConnector = z.infer<typeof insertTeslaConnectorSchema>;
+
+// Tesla Wall Connector vitals from ESP32
+export type TeslaVitals = {
+  contactor_closed: boolean;
+  vehicle_connected: boolean;
+  session_s: number;
+  grid_v: number;
+  grid_hz: number;
+  vehicle_current_a: number;
+  current_a: number;
+  current_b: number;
+  current_c: number;
+  pcba_temp_c: number;
+  mcu_temp_c: number;
+  handle_temp_c: number;
+  contact_temp_c: number;
+  session_energy_wh: number;
+  uptime_s: number;
+  config_status: number;
+  user_control_state: number;
+};
 
 export type StationWithReports = Station & {
   reports?: Report[];
