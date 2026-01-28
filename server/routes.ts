@@ -937,6 +937,34 @@ export async function registerRoutes(
       res.status(500).json({ message: "Failed to delete connector" });
     }
   });
+
+  // Update Tesla Connector station
+  app.patch("/api/tesla-connector/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const connectorId = Number(req.params.id);
+      const userId = req.user?.id;
+      const { stationId, deviceName, userVehicleId } = req.body;
+      
+      const connector = await storage.getTeslaConnector(connectorId);
+      if (!connector) {
+        return res.status(404).json({ message: "Connector not found" });
+      }
+      if (connector.userId !== userId) {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+      
+      const updated = await storage.updateTeslaConnector(connectorId, {
+        stationId: stationId ? Number(stationId) : undefined,
+        deviceName: deviceName !== undefined ? deviceName : undefined,
+        userVehicleId: userVehicleId !== undefined ? (userVehicleId ? Number(userVehicleId) : null) : undefined,
+      });
+      
+      res.json({ success: true, connector: updated });
+    } catch (err) {
+      console.error("[Tesla Connector] Error updating connector:", err);
+      res.status(500).json({ message: "Failed to update connector" });
+    }
+  });
   
   // ESP32 sends vitals data - no auth required (uses device token)
   app.post("/api/tesla-connector/vitals", async (req, res) => {

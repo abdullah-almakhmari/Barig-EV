@@ -11,12 +11,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { User, Car, Star, Trash2, Plus, Loader2, Check, Zap, Camera } from "lucide-react";
+import { User, Car, Star, Trash2, Plus, Loader2, Check, Zap, Camera, Cpu, Link2, Settings2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Redirect } from "wouter";
 import { SEO } from "@/components/SEO";
 import { queryClient, apiRequest, getCsrfToken } from "@/lib/queryClient";
-import type { EvVehicle } from "@shared/schema";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import type { EvVehicle, TeslaConnector, Station } from "@shared/schema";
 
 export default function Profile() {
   const { t, i18n } = useTranslation();
@@ -30,7 +31,61 @@ export default function Profile() {
   const deleteVehicle = useDeleteUserVehicle();
   const setDefaultVehicle = useSetDefaultUserVehicle();
 
+  const { data: teslaConnectors, isLoading: connectorsLoading } = useQuery<(TeslaConnector & { station?: Station })[]>({
+    queryKey: ["/api/tesla-connector/my-connectors"],
+    enabled: !!user,
+  });
+
+  const { data: myStations } = useQuery<Station[]>({
+    queryKey: ["/api/stations/my-stations"],
+    enabled: !!user,
+  });
+
+  const { data: allStations } = useQuery<Station[]>({
+    queryKey: ["/api/stations"],
+  });
+
+  const updateConnectorMutation = useMutation({
+    mutationFn: async ({ id, stationId }: { id: number; stationId: number }) => {
+      return apiRequest("PATCH", `/api/tesla-connector/${id}`, { stationId });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/tesla-connector/my-connectors"] });
+      toast({
+        title: isArabic ? "تم التحديث" : "Updated",
+        description: isArabic ? "تم ربط الشاحن بالمحطة" : "Charger linked to station",
+      });
+    },
+  });
+
+  const deleteConnectorMutation = useMutation({
+    mutationFn: async (id: number) => {
+      return apiRequest("DELETE", `/api/tesla-connector/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/tesla-connector/my-connectors"] });
+      toast({
+        title: isArabic ? "تم الحذف" : "Deleted",
+      });
+    },
+  });
+
+  const registerConnectorMutation = useMutation({
+    mutationFn: async ({ stationId, deviceName }: { stationId: number; deviceName: string }) => {
+      const res = await apiRequest("POST", "/api/tesla-connector/register", { stationId, deviceName });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/tesla-connector/my-connectors"] });
+    },
+  });
+
   const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [connectorDialogOpen, setConnectorDialogOpen] = useState(false);
+  const [newConnectorStationId, setNewConnectorStationId] = useState<string>("");
+  const [newConnectorName, setNewConnectorName] = useState("");
+  const [editConnectorId, setEditConnectorId] = useState<number | null>(null);
+  const [editConnectorStationId, setEditConnectorStationId] = useState<string>("");
   const [selectedCatalogId, setSelectedCatalogId] = useState<string>("");
   const [nickname, setNickname] = useState("");
   const [showCustomVehicle, setShowCustomVehicle] = useState(false);
@@ -527,6 +582,251 @@ export default function Profile() {
                   ? `عند بدء جلسة شحن، سيتم اختيار "${defaultVehicle.nickname || defaultVehicle.evVehicle?.model}" تلقائياً`
                   : `When starting a charging session, "${defaultVehicle.nickname || defaultVehicle.evVehicle?.model}" will be selected automatically`}
               </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between gap-2">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Cpu className="w-5 h-5" />
+                {isArabic ? "شواحن Tesla المتصلة" : "Connected Tesla Chargers"}
+              </CardTitle>
+              <CardDescription>
+                {isArabic 
+                  ? "اربط شاحن Tesla Wall Connector بمحطتك لتحديث الحالة تلقائياً" 
+                  : "Link your Tesla Wall Connector to auto-update station status"}
+              </CardDescription>
+            </div>
+            <Dialog open={connectorDialogOpen} onOpenChange={setConnectorDialogOpen}>
+              <DialogTrigger asChild>
+                <Button size="sm" data-testid="button-add-connector">
+                  <Plus className="w-4 h-4 me-1" />
+                  {isArabic ? "إضافة" : "Add"}
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>
+                    {isArabic ? "إضافة Tesla Connector" : "Add Tesla Connector"}
+                  </DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div className="space-y-2">
+                    <Label>{isArabic ? "اسم الجهاز" : "Device Name"}</Label>
+                    <Input
+                      value={newConnectorName}
+                      onChange={(e) => setNewConnectorName(e.target.value)}
+                      placeholder={isArabic ? "مثال: شاحن المنزل" : "e.g. Home Charger"}
+                      data-testid="input-connector-name"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>{isArabic ? "المحطة المرتبطة" : "Linked Station"}</Label>
+                    <Select value={newConnectorStationId} onValueChange={setNewConnectorStationId}>
+                      <SelectTrigger data-testid="select-connector-station">
+                        <SelectValue placeholder={isArabic ? "اختر محطة" : "Select station"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {myStations?.map((station) => (
+                          <SelectItem key={station.id} value={String(station.id)}>
+                            {isArabic ? station.nameAr || station.name : station.name}
+                          </SelectItem>
+                        ))}
+                        {(!myStations || myStations.length === 0) && allStations?.filter(s => s.stationType === "HOME").map((station) => (
+                          <SelectItem key={station.id} value={String(station.id)}>
+                            {isArabic ? station.nameAr || station.name : station.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      {isArabic ? "اختر محطتك المنزلية التي أضفتها مسبقاً" : "Select your home station that you added previously"}
+                    </p>
+                  </div>
+                  <Button
+                    className="w-full"
+                    disabled={!newConnectorStationId || registerConnectorMutation.isPending}
+                    onClick={async () => {
+                      const result = await registerConnectorMutation.mutateAsync({
+                        stationId: Number(newConnectorStationId),
+                        deviceName: newConnectorName || "Tesla Wall Connector",
+                      });
+                      setConnectorDialogOpen(false);
+                      setNewConnectorName("");
+                      setNewConnectorStationId("");
+                      if (result?.connector?.deviceToken) {
+                        toast({
+                          title: isArabic ? "تم التسجيل بنجاح" : "Registered successfully",
+                          description: `Token: ${result.connector.deviceToken}`,
+                        });
+                      }
+                    }}
+                    data-testid="button-register-connector"
+                  >
+                    {registerConnectorMutation.isPending ? (
+                      <Loader2 className="w-4 h-4 animate-spin me-2" />
+                    ) : null}
+                    {isArabic ? "تسجيل" : "Register"}
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {connectorsLoading ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="w-6 h-6 animate-spin" />
+            </div>
+          ) : !teslaConnectors || teslaConnectors.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <Cpu className="w-12 h-12 mx-auto mb-4 opacity-50" />
+              <p>{isArabic ? "لا توجد شواحن متصلة" : "No connected chargers"}</p>
+              <p className="text-sm mt-2">
+                {isArabic 
+                  ? "أضف Tesla Wall Connector لتحديث حالة المحطة تلقائياً" 
+                  : "Add a Tesla Wall Connector to auto-update station status"}
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {teslaConnectors.map((connector) => {
+                const linkedStation = allStations?.find(s => s.id === connector.stationId);
+                return (
+                  <div
+                    key={connector.id}
+                    className="flex items-center justify-between p-4 border rounded-lg"
+                    data-testid={`connector-item-${connector.id}`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                        <Cpu className="w-5 h-5 text-primary" />
+                      </div>
+                      <div>
+                        <p className="font-medium">{connector.deviceName || "Tesla Wall Connector"}</p>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Link2 className="w-3 h-3" />
+                          {linkedStation 
+                            ? (isArabic ? linkedStation.nameAr || linkedStation.name : linkedStation.name)
+                            : (isArabic ? "غير مربوط" : "Not linked")}
+                        </div>
+                        {connector.lastSeen && (
+                          <p className="text-xs text-muted-foreground">
+                            {isArabic ? "آخر اتصال: " : "Last seen: "}
+                            {new Date(connector.lastSeen).toLocaleString(isArabic ? "ar" : "en")}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => {
+                              setEditConnectorId(connector.id);
+                              setEditConnectorStationId(String(connector.stationId || ""));
+                            }}
+                            data-testid={`button-edit-connector-${connector.id}`}
+                          >
+                            <Settings2 className="w-4 h-4" />
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>
+                              {isArabic ? "تعديل الشاحن" : "Edit Connector"}
+                            </DialogTitle>
+                          </DialogHeader>
+                          <div className="space-y-4 py-4">
+                            <div className="space-y-2">
+                              <Label>{isArabic ? "المحطة المرتبطة" : "Linked Station"}</Label>
+                              <Select 
+                                value={editConnectorStationId} 
+                                onValueChange={setEditConnectorStationId}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue placeholder={isArabic ? "اختر محطة" : "Select station"} />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {allStations?.filter(s => s.stationType === "HOME").map((station) => (
+                                    <SelectItem key={station.id} value={String(station.id)}>
+                                      {isArabic ? station.nameAr || station.name : station.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div className="p-3 bg-muted rounded-lg">
+                              <p className="text-xs font-mono break-all">
+                                <span className="text-muted-foreground">{isArabic ? "التوكن: " : "Token: "}</span>
+                                {connector.deviceToken}
+                              </p>
+                            </div>
+                            <Button
+                              className="w-full"
+                              disabled={!editConnectorStationId || updateConnectorMutation.isPending}
+                              onClick={() => {
+                                if (editConnectorId && editConnectorStationId) {
+                                  updateConnectorMutation.mutate({
+                                    id: editConnectorId,
+                                    stationId: Number(editConnectorStationId),
+                                  });
+                                }
+                              }}
+                            >
+                              {updateConnectorMutation.isPending ? (
+                                <Loader2 className="w-4 h-4 animate-spin me-2" />
+                              ) : null}
+                              {isArabic ? "حفظ" : "Save"}
+                            </Button>
+                          </div>
+                        </DialogContent>
+                      </Dialog>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-destructive hover:text-destructive"
+                            data-testid={`button-delete-connector-${connector.id}`}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>
+                              {isArabic ? "حذف الشاحن" : "Delete Connector"}
+                            </AlertDialogTitle>
+                            <AlertDialogDescription>
+                              {isArabic 
+                                ? "هل أنت متأكد؟ سيتوقف التحديث التلقائي للمحطة." 
+                                : "Are you sure? Auto-updates for this station will stop."}
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>
+                              {isArabic ? "إلغاء" : "Cancel"}
+                            </AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => deleteConnectorMutation.mutate(connector.id)}
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            >
+                              {isArabic ? "حذف" : "Delete"}
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
         </CardContent>
