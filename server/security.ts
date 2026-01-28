@@ -36,6 +36,7 @@ export const csrfTokenEndpoint: RequestHandler = (req: Request, res: Response) =
 
 const CSRF_EXEMPT_PATHS = [
   "/api/uploads/upload",
+  "/api/tesla-connector/vitals",
 ];
 
 export const validateCsrf: RequestHandler = (req: Request, res: Response, next: NextFunction) => {
