@@ -202,6 +202,10 @@ export type StationWithReports = Station & {
   reports?: Report[];
 };
 
+export type StationWithConnector = Station & {
+  hasActiveConnector?: boolean;
+};
+
 export type UserVehicleWithDetails = UserVehicle & {
   evVehicle?: EvVehicle;
 };

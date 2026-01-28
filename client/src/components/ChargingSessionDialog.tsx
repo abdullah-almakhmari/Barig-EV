@@ -19,6 +19,7 @@ interface ChargingSessionDialogProps {
   availableChargers: number;
   totalChargers: number;
   stationStatus?: string;
+  hasActiveConnector?: boolean;
 }
 
 const VEHICLE_STORAGE_KEY = "bariq_selected_user_vehicle";
@@ -38,7 +39,7 @@ const CURRENCIES = [
   { code: "QAR", nameAr: "ريال قطري", nameEn: "Qatari Riyal", symbol: "ر.ق" },
 ];
 
-export function ChargingSessionDialog({ stationId, availableChargers, totalChargers, stationStatus }: ChargingSessionDialogProps) {
+export function ChargingSessionDialog({ stationId, availableChargers, totalChargers, stationStatus, hasActiveConnector }: ChargingSessionDialogProps) {
   const { t, i18n } = useTranslation();
   const { toast } = useToast();
   const { user } = useAuth();
@@ -383,14 +384,16 @@ export function ChargingSessionDialog({ stationId, availableChargers, totalCharg
         <Dialog open={openStart} onOpenChange={setOpenStart}>
           <DialogTrigger asChild>
             <Button 
-              disabled={availableChargers <= 0 || stationStatus !== "OPERATIONAL"}
+              disabled={availableChargers <= 0 || stationStatus !== "OPERATIONAL" || hasActiveConnector}
               className="w-full bg-orange-500 hover:bg-orange-600 text-white disabled:opacity-50"
               data-testid="button-start-session"
             >
               <Zap className="mr-2 h-4 w-4 rtl:ml-2 rtl:mr-0" />
-              {stationStatus !== "OPERATIONAL" 
-                ? (i18n.language === "ar" ? "المحطة لا تعمل" : "Station not working") 
-                : t("charging.startSession")}
+              {hasActiveConnector
+                ? (i18n.language === "ar" ? "الجلسات تُسجل تلقائياً" : "Sessions auto-tracked")
+                : stationStatus !== "OPERATIONAL" 
+                  ? (i18n.language === "ar" ? "المحطة لا تعمل" : "Station not working") 
+                  : t("charging.startSession")}
             </Button>
           </DialogTrigger>
           <DialogContent>

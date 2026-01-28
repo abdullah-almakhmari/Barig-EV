@@ -3,7 +3,8 @@ import { useRoute } from "wouter";
 import { useStation, useStationReports } from "@/hooks/use-stations";
 import { useTranslation } from "react-i18next";
 import { useLanguage } from "@/components/LanguageContext";
-import { Loader2, Navigation, Clock, ShieldCheck, MapPin, BatteryCharging, Home, Phone, MessageCircle, AlertTriangle, CheckCircle2, XCircle, Users, ShieldAlert, ThumbsUp, ThumbsDown, Zap, Shield, Trash2 } from "lucide-react";
+import type { StationWithConnector } from "@shared/schema";
+import { Loader2, Navigation, Clock, ShieldCheck, MapPin, BatteryCharging, Home, Phone, MessageCircle, AlertTriangle, CheckCircle2, XCircle, Users, ShieldAlert, ThumbsUp, ThumbsDown, Zap, Shield, Trash2, Cpu } from "lucide-react";
 import { useLocation } from "wouter";
 import { api } from "@shared/routes";
 import { Button } from "@/components/ui/button";
@@ -158,7 +159,8 @@ export default function StationDetails() {
   const { toast } = useToast();
   const { user, isAuthenticated } = useAuth();
   
-  const { data: station, isLoading } = useStation(id);
+  const { data: stationData, isLoading } = useStation(id);
+  const station = stationData as StationWithConnector | undefined;
   const { data: reports } = useStationReports(id);
   
   const { data: verificationSummary } = useQuery<VerificationSummary>({
@@ -463,6 +465,12 @@ export default function StationDetails() {
             <div className="flex items-center gap-2">
               <BatteryCharging className="w-5 h-5 text-primary" />
               <span className="font-semibold">{t("charging.title")}</span>
+              {station.hasActiveConnector && (
+                <Badge variant="outline" className="text-xs bg-emerald-50 dark:bg-emerald-950 border-emerald-300 text-emerald-700 dark:text-emerald-300" data-testid="badge-auto-tracked">
+                  <Cpu className="w-3 h-3 me-1" />
+                  {language === "ar" ? "تتبع آلي" : "Auto-tracked"}
+                </Badge>
+              )}
             </div>
             <div className="flex gap-4">
               <div className="text-center">
@@ -484,6 +492,7 @@ export default function StationDetails() {
             availableChargers={station.availableChargers ?? 0}
             totalChargers={station.chargerCount ?? 1}
             stationStatus={station.status ?? undefined}
+            hasActiveConnector={station.hasActiveConnector ?? false}
           />
         </div>
       </div>

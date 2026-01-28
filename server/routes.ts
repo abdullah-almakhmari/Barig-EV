@@ -160,7 +160,15 @@ export async function registerRoutes(
     if (!isApproved || !isVisible) {
       return res.status(404).json({ message: "Station not found" });
     }
-    res.json(station);
+    
+    // Check if station has active ESP32 connector
+    const connectors = await storage.getStationTeslaConnectors(station.id);
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+    const hasActiveConnector = connectors.some(c => 
+      c.isOnline && c.lastSeen && new Date(c.lastSeen) > fiveMinutesAgo
+    );
+    
+    res.json({ ...station, hasActiveConnector });
   });
 
   app.post(api.stations.create.path, createLimiter, isAuthenticated, async (req: any, res) => {
@@ -503,6 +511,16 @@ export async function registerRoutes(
       const station = await storage.getStation(input.stationId);
       if (!station) {
         return res.status(404).json({ message: "Station not found" });
+      }
+      
+      // Check if station has active ESP32 connector - prevent manual sessions
+      const connectors = await storage.getStationTeslaConnectors(input.stationId);
+      const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+      const hasActiveConnector = connectors.some(c => 
+        c.isOnline && c.lastSeen && new Date(c.lastSeen) > fiveMinutesAgo
+      );
+      if (hasActiveConnector) {
+        return res.status(400).json({ message: "This station has automatic session tracking. Manual session creation is disabled." });
       }
       
       // Check available chargers - multiple sessions allowed as long as chargers are available

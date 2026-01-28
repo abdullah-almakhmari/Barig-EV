@@ -71,6 +71,7 @@ export interface IStorage {
   getTeslaConnector(id: number): Promise<TeslaConnector | undefined>;
   getTeslaConnectorByToken(deviceToken: string): Promise<TeslaConnector | undefined>;
   getUserTeslaConnectors(userId: string): Promise<TeslaConnector[]>;
+  getStationTeslaConnectors(stationId: number): Promise<TeslaConnector[]>;
   updateTeslaConnector(id: number, data: Partial<TeslaConnector>): Promise<TeslaConnector | undefined>;
   deleteTeslaConnector(id: number): Promise<void>;
   createChargingSession(session: InsertChargingSession): Promise<ChargingSession>;
@@ -796,6 +797,10 @@ export class DatabaseStorage implements IStorage {
 
   async getUserTeslaConnectors(userId: string): Promise<TeslaConnector[]> {
     return await db.select().from(teslaConnectors).where(eq(teslaConnectors.userId, userId));
+  }
+
+  async getStationTeslaConnectors(stationId: number): Promise<TeslaConnector[]> {
+    return await db.select().from(teslaConnectors).where(eq(teslaConnectors.stationId, stationId));
   }
 
   async updateTeslaConnector(id: number, data: Partial<TeslaConnector>): Promise<TeslaConnector | undefined> {
