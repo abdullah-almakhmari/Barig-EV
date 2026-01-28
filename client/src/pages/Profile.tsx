@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { User, Car, Star, Trash2, Plus, Loader2, Check, Zap, Camera, Cpu, Link2, Settings2 } from "lucide-react";
+import { User, Car, Star, Trash2, Plus, Loader2, Check, Zap, Camera, Cpu, Link2, Settings2, Copy } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Redirect } from "wouter";
 import { SEO } from "@/components/SEO";
@@ -762,11 +762,26 @@ export default function Profile() {
                                 </SelectContent>
                               </Select>
                             </div>
-                            <div className="p-3 bg-muted rounded-lg">
+                            <div className="p-3 bg-muted rounded-lg space-y-2">
                               <p className="text-xs font-mono break-all">
                                 <span className="text-muted-foreground">{isArabic ? "التوكن: " : "Token: "}</span>
                                 {connector.deviceToken}
                               </p>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="w-full"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(connector.deviceToken);
+                                  toast({
+                                    title: isArabic ? "تم النسخ" : "Copied",
+                                    description: isArabic ? "تم نسخ التوكن" : "Token copied to clipboard",
+                                  });
+                                }}
+                              >
+                                <Copy className="w-4 h-4 me-2" />
+                                {isArabic ? "نسخ التوكن" : "Copy Token"}
+                              </Button>
                             </div>
                             <Button
                               className="w-full"
