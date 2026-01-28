@@ -45,8 +45,9 @@ export const validateCsrf: RequestHandler = (req: Request, res: Response, next: 
     return next();
   }
 
-  if (CSRF_EXEMPT_PATHS.some(path => req.path === path || req.path.startsWith(path))) {
-    console.log(`[CSRF] Exempt path: ${req.path}`);
+  const fullPath = req.originalUrl.split('?')[0];
+  if (CSRF_EXEMPT_PATHS.some(path => fullPath === path || fullPath.startsWith(path))) {
+    console.log(`[CSRF] Exempt path: ${fullPath}`);
     return next();
   }
 
