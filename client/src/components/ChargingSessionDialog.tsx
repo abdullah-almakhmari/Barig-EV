@@ -58,6 +58,8 @@ export function ChargingSessionDialog({ stationId, availableChargers, totalCharg
   const [customCatalogVehicleName, setCustomCatalogVehicleName] = useState("");
   const [electricityRate, setElectricityRate] = useState(DEFAULT_ELECTRICITY_RATE);
   const [pricingCurrency, setPricingCurrency] = useState(DEFAULT_CURRENCY);
+  const [showVehiclePrompt, setShowVehiclePrompt] = useState(false);
+  const [skippedVehiclePrompt, setSkippedVehiclePrompt] = useState(false);
 
   // Load pricing settings from localStorage
   useEffect(() => {
@@ -125,6 +127,12 @@ export function ChargingSessionDialog({ stationId, availableChargers, totalCharg
       }
     }
   }, [userVehicles]);
+
+  useEffect(() => {
+    if (openStart && isLoggedIn && userVehicles.length === 0 && !loadingUserVehicles && !skippedVehiclePrompt) {
+      setShowVehiclePrompt(true);
+    }
+  }, [openStart, isLoggedIn, userVehicles.length, loadingUserVehicles, skippedVehiclePrompt]);
 
   const handleUserVehicleChange = (value: string) => {
     if (value === "add_new") {
@@ -400,6 +408,47 @@ export function ChargingSessionDialog({ stationId, availableChargers, totalCharg
             <DialogHeader>
               <DialogTitle>{t("charging.startSession")}</DialogTitle>
             </DialogHeader>
+            {showVehiclePrompt ? (
+              <div className="space-y-4 py-4">
+                <div className="flex flex-col items-center text-center space-y-3">
+                  <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
+                    <Car className="w-8 h-8 text-primary" />
+                  </div>
+                  <h3 className="font-semibold text-lg">
+                    {isArabic ? "أضف سيارتك الكهربائية" : "Add your electric vehicle"}
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    {isArabic 
+                      ? "أضف سيارتك لتتبع استهلاك الطاقة والتكاليف بشكل أفضل"
+                      : "Add your vehicle to better track energy consumption and costs"}
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Button 
+                    className="w-full"
+                    onClick={() => {
+                      setShowVehiclePrompt(false);
+                      setShowAddVehicle(true);
+                    }}
+                    data-testid="button-add-vehicle-prompt"
+                  >
+                    <Plus className="w-4 h-4 me-2" />
+                    {isArabic ? "إضافة سيارة" : "Add vehicle"}
+                  </Button>
+                  <Button 
+                    variant="ghost"
+                    className="w-full text-muted-foreground"
+                    onClick={() => {
+                      setShowVehiclePrompt(false);
+                      setSkippedVehiclePrompt(true);
+                    }}
+                    data-testid="button-skip-vehicle-prompt"
+                  >
+                    {isArabic ? "متابعة بدون سيارة" : "Continue without vehicle"}
+                  </Button>
+                </div>
+              </div>
+            ) : (
             <div className="space-y-4 py-4">
               {showAddVehicle ? (
                 <div className="space-y-3">
@@ -541,6 +590,8 @@ export function ChargingSessionDialog({ stationId, availableChargers, totalCharg
                 <p className="text-xs text-muted-foreground">{t("charging.batteryOptional")}</p>
               </div>
             </div>
+            )}
+            {!showVehiclePrompt && (
             <DialogFooter>
               <Button variant="outline" onClick={() => setOpenStart(false)}>
                 {t("common.cancel")}
@@ -555,6 +606,7 @@ export function ChargingSessionDialog({ stationId, availableChargers, totalCharg
                 {t("charging.startSession")}
               </Button>
             </DialogFooter>
+            )}
           </DialogContent>
         </Dialog>
       )}
