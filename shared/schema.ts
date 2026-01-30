@@ -89,8 +89,16 @@ export const chargingSessions = pgTable("charging_sessions", {
   energyKwh: real("energy_kwh"),
   batteryStartPercent: integer("battery_start_percent"),
   batteryEndPercent: integer("battery_end_percent"),
-  screenshotPath: text("screenshot_path"), // Optional screenshot of charger screen for data verification
+  screenshotPath: text("screenshot_path"),
   isActive: boolean("is_active").default(true),
+  isAutoTracked: boolean("is_auto_tracked").default(false),
+  gridVoltage: real("grid_voltage"),
+  gridFrequency: real("grid_frequency"),
+  maxCurrentA: real("max_current_a"),
+  avgCurrentA: real("avg_current_a"),
+  maxPowerKw: real("max_power_kw"),
+  maxTempC: real("max_temp_c"),
+  teslaConnectorId: integer("tesla_connector_id"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

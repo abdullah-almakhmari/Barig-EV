@@ -1010,12 +1010,16 @@ export async function registerRoutes(
       
       // Vehicle just connected and started charging
       if (!wasCharging && isCharging && isVehicleConnected) {
-        // Start a new charging session
+        // Start a new charging session with Tesla connector data
         const session = await storage.createChargingSession({
           stationId: connector.stationId,
           userId: connector.userId,
           userVehicleId: connector.userVehicleId,
           isActive: true,
+          isAutoTracked: true,
+          teslaConnectorId: connector.id,
+          gridVoltage: vitals.grid_v,
+          gridFrequency: vitals.grid_hz,
         });
         newSessionId = session.id;
         action = "session_started";
@@ -1026,11 +1030,32 @@ export async function registerRoutes(
       
       // Charging just stopped
       if (wasCharging && !isCharging && connector.currentSessionId) {
-        // End the charging session
+        // End the charging session with all charger data
         const energyKwh = vitals.session_energy_wh / 1000;
-        const durationMinutes = Math.round(vitals.session_s / 60);
         
-        await storage.endChargingSession(connector.currentSessionId, undefined, energyKwh);
+        // Calculate max power from voltage and current (3-phase: V * I * sqrt(3) / 1000)
+        const maxCurrent = Math.max(
+          vitals.vehicle_current_a || 0,
+          Math.max(vitals.current_a || 0, vitals.current_b || 0, vitals.current_c || 0)
+        );
+        const maxPowerKw = (vitals.grid_v * maxCurrent * 1.732) / 1000;
+        
+        // Get max temperature from all sensors
+        const maxTemp = Math.max(
+          vitals.pcba_temp_c || 0,
+          vitals.mcu_temp_c || 0,
+          vitals.handle_temp_c || 0,
+          vitals.contact_temp_c || 0
+        );
+        
+        await storage.endChargingSession(connector.currentSessionId, undefined, energyKwh, undefined, {
+          gridVoltage: vitals.grid_v,
+          gridFrequency: vitals.grid_hz,
+          maxCurrentA: maxCurrent,
+          avgCurrentA: vitals.vehicle_current_a,
+          maxPowerKw: Math.round(maxPowerKw * 100) / 100,
+          maxTempC: maxTemp,
+        });
         newSessionId = null;
         action = "session_ended";
         

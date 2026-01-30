@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useLanguage } from "@/components/LanguageContext";
 import { useChargingSessions, useStations, useUserVehicles } from "@/hooks/use-stations";
-import { Loader2, BatteryCharging, Clock, Zap, Battery, Camera, ChevronDown, MapPin, Banknote, Car, Trash2, Upload, FileSpreadsheet } from "lucide-react";
+import { Loader2, BatteryCharging, Clock, Zap, Battery, Camera, ChevronDown, MapPin, Banknote, Car, Trash2, Upload, FileSpreadsheet, Cpu, Thermometer, Gauge } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -436,6 +436,12 @@ export default function ChargingHistory() {
                                   {language === "ar" ? "نشط" : "Active"}
                                 </Badge>
                               )}
+                              {(session as any).isAutoTracked && (
+                                <Badge variant="outline" className="text-xs bg-emerald-50 dark:bg-emerald-950 border-emerald-300 text-emerald-700 dark:text-emerald-300">
+                                  <Cpu className="w-3 h-3 me-1" />
+                                  {language === "ar" ? "تلقائي" : "Auto"}
+                                </Badge>
+                              )}
                               <p className="text-sm text-muted-foreground">
                                 {session.startTime && format(
                                   new Date(session.startTime), 
@@ -476,6 +482,20 @@ export default function ChargingHistory() {
                               <div className="flex items-center gap-1 text-sm text-primary">
                                 <Battery className="w-3 h-3" />
                                 <span>{session.batteryStartPercent ?? "?"}% → {session.batteryEndPercent ?? "?"}%</span>
+                              </div>
+                            )}
+
+                            {(session as any).maxPowerKw && (
+                              <div className="flex items-center gap-1 text-sm text-purple-600">
+                                <Gauge className="w-3 h-3" />
+                                <span>{(session as any).maxPowerKw} kW</span>
+                              </div>
+                            )}
+
+                            {(session as any).maxTempC && (
+                              <div className="flex items-center gap-1 text-sm text-orange-500">
+                                <Thermometer className="w-3 h-3" />
+                                <span>{(session as any).maxTempC}°C</span>
                               </div>
                             )}
 

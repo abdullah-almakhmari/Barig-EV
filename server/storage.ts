@@ -31,7 +31,14 @@ export interface IStorage {
   updateReportReviewStatus(id: number, reviewStatus: string, reviewedBy: string): Promise<Report | undefined>;
   createReport(report: InsertReport): Promise<Report>;
   startChargingSession(stationId: number, batteryStartPercent?: number, userVehicleId?: number, userId?: string, customVehicleName?: string): Promise<ChargingSession>;
-  endChargingSession(sessionId: number, batteryEndPercent?: number, energyKwh?: number, screenshotPath?: string): Promise<ChargingSession | undefined>;
+  endChargingSession(sessionId: number, batteryEndPercent?: number, energyKwh?: number, screenshotPath?: string, teslaData?: {
+    gridVoltage?: number;
+    gridFrequency?: number;
+    maxCurrentA?: number;
+    avgCurrentA?: number;
+    maxPowerKw?: number;
+    maxTempC?: number;
+  }): Promise<ChargingSession | undefined>;
   createCompletedSession(session: {
     stationId: number;
     userId?: string;
@@ -306,7 +313,14 @@ export class DatabaseStorage implements IStorage {
     return created;
   }
 
-  async endChargingSession(sessionId: number, batteryEndPercent?: number, energyKwh?: number, screenshotPath?: string): Promise<ChargingSession | undefined> {
+  async endChargingSession(sessionId: number, batteryEndPercent?: number, energyKwh?: number, screenshotPath?: string, teslaData?: {
+    gridVoltage?: number;
+    gridFrequency?: number;
+    maxCurrentA?: number;
+    avgCurrentA?: number;
+    maxPowerKw?: number;
+    maxTempC?: number;
+  }): Promise<ChargingSession | undefined> {
     const [session] = await db.select().from(chargingSessions).where(eq(chargingSessions.id, sessionId));
     if (!session) return undefined;
 
@@ -324,6 +338,14 @@ export class DatabaseStorage implements IStorage {
         screenshotPath,
         isActive: false,
         updatedAt: new Date(),
+        ...(teslaData && {
+          gridVoltage: teslaData.gridVoltage,
+          gridFrequency: teslaData.gridFrequency,
+          maxCurrentA: teslaData.maxCurrentA,
+          avgCurrentA: teslaData.avgCurrentA,
+          maxPowerKw: teslaData.maxPowerKw,
+          maxTempC: teslaData.maxTempC,
+        }),
       })
       .where(eq(chargingSessions.id, sessionId))
       .returning();
