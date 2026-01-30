@@ -1004,14 +1004,28 @@ export async function registerRoutes(
     try {
       const { deviceToken, vitals } = req.body;
       
+      console.log("[ESP32] Received vitals:", {
+        deviceToken: deviceToken ? "***" + deviceToken.slice(-4) : "missing",
+        contactor_closed: vitals?.contactor_closed,
+        vehicle_connected: vitals?.vehicle_connected,
+        session_energy_wh: vitals?.session_energy_wh,
+      });
+      
       if (!deviceToken) {
         return res.status(400).json({ message: "Device token required" });
       }
       
       const connector = await storage.getTeslaConnectorByToken(deviceToken);
       if (!connector) {
+        console.log("[ESP32] Invalid device token");
         return res.status(401).json({ message: "Invalid device token" });
       }
+      
+      console.log("[ESP32] Found connector:", {
+        id: connector.id,
+        stationId: connector.stationId,
+        currentSessionId: connector.currentSessionId,
+      });
       
       // Parse previous vitals to detect state changes
       const prevVitals = connector.lastVitals ? JSON.parse(connector.lastVitals) : null;
@@ -1020,11 +1034,19 @@ export async function registerRoutes(
       const wasCharging = prevVitals?.contactor_closed || false;
       const isCharging = vitals.contactor_closed || false;
       
+      console.log("[ESP32] State change detection:", {
+        wasCharging,
+        isCharging,
+        wasVehicleConnected,
+        isVehicleConnected,
+      });
+      
       let newSessionId = connector.currentSessionId;
       let action = null;
       
       // Vehicle just connected and started charging
       if (!wasCharging && isCharging && isVehicleConnected) {
+        console.log("[ESP32] Starting new charging session...");
         // Start a new charging session with Tesla connector data
         const session = await storage.createChargingSession({
           stationId: connector.stationId,
@@ -1038,20 +1060,28 @@ export async function registerRoutes(
         });
         newSessionId = session.id;
         action = "session_started";
+        console.log("[ESP32] Session started:", session.id, "for station:", connector.stationId);
         
         // Update station status to BUSY (orange)
         await storage.updateStationStatus(connector.stationId, "BUSY");
+        console.log("[ESP32] Station status updated to BUSY");
       }
       
       // Charging just stopped
       if (wasCharging && !isCharging && connector.currentSessionId) {
+        console.log("[ESP32] Charging stopped, ending session:", connector.currentSessionId);
         // End the charging session with all charger data
         const energyKwh = vitals.session_energy_wh / 1000;
         
         // Calculate max power from voltage and current (3-phase: V * I * sqrt(3) / 1000)
+        // Support both naming conventions: currentA_a (ESP32) and current_a
         const maxCurrent = Math.max(
           vitals.vehicle_current_a || 0,
-          Math.max(vitals.current_a || 0, vitals.current_b || 0, vitals.current_c || 0)
+          Math.max(
+            vitals.currentA_a || vitals.current_a || 0,
+            vitals.currentB_a || vitals.current_b || 0,
+            vitals.currentC_a || vitals.current_c || 0
+          )
         );
         const maxPowerKw = (vitals.grid_v * maxCurrent * 1.732) / 1000;
         
@@ -1059,8 +1089,7 @@ export async function registerRoutes(
         const maxTemp = Math.max(
           vitals.pcba_temp_c || 0,
           vitals.mcu_temp_c || 0,
-          vitals.handle_temp_c || 0,
-          vitals.contact_temp_c || 0
+          vitals.handle_temp_c || 0
         );
         
         await storage.endChargingSession(connector.currentSessionId, undefined, energyKwh, undefined, {
