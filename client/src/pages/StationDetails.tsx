@@ -439,10 +439,10 @@ export default function StationDetails() {
             )}
           </div>
 
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
             <Button 
               size="lg"
-              className="shadow-lg shadow-primary/20" 
+              className="shadow-lg shadow-primary/20 w-full sm:w-auto" 
               onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${station.lat},${station.lng}`, '_blank')}
               data-testid="button-navigate"
             >
@@ -453,7 +453,7 @@ export default function StationDetails() {
               <Button 
                 variant="outline"
                 size="lg"
-                className="border-green-500 text-green-600 hover:bg-green-50"
+                className="border-green-500 text-green-600 hover:bg-green-50 w-full sm:w-auto"
                 onClick={() => window.open(`https://wa.me/${station.contactWhatsapp?.replace(/[^0-9]/g, '')}`, '_blank')}
                 data-testid="button-contact-whatsapp"
               >
@@ -465,6 +465,7 @@ export default function StationDetails() {
               <Button 
                 variant="outline"
                 size="lg"
+                className="w-full sm:w-auto"
                 onClick={() => window.open(`tel:${station.contactPhone}`, '_blank')}
                 data-testid="button-contact-phone"
               >
@@ -478,8 +479,8 @@ export default function StationDetails() {
 
       {/* Charger Availability - Compact */}
       <div className="bg-card rounded-2xl p-5 border shadow-sm">
-        <div className="flex items-center justify-between gap-4 flex-wrap">
-          <div className="flex items-center gap-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4">
             <div className="flex items-center gap-2">
               <BatteryCharging className="w-5 h-5 text-primary" />
               <span className="font-semibold">{t("charging.title")}</span>
@@ -490,7 +491,7 @@ export default function StationDetails() {
                 </Badge>
               )}
             </div>
-            <div className="flex gap-4">
+            <div className="flex justify-around sm:justify-start gap-6">
               <div className="text-center">
                 <div className="text-2xl font-bold text-emerald-600">{station.availableChargers ?? 0}</div>
                 <div className="text-xs text-muted-foreground">{t("charging.available")}</div>
@@ -532,7 +533,7 @@ export default function StationDetails() {
         
         <p className="text-sm text-muted-foreground mb-3">{t("verify.helpOthers")}</p>
         
-        <div className="flex flex-wrap gap-2">
+        <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
           <Button
             variant="outline"
             size="sm"
@@ -567,7 +568,9 @@ export default function StationDetails() {
             <XCircle className="w-4 h-4 mr-1 rtl:ml-1 rtl:mr-0" />
             {t("verify.confirmNotWorking")}
           </Button>
-          <ReportDialog stationId={id} />
+          <div className="col-span-2 sm:col-span-1">
+            <ReportDialog stationId={id} />
+          </div>
         </div>
       </div>
 
