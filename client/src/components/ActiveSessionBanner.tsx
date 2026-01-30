@@ -345,16 +345,18 @@ export function ActiveSessionBanner() {
           >
             {t("charging.resume")}
           </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleEndSession}
-            disabled={endSessionMutation.isPending}
-            className="bg-white/10 border-white/30 text-white hover:bg-white/20"
-            data-testid="button-end-session"
-          >
-            {t("charging.endNow")}
-          </Button>
+          {!(data?.session as any)?.isAutoTracked && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleEndSession}
+              disabled={endSessionMutation.isPending}
+              className="bg-white/10 border-white/30 text-white hover:bg-white/20"
+              data-testid="button-end-session"
+            >
+              {t("charging.endNow")}
+            </Button>
+          )}
           <Button
             variant="ghost"
             size="icon"
@@ -528,12 +530,12 @@ export function ActiveSessionBanner() {
             </Button>
             <Button 
               onClick={confirmEndSession}
-              disabled={endSessionMutation.isPending || isUploading || isAnalyzing || !!batteryEndError}
+              disabled={endSessionMutation.isPending || isUploading || isAnalyzing || !!batteryEndError || (data?.session as any)?.isAutoTracked}
               className="bg-emerald-500 hover:bg-emerald-600 flex-1 sm:flex-none"
               data-testid="button-confirm-end-session-banner"
             >
               {endSessionMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {t("charging.endSession")}
+              {(data?.session as any)?.isAutoTracked ? (language === "ar" ? "جلسة متتبعة تلقائياً" : "Auto-tracked session") : t("charging.endSession")}
             </Button>
           </div>
         </DialogFooter>
