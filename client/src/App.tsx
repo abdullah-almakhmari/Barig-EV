@@ -1,4 +1,5 @@
 import { Switch, Route } from "wouter";
+import { useState, useEffect } from "react";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -12,6 +13,7 @@ import { SplashScreen } from "@/components/SplashScreen";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { PullToRefresh } from "@/components/PullToRefresh";
 import { ScrollToTop } from "@/components/ScrollToTop";
+import { UpdateNotification } from "@/components/UpdateNotification";
 import { HelmetProvider } from "react-helmet-async";
 
 // Pages
@@ -46,6 +48,23 @@ function Router() {
 }
 
 function App() {
+  const [swRegistration, setSwRegistration] = useState<ServiceWorkerRegistration | null>(null);
+
+  useEffect(() => {
+    const checkRegistration = () => {
+      if (window.swRegistration) {
+        setSwRegistration(window.swRegistration);
+      }
+    };
+    
+    checkRegistration();
+    
+    const interval = setInterval(checkRegistration, 1000);
+    setTimeout(() => clearInterval(interval), 10000);
+    
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <ErrorBoundary>
       <HelmetProvider>
@@ -69,6 +88,7 @@ function App() {
                 </main>
                 <MobileNav />
                 <ScrollToTop />
+                <UpdateNotification registration={swRegistration} />
               </div>
               <Toaster />
             </TooltipProvider>

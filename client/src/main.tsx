@@ -2,6 +2,13 @@ import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./index.css";
 
+declare global {
+  interface Window {
+    swRegistration: ServiceWorkerRegistration | null;
+  }
+}
+
+window.swRegistration = null;
 const isProduction = import.meta.env.PROD;
 
 if ('serviceWorker' in navigator && isProduction) {
@@ -9,17 +16,13 @@ if ('serviceWorker' in navigator && isProduction) {
     navigator.serviceWorker.register('/sw.js')
       .then((registration) => {
         console.log('SW registered:', registration.scope);
+        window.swRegistration = registration;
         
-        registration.addEventListener('updatefound', () => {
-          const newWorker = registration.installing;
-          if (newWorker) {
-            newWorker.addEventListener('statechange', () => {
-              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                console.log('New content available, refresh for update');
-              }
-            });
-          }
-        });
+        registration.update();
+        
+        setInterval(() => {
+          registration.update();
+        }, 60 * 60 * 1000);
       })
       .catch((error) => {
         console.log('SW registration failed:', error);

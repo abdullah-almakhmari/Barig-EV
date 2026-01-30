@@ -43,6 +43,7 @@ Preferred communication style: Simple, everyday language.
 
 - **Mobile Map Interaction**: Default disabled map dragging/touch/zoom with a "Move map" button to prevent accidental movement during scrolling.
 - **Charging Session Enhancements**: Optional screenshot upload with OCR (OpenAI GPT-4o Vision) to automatically extract energy values, and user station deletion for self-added stations.
+- **PWA Update Notification**: Automatic detection of new app versions with user-friendly update prompt. Works on Android and iOS. Service worker checks for updates every hour and shows a notification when a new version is available.
 - **Tesla Integrations**:
     - **CSV Import**: Users can import charging history from Tesla app CSV files.
     - **ESP32 Tesla Wall Connector Integration**: An ESP32 device can bridge Tesla Wall Connector Gen 3 local API data to Bariq, enabling automatic charging session tracking and station status updates.
