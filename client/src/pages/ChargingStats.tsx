@@ -415,88 +415,76 @@ export default function ChargingStats() {
 
       {monthlyStats && (
         <>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-            <Card className="p-4" data-testid="stat-energy">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-8 h-8 rounded-full bg-emerald-500/10 flex items-center justify-center">
-                  <Zap className="w-4 h-4 text-emerald-600" />
-                </div>
-              </div>
-              <div className="text-2xl font-bold text-emerald-600">
-                {monthlyStats.totalEnergy.toFixed(1)}
-              </div>
-              <div className="text-xs text-muted-foreground">kWh {isArabic ? "مستهلك" : "consumed"}</div>
-            </Card>
-
-            <Card className="p-4" data-testid="stat-sessions">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center">
-                  <TrendingUp className="w-4 h-4 text-blue-600" />
-                </div>
-              </div>
-              <div className="text-2xl font-bold text-blue-600">
-                {monthlyStats.sessionCount}
-              </div>
-              <div className="text-xs text-muted-foreground">{isArabic ? "جلسة شحن" : "sessions"}</div>
-            </Card>
-
-            <Card className="p-4" data-testid="stat-duration">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-8 h-8 rounded-full bg-purple-500/10 flex items-center justify-center">
-                  <Clock className="w-4 h-4 text-purple-600" />
-                </div>
-              </div>
-              <div className="text-2xl font-bold text-purple-600">
-                {formatDuration(monthlyStats.totalDuration)}
-              </div>
-              <div className="text-xs text-muted-foreground">{isArabic ? "إجمالي الوقت" : "total time"}</div>
-            </Card>
-
-            <Card className="p-4" data-testid="stat-avg">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-8 h-8 rounded-full bg-orange-500/10 flex items-center justify-center">
-                  <BarChart3 className="w-4 h-4 text-orange-600" />
-                </div>
-              </div>
-              <div className="text-2xl font-bold text-orange-600">
-                {monthlyStats.avgEnergy.toFixed(1)}
-              </div>
-              <div className="text-xs text-muted-foreground">kWh/{isArabic ? "جلسة" : "session"}</div>
-            </Card>
-          </div>
-
-          <div className="grid grid-cols-1 gap-4 mb-6">
-            <Card className="p-4 bg-gradient-to-br from-blue-500/5 to-indigo-500/10" data-testid="stat-cost">
+          <Card className="p-4 mb-4 bg-gradient-to-br from-emerald-500/5 to-emerald-500/10" data-testid="stat-main">
+            <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center">
-                  <span className="text-blue-600 font-bold text-sm">{selectedCurrency.symbol}</span>
+                <div className="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                  <Zap className="w-6 h-6 text-emerald-600" />
                 </div>
                 <div>
-                  <div className="text-lg font-bold text-blue-600">
-                    ~{monthlyStats.estimatedCost.toFixed(2)} {isArabic ? selectedCurrency.symbol : currency}
+                  <div className="text-3xl font-bold text-emerald-600">
+                    {monthlyStats.totalEnergy.toFixed(1)} <span className="text-lg">kWh</span>
                   </div>
-                  <div className="text-xs text-muted-foreground">
-                    {isArabic ? "تكلفة الشحن التقديرية" : "estimated charging cost"}
+                  <div className="text-sm text-muted-foreground">
+                    {monthlyStats.sessionCount} {isArabic ? "جلسة شحن" : "sessions"}
                   </div>
+                </div>
+              </div>
+              <div className="text-left">
+                <div className="text-lg font-bold text-primary">
+                  ~{monthlyStats.estimatedCost.toFixed(2)} {selectedCurrency.symbol}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {isArabic ? "التكلفة التقديرية" : "est. cost"}
+                </div>
+              </div>
+            </div>
+          </Card>
+
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            <Card className="p-3" data-testid="stat-duration">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full bg-purple-500/10 flex items-center justify-center shrink-0">
+                  <Clock className="w-4 h-4 text-purple-600" />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-lg font-bold text-purple-600 truncate">
+                    {formatDuration(monthlyStats.totalDuration)}
+                  </div>
+                  <div className="text-xs text-muted-foreground">{isArabic ? "إجمالي الوقت" : "total time"}</div>
+                </div>
+              </div>
+            </Card>
+
+            <Card className="p-3" data-testid="stat-avg">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0">
+                  <TrendingUp className="w-4 h-4 text-blue-600" />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-lg font-bold text-blue-600 truncate">
+                    {monthlyStats.avgEnergy.toFixed(1)} kWh
+                  </div>
+                  <div className="text-xs text-muted-foreground">{isArabic ? "معدل/جلسة" : "avg/session"}</div>
                 </div>
               </div>
             </Card>
           </div>
 
           {monthlyStats.topStation && (
-            <Card className="p-4 mb-6" data-testid="stat-top-station">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                  <MapPin className="w-5 h-5 text-primary" />
+            <Card className="p-3 mb-4" data-testid="stat-top-station">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                  <MapPin className="w-4 h-4 text-primary" />
                 </div>
-                <div className="flex-1">
-                  <div className="text-sm text-muted-foreground">
-                    {isArabic ? "المحطة الأكثر زيارة" : "Most visited station"}
+                <div className="flex-1 min-w-0">
+                  <div className="text-xs text-muted-foreground">
+                    {isArabic ? "المحطة الأكثر زيارة" : "Top station"}
                   </div>
-                  <div className="font-semibold">{getStationName(monthlyStats.topStation.id)}</div>
+                  <div className="font-medium text-sm truncate">{getStationName(monthlyStats.topStation.id)}</div>
                 </div>
-                <Badge variant="secondary">
-                  {monthlyStats.topStation.visits} {isArabic ? "زيارة" : "visits"}
+                <Badge variant="secondary" className="shrink-0">
+                  {monthlyStats.topStation.visits}x
                 </Badge>
               </div>
             </Card>
