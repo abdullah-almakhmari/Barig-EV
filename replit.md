@@ -46,6 +46,7 @@ Preferred communication style: Simple, everyday language.
 - **Tesla Integrations**:
     - **CSV Import**: Users can import charging history from Tesla app CSV files.
     - **ESP32 Tesla Wall Connector Integration**: An ESP32 device can bridge Tesla Wall Connector Gen 3 local API data to Bariq, enabling automatic charging session tracking and station status updates.
+    - **Real-time Charging Visualization**: Stations with active ESP32 charging sessions display orange pulsing markers on the map and show "Charging" status on the station details page. Auto-tracked sessions cannot be manually cancelled to preserve data integrity.
 
 ## External Dependencies
 
