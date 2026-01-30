@@ -505,21 +505,23 @@ export function ActiveSessionBanner() {
           </div>
         </div>
         <DialogFooter className="flex flex-col sm:flex-row gap-2">
-          <Button 
-            variant="destructive"
-            onClick={() => {
-              if (data?.session) {
-                cancelSessionMutation.mutate(data.session.id);
-              }
-            }}
-            disabled={cancelSessionMutation.isPending || endSessionMutation.isPending}
-            className="w-full sm:w-auto"
-            data-testid="button-cancel-session-banner"
-          >
-            {cancelSessionMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            <X className="mr-2 h-4 w-4" />
-            {language === "ar" ? "إلغاء (بدون حفظ)" : "Cancel (don't save)"}
-          </Button>
+          {!(data?.session as any)?.isAutoTracked && (
+            <Button 
+              variant="destructive"
+              onClick={() => {
+                if (data?.session) {
+                  cancelSessionMutation.mutate(data.session.id);
+                }
+              }}
+              disabled={cancelSessionMutation.isPending || endSessionMutation.isPending}
+              className="w-full sm:w-auto"
+              data-testid="button-cancel-session-banner"
+            >
+              {cancelSessionMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              <X className="mr-2 h-4 w-4" />
+              {language === "ar" ? "إلغاء (بدون حفظ)" : "Cancel (don't save)"}
+            </Button>
+          )}
           <div className="flex gap-2 w-full sm:w-auto">
             <Button variant="outline" onClick={() => setShowEndDialog(false)} className="flex-1 sm:flex-none">
               {t("common.cancel")}

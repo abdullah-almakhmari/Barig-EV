@@ -7,6 +7,7 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Navigation, Loader2, Move, Lock, Maximize2, Minimize2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { useQuery } from "@tanstack/react-query";
 
 import icon from "leaflet/dist/images/marker-icon.png";
 import iconShadow from "leaflet/dist/images/marker-shadow.png";
@@ -20,9 +21,10 @@ const DefaultIcon = L.icon({
 
 L.Marker.prototype.options.icon = DefaultIcon;
 
-type StationPriority = 'best' | 'good' | 'busy' | 'offline';
+type StationPriority = 'best' | 'good' | 'busy' | 'offline' | 'charging';
 
-function getStationPriority(station: Station): StationPriority {
+function getStationPriority(station: Station, isCharging: boolean = false): StationPriority {
+  if (isCharging) return 'charging';
   if (station.status === "OFFLINE") return 'offline';
   const available = station.availableChargers ?? 0;
   const total = station.chargerCount ?? 1;
@@ -31,8 +33,8 @@ function getStationPriority(station: Station): StationPriority {
   return 'good';
 }
 
-function createCustomIcon(station: Station, isBestNearby: boolean = false) {
-  const priority = getStationPriority(station);
+function createCustomIcon(station: Station, isBestNearby: boolean = false, isCharging: boolean = false) {
+  const priority = getStationPriority(station, isCharging);
   
   let color: string;
   let size: number;
@@ -43,6 +45,10 @@ function createCustomIcon(station: Station, isBestNearby: boolean = false) {
   shadowSize = '0 2px 4px rgba(0,0,0,0.3)';
   
   switch (priority) {
+    case 'charging':
+      color = '#f97316';
+      pulseAnimation = 'animation: pulse 2s infinite;';
+      break;
     case 'best':
       color = '#10b981';
       if (isBestNearby) {
@@ -61,7 +67,7 @@ function createCustomIcon(station: Station, isBestNearby: boolean = false) {
       break;
   }
   
-  const pulseKeyframes = isBestNearby ? `
+  const pulseKeyframes = (isBestNearby || isCharging) ? `
     <style>
       @keyframes pulse {
         0%, 100% { transform: scale(1); opacity: 1; }
@@ -234,6 +240,15 @@ export function StationMap({ stations }: StationMapProps) {
   const [isMapInteractionEnabled, setIsMapInteractionEnabled] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
+  const { data: activeEsp32Data } = useQuery<{ stationIds: number[] }>({
+    queryKey: ["/api/stations/active-esp32-sessions"],
+    refetchInterval: 30000,
+  });
+  
+  const chargingStationIds = useMemo(() => {
+    return new Set(activeEsp32Data?.stationIds || []);
+  }, [activeEsp32Data]);
+
   const handleLocationFound = (lat: number, lng: number) => {
     setUserLocation([lat, lng]);
   };
@@ -327,10 +342,10 @@ export function StationMap({ stations }: StationMapProps) {
         
         {stations.map((station) => (
           <Marker 
-            key={`${station.id}-${station.status}-${station.availableChargers}`} 
+            key={`${station.id}-${station.status}-${station.availableChargers}-${chargingStationIds.has(station.id)}`} 
             position={[station.lat, station.lng]}
-            icon={createCustomIcon(station, station.id === bestNearbyStationId)}
-            zIndexOffset={station.id === bestNearbyStationId ? 1000 : 0}
+            icon={createCustomIcon(station, station.id === bestNearbyStationId, chargingStationIds.has(station.id))}
+            zIndexOffset={chargingStationIds.has(station.id) ? 2000 : station.id === bestNearbyStationId ? 1000 : 0}
           >
             <Popup>
               <div dir={document.documentElement.dir} className="w-full">

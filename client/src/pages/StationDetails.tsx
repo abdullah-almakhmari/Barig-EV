@@ -47,7 +47,7 @@ function formatTimeAgo(isoString: string, t: (key: string, options?: any) => str
   }
 }
 
-type PrimaryStatus = 'WORKING' | 'BUSY' | 'NOT_WORKING' | 'NOT_RECENTLY_VERIFIED';
+type PrimaryStatus = 'WORKING' | 'BUSY' | 'NOT_WORKING' | 'NOT_RECENTLY_VERIFIED' | 'CHARGING';
 
 const RECENCY_THRESHOLD_MS = 30 * 60 * 1000; // 30 minutes - same as verification window
 
@@ -62,8 +62,14 @@ function getPrimaryStatus(
   verificationSummary: VerificationSummary | undefined, 
   stationStatus?: string,
   availableChargers?: number,
-  totalChargers?: number
+  totalChargers?: number,
+  hasActiveChargingSession?: boolean
 ): PrimaryStatus {
+  // If station has active ESP32 charging session, show CHARGING
+  if (hasActiveChargingSession) {
+    return 'CHARGING';
+  }
+  
   // If station is marked as OFFLINE by admin/system, always show NOT_WORKING
   if (stationStatus === 'OFFLINE') {
     return 'NOT_WORKING';
@@ -134,6 +140,17 @@ function getStatusConfig(status: PrimaryStatus, t: (key: string) => string) {
         textColor: 'text-white',
         borderColor: 'border-red-600',
         icon: XCircle,
+        isRecommended: false,
+      };
+    case 'CHARGING':
+      return {
+        label: t("status.charging"),
+        recommendation: t("status.chargingInProgress"),
+        actionLabel: null,
+        bgColor: 'bg-orange-500',
+        textColor: 'text-white',
+        borderColor: 'border-orange-600',
+        icon: Zap,
         isRecommended: false,
       };
     case 'NOT_RECENTLY_VERIFIED':
@@ -266,7 +283,8 @@ export default function StationDetails() {
     verificationSummary, 
     station.status ?? undefined,
     station.availableChargers ?? undefined,
-    station.chargerCount ?? undefined
+    station.chargerCount ?? undefined,
+    (station as any).hasActiveChargingSession ?? false
   );
   const statusConfig = getStatusConfig(primaryStatus, t);
   const StatusIcon = statusConfig.icon;

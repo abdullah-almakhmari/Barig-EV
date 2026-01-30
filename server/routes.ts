@@ -148,6 +148,17 @@ export async function registerRoutes(
     }
   });
 
+  // Get station IDs with active ESP32 (auto-tracked) charging sessions
+  app.get("/api/stations/active-esp32-sessions", async (_req, res) => {
+    try {
+      const stationIds = await storage.getStationsWithActiveAutoTrackedSessions();
+      res.json({ stationIds });
+    } catch (error) {
+      console.error("Error getting active ESP32 sessions:", error);
+      res.status(500).json({ message: "Failed to get active ESP32 sessions" });
+    }
+  });
+
   app.get(api.stations.get.path, async (req, res) => {
     const station = await storage.getStation(Number(req.params.id));
     if (!station) {
@@ -168,7 +179,11 @@ export async function registerRoutes(
       c.isOnline && c.lastSeen && new Date(c.lastSeen) > fiveMinutesAgo
     );
     
-    res.json({ ...station, hasActiveConnector });
+    // Check if station has active ESP32 charging session
+    const activeSession = await storage.getActiveSession(station.id);
+    const hasActiveChargingSession = activeSession?.isAutoTracked === true;
+    
+    res.json({ ...station, hasActiveConnector, hasActiveChargingSession });
   });
 
   app.post(api.stations.create.path, createLimiter, isAuthenticated, async (req: any, res) => {
