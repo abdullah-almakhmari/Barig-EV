@@ -47,6 +47,14 @@ export interface IStorage {
     endTime: Date;
     durationMinutes: number;
     energyKwh: number;
+    gridVoltage?: number;
+    gridFrequency?: number;
+    maxCurrentA?: number;
+    avgCurrentA?: number;
+    maxPowerKw?: number;
+    maxTempC?: number;
+    isAutoTracked?: boolean;
+    teslaConnectorId?: number;
   }): Promise<ChargingSession>;
   getChargingSessions(stationId?: number, userId?: string): Promise<ChargingSession[]>;
   getChargingSessionsWithScreenshots(): Promise<(ChargingSession & { stationName?: string; stationNameAr?: string; userEmail?: string })[]>;
@@ -83,6 +91,8 @@ export interface IStorage {
   updateTeslaConnector(id: number, data: Partial<TeslaConnector>): Promise<TeslaConnector | undefined>;
   deleteTeslaConnector(id: number): Promise<void>;
   createChargingSession(session: InsertChargingSession): Promise<ChargingSession>;
+  getStaleAutoTrackedSessions(staleHours: number): Promise<ChargingSession[]>;
+  getConnectorsWithStaleSessions(): Promise<TeslaConnector[]>;
   seed(): Promise<void>;
 }
 
@@ -300,6 +310,14 @@ export class DatabaseStorage implements IStorage {
     endTime: Date;
     durationMinutes: number;
     energyKwh: number;
+    gridVoltage?: number;
+    gridFrequency?: number;
+    maxCurrentA?: number;
+    avgCurrentA?: number;
+    maxPowerKw?: number;
+    maxTempC?: number;
+    isAutoTracked?: boolean;
+    teslaConnectorId?: number;
   }): Promise<ChargingSession> {
     const [created] = await db.insert(chargingSessions).values({
       stationId: session.stationId,
@@ -309,7 +327,15 @@ export class DatabaseStorage implements IStorage {
       endTime: session.endTime,
       durationMinutes: session.durationMinutes,
       energyKwh: session.energyKwh,
+      gridVoltage: session.gridVoltage,
+      gridFrequency: session.gridFrequency,
+      maxCurrentA: session.maxCurrentA,
+      avgCurrentA: session.avgCurrentA,
+      maxPowerKw: session.maxPowerKw,
+      maxTempC: session.maxTempC,
       isActive: false,
+      isAutoTracked: session.isAutoTracked ?? false,
+      teslaConnectorId: session.teslaConnectorId,
     }).returning();
     return created;
   }
@@ -851,6 +877,36 @@ export class DatabaseStorage implements IStorage {
   async createChargingSession(session: InsertChargingSession): Promise<ChargingSession> {
     const [newSession] = await db.insert(chargingSessions).values(session).returning();
     return newSession;
+  }
+
+  async getStaleAutoTrackedSessions(staleHours: number): Promise<ChargingSession[]> {
+    const staleThreshold = new Date(Date.now() - staleHours * 60 * 60 * 1000);
+    const sessions = await db.select()
+      .from(chargingSessions)
+      .where(and(
+        eq(chargingSessions.isActive, true),
+        eq(chargingSessions.isAutoTracked, true),
+        isNotNull(chargingSessions.teslaConnectorId)
+      ));
+    
+    // Filter sessions where the connector hasn't been updated recently
+    const staleSessions: ChargingSession[] = [];
+    for (const session of sessions) {
+      if (session.teslaConnectorId) {
+        const connector = await this.getTeslaConnector(session.teslaConnectorId);
+        if (connector && connector.lastSeen && connector.lastSeen < staleThreshold) {
+          staleSessions.push(session);
+        }
+      }
+    }
+    return staleSessions;
+  }
+
+  async getConnectorsWithStaleSessions(): Promise<TeslaConnector[]> {
+    const connectors = await db.select()
+      .from(teslaConnectors)
+      .where(isNotNull(teslaConnectors.currentSessionId));
+    return connectors;
   }
 }
 

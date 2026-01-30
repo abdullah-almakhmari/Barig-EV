@@ -1149,6 +1149,161 @@ export async function registerRoutes(
     }
   });
 
+  // ESP32 sync endpoint - for syncing offline charging data when reconnected
+  app.post("/api/tesla-connector/sync", async (req, res) => {
+    try {
+      const { deviceToken, sessions } = req.body;
+      
+      console.log("[ESP32 Sync] Received sync request:", {
+        deviceToken: deviceToken ? "***" + deviceToken.slice(-4) : "missing",
+        sessionsCount: sessions?.length || 0,
+      });
+      
+      if (!deviceToken) {
+        return res.status(400).json({ message: "Device token required" });
+      }
+      
+      const connector = await storage.getTeslaConnectorByToken(deviceToken);
+      if (!connector) {
+        console.log("[ESP32 Sync] Invalid device token");
+        return res.status(401).json({ message: "Invalid device token" });
+      }
+      
+      const syncedSessions: number[] = [];
+      
+      // Process each offline session
+      for (const offlineSession of sessions || []) {
+        const {
+          startTime,
+          endTime,
+          energyWh,
+          gridVoltage,
+          gridFrequency,
+          maxCurrentA,
+          avgCurrentA,
+          maxTempC,
+        } = offlineSession;
+        
+        // Calculate duration
+        const start = new Date(startTime);
+        const end = new Date(endTime);
+        const durationMinutes = Math.round((end.getTime() - start.getTime()) / 60000);
+        const energyKwh = energyWh / 1000;
+        
+        // Calculate max power from voltage and current
+        const maxPowerKw = gridVoltage && maxCurrentA 
+          ? Math.round((gridVoltage * maxCurrentA * 1.732) / 1000 * 100) / 100 
+          : undefined;
+        
+        // Create a completed session with all telemetry data
+        const session = await storage.createCompletedSession({
+          stationId: connector.stationId,
+          userId: connector.userId,
+          userVehicleId: connector.userVehicleId,
+          startTime: start,
+          endTime: end,
+          durationMinutes,
+          energyKwh,
+          gridVoltage,
+          gridFrequency,
+          maxCurrentA,
+          avgCurrentA,
+          maxPowerKw,
+          maxTempC,
+          isAutoTracked: true,
+          teslaConnectorId: connector.id,
+        });
+        
+        console.log("[ESP32 Sync] Created synced session:", session.id);
+        syncedSessions.push(session.id);
+      }
+      
+      // Update connector last seen
+      await storage.updateTeslaConnector(connector.id, {
+        isOnline: true,
+        lastSeen: new Date(),
+      });
+      
+      res.json({
+        success: true,
+        syncedSessions,
+        message: `Synced ${syncedSessions.length} offline sessions`,
+      });
+    } catch (err) {
+      console.error("[ESP32 Sync] Error processing sync:", err);
+      res.status(500).json({ message: "Failed to process sync" });
+    }
+  });
+
+  // Check and auto-end stale sessions (called periodically or on vitals)
+  async function checkAndEndStaleSessions() {
+    try {
+      const STALE_HOURS = 6; // End sessions after 6 hours of no updates
+      const staleSessions = await storage.getStaleAutoTrackedSessions(STALE_HOURS);
+      let endedCount = 0;
+      
+      for (const session of staleSessions) {
+        try {
+          console.log("[Stale Session] Auto-ending stale session:", session.id);
+          
+          let energyKwh = 0;
+          let gridVoltage: number | undefined;
+          let gridFrequency: number | undefined;
+          
+          // Try to get last known energy from connector
+          if (session.teslaConnectorId) {
+            const connector = await storage.getTeslaConnector(session.teslaConnectorId);
+            if (connector) {
+              // Try to parse lastVitals safely
+              if (connector.lastVitals) {
+                try {
+                  const lastVitals = JSON.parse(connector.lastVitals);
+                  energyKwh = (lastVitals.session_energy_wh || 0) / 1000;
+                  gridVoltage = lastVitals.grid_v;
+                  gridFrequency = lastVitals.grid_hz;
+                } catch (parseErr) {
+                  console.warn("[Stale Session] Failed to parse lastVitals for session:", session.id);
+                }
+              }
+              
+              // Clear the connector's current session
+              await storage.updateTeslaConnector(connector.id, {
+                currentSessionId: null,
+              });
+            }
+          }
+          
+          // End the session with whatever energy data we have (even if 0)
+          await storage.endChargingSession(session.id, undefined, energyKwh, undefined, {
+            gridVoltage,
+            gridFrequency,
+          });
+          
+          // Update station status back to OPERATIONAL
+          await storage.updateStationStatus(session.stationId, "OPERATIONAL");
+          
+          console.log("[Stale Session] Ended session", session.id, "with energy:", energyKwh, "kWh");
+          endedCount++;
+        } catch (sessionErr) {
+          console.error("[Stale Session] Error ending session", session.id, ":", sessionErr);
+        }
+      }
+      
+      return endedCount;
+    } catch (err) {
+      console.error("[Stale Session] Error checking stale sessions:", err);
+      return 0;
+    }
+  }
+
+  // Run stale session check every hour
+  setInterval(async () => {
+    const endedCount = await checkAndEndStaleSessions();
+    if (endedCount > 0) {
+      console.log("[Stale Session] Auto-ended", endedCount, "stale sessions");
+    }
+  }, 60 * 60 * 1000); // Every hour
+
   // Admin middleware
   const isAdmin = (req: any, res: any, next: any) => {
     if (!req.user) {
