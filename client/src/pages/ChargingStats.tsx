@@ -378,57 +378,53 @@ export default function ChargingStats() {
         </div>
       )}
 
-      <Card className="p-3 mb-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center bg-muted rounded-lg p-1">
-            <Button
-              variant={viewMode === "month" ? "default" : "ghost"}
-              size="sm"
-              className="h-7 px-3 text-xs"
-              onClick={() => setViewMode("month")}
-              data-testid="button-view-month"
-            >
-              <Calendar className="w-3 h-3 me-1" />
-              {isArabic ? "شهري" : "Monthly"}
-            </Button>
-            <Button
-              variant={viewMode === "year" ? "default" : "ghost"}
-              size="sm"
-              className="h-7 px-3 text-xs"
-              onClick={() => setViewMode("year")}
-              data-testid="button-view-year"
-            >
-              <BarChart3 className="w-3 h-3 me-1" />
-              {isArabic ? "سنوي" : "Yearly"}
-            </Button>
-          </div>
-
-          <div className="flex items-center gap-1">
-            <Button
-              size="icon"
-              variant="ghost"
-              className="h-8 w-8"
-              onClick={() => navigateMonth("prev")}
-              data-testid="button-prev-month"
-            >
-              {isArabic ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
-            </Button>
-            <div className="min-w-[100px] text-center text-sm font-medium">
-              {format(selectedMonth, "MMM yyyy", { locale: isArabic ? ar : undefined })}
-            </div>
-            <Button
-              size="icon"
-              variant="ghost"
-              className="h-8 w-8"
-              onClick={() => navigateMonth("next")}
-              disabled={isSameMonth(selectedMonth, new Date())}
-              data-testid="button-next-month"
-            >
-              {isArabic ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-            </Button>
-          </div>
+      <div className="flex items-center justify-between gap-2 mb-4">
+        <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
+          <Button
+            variant={viewMode === "month" ? "default" : "ghost"}
+            size="sm"
+            className="h-8 px-2 text-xs"
+            onClick={() => setViewMode("month")}
+            data-testid="button-view-month"
+          >
+            <Calendar className="w-3.5 h-3.5" />
+          </Button>
+          <Button
+            variant={viewMode === "year" ? "default" : "ghost"}
+            size="sm"
+            className="h-8 px-2 text-xs"
+            onClick={() => setViewMode("year")}
+            data-testid="button-view-year"
+          >
+            <BarChart3 className="w-3.5 h-3.5" />
+          </Button>
         </div>
-      </Card>
+
+        <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-8 w-8"
+            onClick={() => navigateMonth("prev")}
+            data-testid="button-prev-month"
+          >
+            {isArabic ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+          </Button>
+          <div className="min-w-[90px] text-center text-sm font-medium px-1">
+            {format(selectedMonth, "MMM yyyy", { locale: isArabic ? ar : undefined })}
+          </div>
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-8 w-8"
+            onClick={() => navigateMonth("next")}
+            disabled={isSameMonth(selectedMonth, new Date())}
+            data-testid="button-next-month"
+          >
+            {isArabic ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+          </Button>
+        </div>
+      </div>
 
       {monthlyStats && (
         <>
