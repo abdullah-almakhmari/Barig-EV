@@ -140,9 +140,13 @@ export function StationCard({ station, variant = "full", isRentalStation = false
             <Badge className="bg-violet-500 text-white border-0 text-xs">
               {t("station.price.paid")}
             </Badge>
-          ) : station.isFree && (
+          ) : station.isFree ? (
             <Badge className="bg-emerald-500 text-white border-0 text-xs">
               {t("station.price.free")}
+            </Badge>
+          ) : !station.isFree && (
+            <Badge className="bg-amber-500 text-white border-0 text-xs">
+              {t("station.price.paid")}
             </Badge>
           )}
         </div>

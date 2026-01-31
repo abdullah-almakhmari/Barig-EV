@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
-import { Station } from "@shared/schema";
+import { Station, ChargerRental } from "@shared/schema";
 import { StationCard } from "@/components/StationCard";
 import { useLanguage } from "@/components/LanguageContext";
 import { Loader2, Navigation, RefreshCw, AlertCircle, Building2, Home, LayoutGrid } from "lucide-react";
@@ -35,6 +35,18 @@ export default function NearbyStations() {
   const { data: stations = [], isLoading } = useQuery<Station[]>({
     queryKey: ["/api/stations"],
   });
+
+  const { data: chargerRentals = [] } = useQuery<ChargerRental[]>({
+    queryKey: ["/api/charger-rentals"],
+  });
+
+  const rentalStationIds = useMemo(() => {
+    return new Set(
+      chargerRentals
+        .filter(r => r.isAvailableForRent && r.pricePerKwh > 0)
+        .map(r => r.stationId)
+    );
+  }, [chargerRentals]);
 
   const getUserLocation = () => {
     setIsGettingLocation(true);
@@ -150,7 +162,11 @@ export default function NearbyStations() {
           {sortedStations.map((station) => (
             <Link key={station.id} href={`/station/${station.id}`}>
               <div className="relative cursor-pointer">
-                <StationCard station={station} variant="compact" />
+                <StationCard 
+                  station={station} 
+                  variant="compact" 
+                  isRentalStation={rentalStationIds.has(station.id)}
+                />
                 <div className="absolute top-4 end-4 bg-primary/90 text-primary-foreground px-3 py-1 rounded-full text-sm font-medium shadow-lg">
                   {station.distance.toFixed(1)} {t("nearby.distance")}
                 </div>
