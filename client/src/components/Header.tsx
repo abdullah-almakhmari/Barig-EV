@@ -98,7 +98,7 @@ export function Header() {
           </span>
         </Link>
 
-        <nav className="flex items-center gap-1 sm:gap-2">
+        <nav className="flex items-center gap-1 sm:gap-2" style={{ direction: 'ltr' }}>
           {!showMobileNav && (
             <>
               <Link href="/">
