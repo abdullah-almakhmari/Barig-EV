@@ -208,7 +208,7 @@ export default function StationDetails() {
     enabled: id > 0,
   });
 
-  const { data: rentalInfo } = useQuery<ChargerRental>({
+  const { data: rentalInfo } = useQuery<ChargerRental | null>({
     queryKey: ['/api/charger-rentals/station', id],
     queryFn: async () => {
       const res = await fetch(`/api/charger-rentals/station/${id}`);

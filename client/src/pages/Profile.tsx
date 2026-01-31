@@ -974,7 +974,7 @@ export default function Profile() {
 
       <Card className="border-primary/20 bg-gradient-to-r from-primary/5 to-transparent">
         <CardContent className="p-6">
-          <Link href="/my-charger">
+          <Link href="/my-charger" data-testid="link-my-charger">
             <div className="flex items-center justify-between hover-elevate rounded-lg cursor-pointer">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
