@@ -3,7 +3,7 @@ import { useRoute } from "wouter";
 import { useStation, useStationReports } from "@/hooks/use-stations";
 import { useTranslation } from "react-i18next";
 import { useLanguage } from "@/components/LanguageContext";
-import type { StationWithConnector } from "@shared/schema";
+import type { StationWithConnector, ChargerRental } from "@shared/schema";
 import { Loader2, Navigation, Clock, ShieldCheck, MapPin, BatteryCharging, Home, Phone, MessageCircle, AlertTriangle, CheckCircle2, XCircle, Users, ShieldAlert, ThumbsUp, ThumbsDown, Zap, Shield, Trash2, Cpu } from "lucide-react";
 import { useLocation } from "wouter";
 import { api } from "@shared/routes";
@@ -207,6 +207,19 @@ export default function StationDetails() {
     },
     enabled: id > 0,
   });
+
+  const { data: rentalInfo } = useQuery<ChargerRental>({
+    queryKey: ['/api/charger-rentals/station', id],
+    queryFn: async () => {
+      const res = await fetch(`/api/charger-rentals/station/${id}`);
+      if (!res.ok) {
+        if (res.status === 404) return null;
+        throw new Error('Failed to fetch rental info');
+      }
+      return res.json();
+    },
+    enabled: id > 0 && station?.stationType === 'HOME',
+  });
   
   const submitVerification = useMutation({
     mutationFn: async (vote: 'WORKING' | 'NOT_WORKING') => {
@@ -397,6 +410,14 @@ export default function StationDetails() {
                 <Badge variant="secondary" className="bg-orange-100 text-orange-700 text-xs">
                   <Home className="w-3 h-3 mr-1" />
                   {t("station.type.home")}
+                </Badge>
+              )}
+              {rentalInfo?.isAvailableForRent && (
+                <Badge variant="secondary" className="bg-emerald-100 text-emerald-700 text-xs">
+                  <Zap className="w-3 h-3 mr-1" />
+                  {language === 'ar' 
+                    ? `${rentalInfo.pricePerKwh} ر.ع./ك.و.س` 
+                    : `${rentalInfo.pricePerKwh} OMR/kWh`}
                 </Badge>
               )}
             </div>

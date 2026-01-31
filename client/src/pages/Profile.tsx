@@ -13,7 +13,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { User, Car, Star, Trash2, Plus, Loader2, Check, Zap, Camera, Cpu, Link2, Settings2, Copy, LogOut, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { Redirect } from "wouter";
+import { Redirect, Link } from "wouter";
 import { SEO } from "@/components/SEO";
 import { queryClient, apiRequest, getCsrfToken } from "@/lib/queryClient";
 import { useQuery, useMutation } from "@tanstack/react-query";

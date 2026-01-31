@@ -482,7 +482,15 @@ export default function ChargingHistory() {
                                   </div>
                                 )}
 
-                                {calculateCost(session.energyKwh) && (
+                                {session.isRentalSession && session.rentalTotalCost ? (
+                                  <div className="flex items-center gap-1 text-sm text-orange-600">
+                                    <Banknote className="w-3 h-3" />
+                                    <span>{Number(session.rentalTotalCost).toFixed(3)} {language === 'ar' ? 'ر.ع' : 'OMR'}</span>
+                                    <Badge variant="secondary" className="text-[10px] px-1 py-0 bg-orange-100 text-orange-700">
+                                      {language === 'ar' ? 'إيجار' : 'Rental'}
+                                    </Badge>
+                                  </div>
+                                ) : calculateCost(session.energyKwh) && (
                                   <div className="flex items-center gap-1 text-sm text-amber-600">
                                     <Banknote className="w-3 h-3" />
                                     <span>{calculateCost(session.energyKwh)} {currencySymbol}</span>
