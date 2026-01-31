@@ -70,8 +70,37 @@ export default function AddStation() {
   const [whatsappCountryCode, setWhatsappCountryCode] = useState("+968");
   const [manualCoords, setManualCoords] = useState("");
 
+  function parseDMS(dmsStr: string): number | null {
+    // Parse DMS format like: 24°24'52.2"N or 56°35'58.7"E
+    const dmsPattern = /(\d+)[°]\s*(\d+)[′']\s*(\d+\.?\d*)[″"]\s*([NSEW])/i;
+    const match = dmsStr.match(dmsPattern);
+    if (!match) return null;
+    
+    const degrees = parseFloat(match[1]);
+    const minutes = parseFloat(match[2]);
+    const seconds = parseFloat(match[3]);
+    const direction = match[4].toUpperCase();
+    
+    let decimal = degrees + minutes / 60 + seconds / 3600;
+    if (direction === 'S' || direction === 'W') {
+      decimal = -decimal;
+    }
+    return decimal;
+  }
+
   function parseCoordinates(input: string): { lat: number; lng: number } | null {
     const cleaned = input.trim();
+    
+    // Try DMS format first: "24°24'52.2"N 56°35'58.7"E"
+    const dmsPattern = /(\d+[°]\s*\d+[′']\s*\d+\.?\d*[″"]\s*[NS])\s+(\d+[°]\s*\d+[′']\s*\d+\.?\d*[″"]\s*[EW])/i;
+    const dmsMatch = cleaned.match(dmsPattern);
+    if (dmsMatch) {
+      const lat = parseDMS(dmsMatch[1]);
+      const lng = parseDMS(dmsMatch[2]);
+      if (lat !== null && lng !== null && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+        return { lat, lng };
+      }
+    }
     
     // Try common formats:
     // "23.5880, 58.3829" or "23.5880,58.3829"
