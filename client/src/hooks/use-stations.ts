@@ -61,6 +61,8 @@ export function useCreateStation() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [api.stations.list.path] });
+      // Invalidate admin stations cache so new stations appear in Admin Panel
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/stations"] });
     },
   });
 }
