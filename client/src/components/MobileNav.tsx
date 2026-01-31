@@ -27,7 +27,7 @@ export function MobileNav() {
 
   return (
     <nav className="pwa-bottom-nav">
-      <div className="flex items-end h-[72px] pb-2 px-1">
+      <div className="flex items-center justify-around h-[72px] pb-2 px-1">
         {navItems.map((item) => {
           const isActive = location === item.path;
           const Icon = item.icon;
@@ -35,26 +35,19 @@ export function MobileNav() {
           
           if (item.isCenter) {
             return (
-              <Link key={item.path} href={item.path} className="flex-1">
+              <Link key={item.path} href={item.path} className="flex-1 flex justify-center">
                 <button
                   onClick={triggerHaptic}
-                  className="w-full flex flex-col items-center -mt-3"
+                  className="flex flex-col items-center -mt-3"
                   data-testid={`nav-${item.path.replace("/", "") || "home"}`}
                 >
                   <div 
-                    className={`
-                      w-14 h-14 rounded-2xl flex items-center justify-center 
-                      bg-primary text-white shadow-lg shadow-primary/30
-                      transition-colors duration-200
-                    `}
+                    className="w-14 h-14 rounded-2xl flex items-center justify-center bg-primary text-white shadow-lg shadow-primary/30"
                   >
-                    <Icon className="w-6 h-6" strokeWidth={2.5} />
+                    <Icon className="w-6 h-6" strokeWidth={2} />
                   </div>
                   <span 
-                    className={`
-                      text-[11px] mt-1 transition-colors duration-200
-                      ${isActive ? 'text-primary' : 'text-muted-foreground'}
-                    `}
+                    className="text-[11px] mt-1 text-primary"
                     style={{ fontWeight: 500 }}
                   >
                     {label}
@@ -65,38 +58,27 @@ export function MobileNav() {
           }
           
           return (
-            <Link key={item.path} href={item.path} className="flex-1">
+            <Link key={item.path} href={item.path} className="flex-1 flex justify-center">
               <button
                 onClick={triggerHaptic}
-                className="w-full flex flex-col items-center py-1.5 relative"
+                className="w-16 h-14 flex flex-col items-center justify-center relative"
                 data-testid={`nav-${item.path.replace("/", "") || "home"}`}
               >
-                {/* Background pill - using opacity instead of display */}
                 <div 
-                  className={`
-                    absolute inset-x-2 top-0.5 bottom-0.5 rounded-xl
-                    bg-primary/10 dark:bg-primary/20
-                    transition-opacity duration-200
-                  `}
+                  className="absolute inset-1 rounded-xl bg-primary/10 dark:bg-primary/20 transition-opacity duration-200"
                   style={{ opacity: isActive ? 1 : 0 }}
                 />
                 
-                {/* Icon - fixed size container */}
-                <div className="relative z-10 w-7 h-7 flex items-center justify-center">
-                  <Icon 
-                    className={`
-                      w-[22px] h-[22px] transition-colors duration-200
-                      ${isActive ? "text-primary" : "text-muted-foreground"}
-                    `}
-                    strokeWidth={isActive ? 2.5 : 2}
-                  />
-                </div>
+                <Icon 
+                  className="w-6 h-6 relative z-10 transition-colors duration-200"
+                  style={{ 
+                    color: isActive ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))'
+                  }}
+                  strokeWidth={2}
+                />
                 
-                {/* Label - fixed font weight, only color changes */}
                 <span 
-                  className={`
-                    relative z-10 text-[11px] mt-0.5 transition-colors duration-200
-                  `}
+                  className="relative z-10 text-[11px] mt-1 transition-colors duration-200"
                   style={{ 
                     fontWeight: 500,
                     color: isActive ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))'
@@ -105,13 +87,9 @@ export function MobileNav() {
                   {label}
                 </span>
                 
-                {/* Active indicator dot - using opacity */}
                 <div 
-                  className="absolute bottom-0 left-1/2 w-1 h-1 rounded-full bg-primary transition-opacity duration-200"
-                  style={{ 
-                    transform: 'translateX(-50%)',
-                    opacity: isActive ? 1 : 0 
-                  }}
+                  className="absolute bottom-1 w-1 h-1 rounded-full bg-primary transition-opacity duration-200"
+                  style={{ opacity: isActive ? 1 : 0 }}
                 />
               </button>
             </Link>

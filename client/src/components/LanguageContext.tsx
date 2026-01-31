@@ -1,8 +1,10 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import "@/lib/i18n"; // Import i18n config
+import "@/lib/i18n";
 
 type Language = "en" | "ar";
+
+const LANGUAGE_KEY = "bariq_language";
 
 interface LanguageContextType {
   language: Language;
@@ -14,18 +16,20 @@ const LanguageContext = createContext<LanguageContextType | undefined>(undefined
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const { i18n } = useTranslation();
-  const [language, setLanguageState] = useState<Language>("ar");
+  const [language, setLanguageState] = useState<Language>(() => {
+    const saved = localStorage.getItem(LANGUAGE_KEY);
+    return (saved === "en" || saved === "ar") ? saved : "ar";
+  });
 
   useEffect(() => {
-    // Sync with i18n
     i18n.changeLanguage(language);
-    // Update document direction
     const dir = language === "ar" ? "rtl" : "ltr";
     document.documentElement.dir = dir;
     document.documentElement.lang = language;
   }, [language, i18n]);
 
   const setLanguage = (lang: Language) => {
+    localStorage.setItem(LANGUAGE_KEY, lang);
     setLanguageState(lang);
   };
 
