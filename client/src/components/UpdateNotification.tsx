@@ -2,6 +2,9 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, X } from "lucide-react";
 
+const UPDATE_AVAILABLE_KEY = "bariq_update_available";
+const UPDATE_VERSION_KEY = "bariq_update_version";
+
 interface UpdateNotificationProps {
   registration: ServiceWorkerRegistration | null;
 }
@@ -11,11 +14,19 @@ export function UpdateNotification({ registration }: UpdateNotificationProps) {
   const [isUpdating, setIsUpdating] = useState(false);
 
   useEffect(() => {
+    const savedUpdateAvailable = localStorage.getItem(UPDATE_AVAILABLE_KEY);
+    if (savedUpdateAvailable === "true") {
+      setShowUpdate(true);
+    }
+  }, []);
+
+  useEffect(() => {
     if (!registration) return;
 
     const handleUpdate = () => {
       const waitingWorker = registration.waiting;
       if (waitingWorker) {
+        localStorage.setItem(UPDATE_AVAILABLE_KEY, "true");
         setShowUpdate(true);
       }
     };
@@ -27,6 +38,7 @@ export function UpdateNotification({ registration }: UpdateNotificationProps) {
       if (newWorker) {
         newWorker.addEventListener("statechange", () => {
           if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
+            localStorage.setItem(UPDATE_AVAILABLE_KEY, "true");
             setShowUpdate(true);
           }
         });
@@ -37,12 +49,19 @@ export function UpdateNotification({ registration }: UpdateNotificationProps) {
     navigator.serviceWorker.addEventListener("controllerchange", () => {
       if (refreshing) return;
       refreshing = true;
+      localStorage.removeItem(UPDATE_AVAILABLE_KEY);
+      localStorage.removeItem(UPDATE_VERSION_KEY);
       window.location.reload();
     });
   }, [registration]);
 
   const handleUpdate = () => {
-    if (!registration?.waiting) return;
+    if (!registration?.waiting) {
+      localStorage.removeItem(UPDATE_AVAILABLE_KEY);
+      setShowUpdate(false);
+      window.location.reload();
+      return;
+    }
     
     setIsUpdating(true);
     registration.waiting.postMessage({ type: "SKIP_WAITING" });
