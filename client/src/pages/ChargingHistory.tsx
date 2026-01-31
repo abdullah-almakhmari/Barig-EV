@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useLanguage } from "@/components/LanguageContext";
 import { useChargingSessions, useStations, useUserVehicles } from "@/hooks/use-stations";
-import { Loader2, BatteryCharging, Clock, Zap, Battery, Camera, ChevronDown, MapPin, Banknote, Car, Trash2, Upload, FileSpreadsheet, Cpu, Thermometer, Gauge } from "lucide-react";
+import { Loader2, BatteryCharging, Clock, Zap, Battery, Camera, ChevronDown, MapPin, Banknote, Car, Trash2, Upload, FileSpreadsheet, Cpu, Thermometer, Gauge, Activity, Radio, CircuitBoard, Timer, Bolt, TrendingUp, ChevronRight } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -114,6 +114,7 @@ export default function ChargingHistory() {
     return userVehicles.find(v => String(v.id) === selectedVehicleId);
   }, [userVehicles, selectedVehicleId, selectedVehicleIsTesla]);
   const [sessionToDelete, setSessionToDelete] = useState<ChargingSession | null>(null);
+  const [expandedTelemetry, setExpandedTelemetry] = useState<number | null>(null);
   const [showImportDialog, setShowImportDialog] = useState(false);
   const [parsedSessions, setParsedSessions] = useState<ParsedSession[]>([]);
   const [importStationId, setImportStationId] = useState<string>("");
@@ -422,115 +423,282 @@ export default function ChargingHistory() {
               </AccordionTrigger>
               <AccordionContent className="px-4 pb-4">
                 <div className="space-y-3 pt-2">
-                  {group.sessions.map((session) => (
-                    <Link key={session.id} href={`/station/${session.stationId}`}>
-                      <div 
-                        className="border rounded-lg p-3 bg-muted/30 hover-elevate cursor-pointer"
-                        data-testid={`session-card-${session.id}`}
-                      >
-                        <div className="flex flex-col sm:flex-row justify-between gap-3">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
-                              {session.isActive && (
-                                <Badge className="bg-orange-500 text-white animate-pulse text-xs">
-                                  {language === "ar" ? "نشط" : "Active"}
-                                </Badge>
-                              )}
-                              {(session as any).isAutoTracked && (
-                                <Badge variant="outline" className="text-xs bg-emerald-50 dark:bg-emerald-950 border-emerald-300 text-emerald-700 dark:text-emerald-300">
-                                  <Cpu className="w-3 h-3 me-1" />
-                                  {language === "ar" ? "تلقائي" : "Auto"}
-                                </Badge>
-                              )}
-                              <p className="text-sm text-muted-foreground">
-                                {session.startTime && format(
-                                  new Date(session.startTime), 
-                                  "PPp", 
-                                  { locale: language === "ar" ? ar : undefined }
+                  {group.sessions.map((session) => {
+                    const sessionData = session as any;
+                    const hasDetailedTelemetry = sessionData.isAutoTracked && (
+                      sessionData.gridVoltage || sessionData.gridFrequency || 
+                      sessionData.maxCurrentA || sessionData.avgCurrentA ||
+                      sessionData.maxPowerKw || sessionData.maxTempC
+                    );
+                    const isExpanded = expandedTelemetry === session.id;
+                    
+                    return (
+                      <div key={session.id} className="border rounded-lg bg-muted/30 overflow-hidden">
+                        <Link href={`/station/${session.stationId}`}>
+                          <div 
+                            className="p-3 hover-elevate cursor-pointer"
+                            data-testid={`session-card-${session.id}`}
+                          >
+                            <div className="flex flex-col sm:flex-row justify-between gap-3">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-1">
+                                  {session.isActive && (
+                                    <Badge className="bg-orange-500 text-white animate-pulse text-xs">
+                                      {language === "ar" ? "نشط" : "Active"}
+                                    </Badge>
+                                  )}
+                                  {sessionData.isAutoTracked && (
+                                    <Badge variant="outline" className="text-xs bg-emerald-50 dark:bg-emerald-950 border-emerald-300 text-emerald-700 dark:text-emerald-300">
+                                      <Cpu className="w-3 h-3 me-1" />
+                                      {language === "ar" ? "تلقائي" : "Auto"}
+                                    </Badge>
+                                  )}
+                                  <p className="text-sm text-muted-foreground">
+                                    {session.startTime && format(
+                                      new Date(session.startTime), 
+                                      "PPp", 
+                                      { locale: language === "ar" ? ar : undefined }
+                                    )}
+                                  </p>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-3 flex-wrap">
+                                <div className="flex items-center gap-1 text-sm">
+                                  <Clock className="w-3 h-3 text-muted-foreground" />
+                                  <span className={session.isActive ? "text-orange-500 font-medium" : ""}>
+                                    {session.isActive ? (
+                                      session.startTime && `${Math.floor((Date.now() - new Date(session.startTime).getTime()) / 60000)} min`
+                                    ) : (
+                                      formatDuration(session.durationMinutes)
+                                    )}
+                                  </span>
+                                </div>
+
+                                {session.energyKwh !== null && session.energyKwh > 0 && (
+                                  <div className="flex items-center gap-1 text-sm text-emerald-600">
+                                    <Zap className="w-3 h-3" />
+                                    <span>{session.energyKwh?.toFixed(2)} kWh</span>
+                                  </div>
                                 )}
-                              </p>
+
+                                {calculateCost(session.energyKwh) && (
+                                  <div className="flex items-center gap-1 text-sm text-amber-600">
+                                    <Banknote className="w-3 h-3" />
+                                    <span>{calculateCost(session.energyKwh)} {currencySymbol}</span>
+                                  </div>
+                                )}
+
+                                {(session.batteryStartPercent !== null || session.batteryEndPercent !== null) && (
+                                  <div className="flex items-center gap-1 text-sm text-primary">
+                                    <Battery className="w-3 h-3" />
+                                    <span>{session.batteryStartPercent ?? "?"}% → {session.batteryEndPercent ?? "?"}%</span>
+                                  </div>
+                                )}
+
+                                {sessionData.maxPowerKw && (
+                                  <div className="flex items-center gap-1 text-sm text-purple-600">
+                                    <Gauge className="w-3 h-3" />
+                                    <span>{sessionData.maxPowerKw.toFixed(1)} kW</span>
+                                  </div>
+                                )}
+
+                                {session.screenshotPath && (
+                                  <button
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      setSelectedScreenshot(session.screenshotPath!);
+                                    }}
+                                    className="flex items-center gap-1 text-sm text-blue-600 hover:underline"
+                                    data-testid={`screenshot-btn-${session.id}`}
+                                  >
+                                    <Camera className="w-3 h-3" />
+                                    <span>{language === "ar" ? "صورة" : "Photo"}</span>
+                                  </button>
+                                )}
+
+                                <button
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    setSessionToDelete(session);
+                                  }}
+                                  className="flex items-center gap-1 text-sm text-destructive hover:underline"
+                                  data-testid={`delete-btn-${session.id}`}
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                  <span>{language === "ar" ? "حذف" : "Delete"}</span>
+                                </button>
+                              </div>
                             </div>
                           </div>
-
-                          <div className="flex items-center gap-3 flex-wrap">
-                            <div className="flex items-center gap-1 text-sm">
-                              <Clock className="w-3 h-3 text-muted-foreground" />
-                              <span className={session.isActive ? "text-orange-500 font-medium" : ""}>
-                                {session.isActive ? (
-                                  session.startTime && `${Math.floor((Date.now() - new Date(session.startTime).getTime()) / 60000)} min`
-                                ) : (
-                                  formatDuration(session.durationMinutes)
-                                )}
-                              </span>
-                            </div>
-
-                            {session.energyKwh !== null && session.energyKwh > 0 && (
-                              <div className="flex items-center gap-1 text-sm text-emerald-600">
-                                <Zap className="w-3 h-3" />
-                                <span>{session.energyKwh?.toFixed(1)} kWh</span>
-                              </div>
-                            )}
-
-                            {calculateCost(session.energyKwh) && (
-                              <div className="flex items-center gap-1 text-sm text-amber-600">
-                                <Banknote className="w-3 h-3" />
-                                <span>{calculateCost(session.energyKwh)} {currencySymbol}</span>
-                              </div>
-                            )}
-
-                            {(session.batteryStartPercent !== null || session.batteryEndPercent !== null) && (
-                              <div className="flex items-center gap-1 text-sm text-primary">
-                                <Battery className="w-3 h-3" />
-                                <span>{session.batteryStartPercent ?? "?"}% → {session.batteryEndPercent ?? "?"}%</span>
-                              </div>
-                            )}
-
-                            {(session as any).maxPowerKw && (
-                              <div className="flex items-center gap-1 text-sm text-purple-600">
-                                <Gauge className="w-3 h-3" />
-                                <span>{(session as any).maxPowerKw} kW</span>
-                              </div>
-                            )}
-
-                            {(session as any).maxTempC && (
-                              <div className="flex items-center gap-1 text-sm text-orange-500">
-                                <Thermometer className="w-3 h-3" />
-                                <span>{(session as any).maxTempC}°C</span>
-                              </div>
-                            )}
-
-                            {session.screenshotPath && (
-                              <button
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  setSelectedScreenshot(session.screenshotPath!);
-                                }}
-                                className="flex items-center gap-1 text-sm text-blue-600 hover:underline"
-                                data-testid={`screenshot-btn-${session.id}`}
-                              >
-                                <Camera className="w-3 h-3" />
-                                <span>{language === "ar" ? "صورة" : "Photo"}</span>
-                              </button>
-                            )}
-
+                        </Link>
+                        
+                        {hasDetailedTelemetry && (
+                          <>
                             <button
                               onClick={(e) => {
-                                e.preventDefault();
                                 e.stopPropagation();
-                                setSessionToDelete(session);
+                                setExpandedTelemetry(isExpanded ? null : session.id);
                               }}
-                              className="flex items-center gap-1 text-sm text-destructive hover:underline"
-                              data-testid={`delete-btn-${session.id}`}
+                              className="w-full px-3 py-2 flex items-center justify-center gap-2 text-xs text-primary border-t bg-primary/5 hover:bg-primary/10 transition-colors"
+                              data-testid={`telemetry-toggle-${session.id}`}
                             >
-                              <Trash2 className="w-3 h-3" />
-                              <span>{language === "ar" ? "حذف" : "Delete"}</span>
+                              <CircuitBoard className="w-3 h-3" />
+                              <span>{language === "ar" ? "بيانات الشاحن التفصيلية" : "Detailed Charger Telemetry"}</span>
+                              <ChevronRight className={`w-3 h-3 transition-transform ${isExpanded ? "rotate-90" : ""}`} />
                             </button>
-                          </div>
-                        </div>
+                            
+                            {isExpanded && (
+                              <div className="px-3 pb-3 pt-2 border-t bg-gradient-to-b from-primary/5 to-transparent">
+                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                  {sessionData.gridVoltage && (
+                                    <div className="bg-card rounded-lg p-2.5 border shadow-sm">
+                                      <div className="flex items-center gap-2 mb-1">
+                                        <div className="w-6 h-6 rounded-full bg-blue-500/10 flex items-center justify-center">
+                                          <Bolt className="w-3 h-3 text-blue-500" />
+                                        </div>
+                                        <span className="text-[10px] text-muted-foreground uppercase tracking-wide">
+                                          {language === "ar" ? "جهد الشبكة" : "Grid Voltage"}
+                                        </span>
+                                      </div>
+                                      <p className="text-lg font-bold text-blue-600">
+                                        {sessionData.gridVoltage.toFixed(1)} <span className="text-xs font-normal">V</span>
+                                      </p>
+                                    </div>
+                                  )}
+                                  
+                                  {sessionData.gridFrequency && (
+                                    <div className="bg-card rounded-lg p-2.5 border shadow-sm">
+                                      <div className="flex items-center gap-2 mb-1">
+                                        <div className="w-6 h-6 rounded-full bg-indigo-500/10 flex items-center justify-center">
+                                          <Radio className="w-3 h-3 text-indigo-500" />
+                                        </div>
+                                        <span className="text-[10px] text-muted-foreground uppercase tracking-wide">
+                                          {language === "ar" ? "تردد الشبكة" : "Grid Frequency"}
+                                        </span>
+                                      </div>
+                                      <p className="text-lg font-bold text-indigo-600">
+                                        {sessionData.gridFrequency.toFixed(2)} <span className="text-xs font-normal">Hz</span>
+                                      </p>
+                                    </div>
+                                  )}
+                                  
+                                  {sessionData.maxCurrentA && (
+                                    <div className="bg-card rounded-lg p-2.5 border shadow-sm">
+                                      <div className="flex items-center gap-2 mb-1">
+                                        <div className="w-6 h-6 rounded-full bg-amber-500/10 flex items-center justify-center">
+                                          <TrendingUp className="w-3 h-3 text-amber-500" />
+                                        </div>
+                                        <span className="text-[10px] text-muted-foreground uppercase tracking-wide">
+                                          {language === "ar" ? "أقصى تيار" : "Max Current"}
+                                        </span>
+                                      </div>
+                                      <p className="text-lg font-bold text-amber-600">
+                                        {sessionData.maxCurrentA.toFixed(1)} <span className="text-xs font-normal">A</span>
+                                      </p>
+                                    </div>
+                                  )}
+                                  
+                                  {sessionData.avgCurrentA && (
+                                    <div className="bg-card rounded-lg p-2.5 border shadow-sm">
+                                      <div className="flex items-center gap-2 mb-1">
+                                        <div className="w-6 h-6 rounded-full bg-cyan-500/10 flex items-center justify-center">
+                                          <Activity className="w-3 h-3 text-cyan-500" />
+                                        </div>
+                                        <span className="text-[10px] text-muted-foreground uppercase tracking-wide">
+                                          {language === "ar" ? "متوسط التيار" : "Avg Current"}
+                                        </span>
+                                      </div>
+                                      <p className="text-lg font-bold text-cyan-600">
+                                        {sessionData.avgCurrentA.toFixed(1)} <span className="text-xs font-normal">A</span>
+                                      </p>
+                                    </div>
+                                  )}
+                                  
+                                  {sessionData.maxPowerKw && (
+                                    <div className="bg-card rounded-lg p-2.5 border shadow-sm">
+                                      <div className="flex items-center gap-2 mb-1">
+                                        <div className="w-6 h-6 rounded-full bg-purple-500/10 flex items-center justify-center">
+                                          <Gauge className="w-3 h-3 text-purple-500" />
+                                        </div>
+                                        <span className="text-[10px] text-muted-foreground uppercase tracking-wide">
+                                          {language === "ar" ? "أقصى قدرة" : "Max Power"}
+                                        </span>
+                                      </div>
+                                      <p className="text-lg font-bold text-purple-600">
+                                        {sessionData.maxPowerKw.toFixed(2)} <span className="text-xs font-normal">kW</span>
+                                      </p>
+                                    </div>
+                                  )}
+                                  
+                                  {sessionData.maxTempC && (
+                                    <div className="bg-card rounded-lg p-2.5 border shadow-sm">
+                                      <div className="flex items-center gap-2 mb-1">
+                                        <div className="w-6 h-6 rounded-full bg-orange-500/10 flex items-center justify-center">
+                                          <Thermometer className="w-3 h-3 text-orange-500" />
+                                        </div>
+                                        <span className="text-[10px] text-muted-foreground uppercase tracking-wide">
+                                          {language === "ar" ? "أقصى حرارة" : "Max Temp"}
+                                        </span>
+                                      </div>
+                                      <p className="text-lg font-bold text-orange-600">
+                                        {sessionData.maxTempC.toFixed(1)} <span className="text-xs font-normal">°C</span>
+                                      </p>
+                                    </div>
+                                  )}
+                                  
+                                  {session.durationMinutes && (
+                                    <div className="bg-card rounded-lg p-2.5 border shadow-sm">
+                                      <div className="flex items-center gap-2 mb-1">
+                                        <div className="w-6 h-6 rounded-full bg-slate-500/10 flex items-center justify-center">
+                                          <Timer className="w-3 h-3 text-slate-500" />
+                                        </div>
+                                        <span className="text-[10px] text-muted-foreground uppercase tracking-wide">
+                                          {language === "ar" ? "مدة الشحن" : "Duration"}
+                                        </span>
+                                      </div>
+                                      <p className="text-lg font-bold text-slate-600 dark:text-slate-400">
+                                        {formatDuration(session.durationMinutes)}
+                                      </p>
+                                    </div>
+                                  )}
+                                  
+                                  {session.energyKwh && session.energyKwh > 0 && (
+                                    <div className="bg-card rounded-lg p-2.5 border shadow-sm">
+                                      <div className="flex items-center gap-2 mb-1">
+                                        <div className="w-6 h-6 rounded-full bg-emerald-500/10 flex items-center justify-center">
+                                          <Zap className="w-3 h-3 text-emerald-500" />
+                                        </div>
+                                        <span className="text-[10px] text-muted-foreground uppercase tracking-wide">
+                                          {language === "ar" ? "الطاقة" : "Energy"}
+                                        </span>
+                                      </div>
+                                      <p className="text-lg font-bold text-emerald-600">
+                                        {session.energyKwh.toFixed(2)} <span className="text-xs font-normal">kWh</span>
+                                      </p>
+                                    </div>
+                                  )}
+                                </div>
+                                
+                                <div className="mt-3 p-2 rounded-lg bg-primary/5 border border-primary/10">
+                                  <div className="flex items-center gap-2 text-xs text-primary">
+                                    <Cpu className="w-3 h-3" />
+                                    <span className="font-medium">
+                                      {language === "ar" 
+                                        ? "تم تسجيل هذه البيانات تلقائياً من شاحن Tesla Wall Connector" 
+                                        : "Data auto-recorded from Tesla Wall Connector via ESP32"}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </>
+                        )}
                       </div>
-                    </Link>
-                  ))}
+                    );
+                  })}
                 </div>
                 <Link href={`/station/${group.stationId}`}>
                   <div className="mt-3 text-center text-sm text-primary hover:underline cursor-pointer">
