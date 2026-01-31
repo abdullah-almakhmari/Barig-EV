@@ -35,7 +35,7 @@ function Router() {
     <Switch>
       <Route path="/" component={Home} />
       <Route path="/login" component={AuthPage} />
-      <Route path="/add" component={AddStation} />
+      <Route path="/admin/add-station" component={AddStation} />
       <Route path="/nearby" component={NearbyStations} />
       <Route path="/history" component={ChargingHistory} />
       <Route path="/stats" component={ChargingStats} />

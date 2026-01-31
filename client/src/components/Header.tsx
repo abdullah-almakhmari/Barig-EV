@@ -123,16 +123,18 @@ export function Header() {
                 </Button>
               </Link>
 
-              <Link href="/add">
-                <Button
-                  variant={location === "/add" ? "secondary" : "ghost"}
-                  className="gap-2 font-medium"
-                  data-testid="button-nav-add"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span className="hidden sm:inline">{t("nav.add")}</span>
-                </Button>
-              </Link>
+              {user?.role === "admin" && (
+                <Link href="/admin/add-station">
+                  <Button
+                    variant={location === "/admin/add-station" ? "secondary" : "ghost"}
+                    className="gap-2 font-medium"
+                    data-testid="button-nav-add"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span className="hidden sm:inline">{t("nav.add")}</span>
+                  </Button>
+                </Link>
+              )}
 
               <Link href="/history">
                 <Button
