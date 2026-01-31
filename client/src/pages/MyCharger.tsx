@@ -296,21 +296,21 @@ export default function MyCharger() {
       
       <div className="min-h-screen bg-background p-4 pb-24">
         <div className="max-w-4xl mx-auto space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold flex items-center gap-2">
-                <Home className="w-6 h-6 text-primary" />
-                {isArabic ? "شاحني المنزلي" : "My Home Charger"}
+          <div className="flex items-center justify-between gap-2">
+            <div className="min-w-0 flex-1">
+              <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
+                <Home className="w-5 h-5 sm:w-6 sm:h-6 text-primary shrink-0" />
+                <span className="truncate">{isArabic ? "شاحني المنزلي" : "My Home Charger"}</span>
               </h1>
-              <p className="text-muted-foreground text-sm mt-1">
+              <p className="text-muted-foreground text-xs sm:text-sm mt-1 truncate">
                 {isArabic ? "أجّر شاحنك المنزلي واكسب المال" : "Rent out your charger and earn money"}
               </p>
             </div>
             
             {availableStationsForRent.length > 0 && (
-              <Button onClick={() => setShowSetupDialog(true)} data-testid="btn-add-rental">
-                <Plus className="w-4 h-4 me-2" />
-                {isArabic ? "إعداد تأجير" : "Setup Rental"}
+              <Button onClick={() => setShowSetupDialog(true)} data-testid="btn-add-rental" className="shrink-0 text-xs sm:text-sm px-2 sm:px-4">
+                <Plus className="w-4 h-4 sm:me-2" />
+                <span className="hidden sm:inline">{isArabic ? "إعداد تأجير" : "Setup Rental"}</span>
               </Button>
             )}
           </div>
@@ -331,25 +331,26 @@ export default function MyCharger() {
               </CardHeader>
               <CardContent className="space-y-2">
                 {unverifiedStations.map(station => (
-                  <div key={station.id} className="flex items-center justify-between p-3 rounded-lg bg-background border">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center">
-                        <Home className="w-5 h-5 text-amber-600" />
+                  <div key={station.id} className="flex items-center justify-between p-2 sm:p-3 rounded-lg bg-background border gap-2">
+                    <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+                      <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center shrink-0">
+                        <Home className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600" />
                       </div>
-                      <div>
-                        <p className="font-medium">{isArabic ? station.nameAr : station.name}</p>
-                        <p className="text-xs text-muted-foreground flex items-center gap-1">
-                          <MapPin className="w-3 h-3" />
-                          {isArabic ? station.cityAr : station.city}
+                      <div className="min-w-0">
+                        <p className="font-medium text-sm sm:text-base truncate">{isArabic ? station.nameAr : station.name}</p>
+                        <p className="text-[10px] sm:text-xs text-muted-foreground flex items-center gap-1">
+                          <MapPin className="w-2.5 h-2.5 sm:w-3 sm:h-3 shrink-0" />
+                          <span className="truncate">{isArabic ? station.cityAr : station.city}</span>
                         </p>
                       </div>
                     </div>
                     <Button 
                       size="sm"
+                      className="shrink-0 text-xs sm:text-sm px-2 sm:px-3"
                       onClick={() => handleStartVerification(station)}
                       data-testid={`btn-verify-${station.id}`}
                     >
-                      <ShieldCheck className="w-4 h-4 me-1" />
+                      <ShieldCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4 me-1" />
                       {isArabic ? "تحقق" : "Verify"}
                     </Button>
                   </div>
@@ -368,19 +369,19 @@ export default function MyCharger() {
               </CardHeader>
               <CardContent className="space-y-2">
                 {pendingVerificationStations.map(station => (
-                  <div key={station.id} className="flex items-center justify-between p-3 rounded-lg bg-background border">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center">
-                        <Home className="w-5 h-5 text-blue-600" />
+                  <div key={station.id} className="flex items-center justify-between p-2 sm:p-3 rounded-lg bg-background border gap-2">
+                    <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+                      <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center shrink-0">
+                        <Home className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
                       </div>
-                      <div>
-                        <p className="font-medium">{isArabic ? station.nameAr : station.name}</p>
-                        <p className="text-xs text-muted-foreground">
+                      <div className="min-w-0">
+                        <p className="font-medium text-sm sm:text-base truncate">{isArabic ? station.nameAr : station.name}</p>
+                        <p className="text-[10px] sm:text-xs text-muted-foreground truncate">
                           {isArabic ? "في انتظار مراجعة المسؤول" : "Waiting for admin review"}
                         </p>
                       </div>
                     </div>
-                    <Badge variant="secondary">
+                    <Badge variant="secondary" className="shrink-0 text-[10px] sm:text-xs">
                       {isArabic ? "قيد المراجعة" : "Pending"}
                     </Badge>
                   </div>
@@ -399,27 +400,27 @@ export default function MyCharger() {
               </CardHeader>
               <CardContent className="space-y-2">
                 {verifiedStations.map(station => (
-                  <div key={station.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900 flex items-center justify-center">
+                  <div key={station.id} className="flex items-center justify-between p-2 sm:p-3 rounded-lg bg-muted/50 gap-2">
+                    <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+                      <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-emerald-100 dark:bg-emerald-900 flex items-center justify-center shrink-0">
                         {station.verificationMethod === "ESP32" ? (
-                          <Wifi className="w-5 h-5 text-emerald-600" />
+                          <Wifi className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600" />
                         ) : (
-                          <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                          <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600" />
                         )}
                       </div>
-                      <div>
-                        <p className="font-medium">{isArabic ? station.nameAr : station.name}</p>
-                        <p className="text-xs text-muted-foreground flex items-center gap-1">
-                          <MapPin className="w-3 h-3" />
-                          {isArabic ? station.cityAr : station.city}
+                      <div className="min-w-0">
+                        <p className="font-medium text-sm sm:text-base truncate">{isArabic ? station.nameAr : station.name}</p>
+                        <p className="text-[10px] sm:text-xs text-muted-foreground flex items-center gap-1">
+                          <MapPin className="w-2.5 h-2.5 sm:w-3 sm:h-3 shrink-0" />
+                          <span className="truncate">{isArabic ? station.cityAr : station.city}</span>
                         </p>
                       </div>
                     </div>
-                    <Badge variant="default" className="bg-emerald-600">
+                    <Badge variant="default" className="bg-emerald-600 shrink-0 text-[10px] sm:text-xs whitespace-nowrap">
                       {station.verificationMethod === "ESP32" 
-                        ? (isArabic ? "ESP32 متصل" : "ESP32 Connected")
-                        : (isArabic ? "مُتحقق منه" : "Verified")
+                        ? (isArabic ? "ESP32" : "ESP32")
+                        : (isArabic ? "مُتحقق" : "Verified")
                       }
                     </Badge>
                   </div>
@@ -642,36 +643,36 @@ export default function MyCharger() {
             </div>
           ) : dashboard && dashboard.chargers.length > 0 ? (
             <>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
                 <Card>
-                  <CardContent className="p-4 text-center">
-                    <Wallet className="w-6 h-6 mx-auto mb-2 text-emerald-500" />
-                    <p className="text-2xl font-bold text-emerald-600">{dashboard.summary.totalEarnings.toFixed(3)}</p>
-                    <p className="text-xs text-muted-foreground">{isArabic ? "إجمالي الأرباح (ر.ع)" : "Total Earnings (OMR)"}</p>
+                  <CardContent className="p-3 sm:p-4 text-center">
+                    <Wallet className="w-5 h-5 sm:w-6 sm:h-6 mx-auto mb-1 sm:mb-2 text-emerald-500" />
+                    <p className="text-lg sm:text-2xl font-bold text-emerald-600 truncate">{dashboard.summary.totalEarnings.toFixed(3)}</p>
+                    <p className="text-[10px] sm:text-xs text-muted-foreground leading-tight">{isArabic ? "الأرباح (ر.ع)" : "Earnings (OMR)"}</p>
                   </CardContent>
                 </Card>
                 
                 <Card>
-                  <CardContent className="p-4 text-center">
-                    <Users className="w-6 h-6 mx-auto mb-2 text-blue-500" />
-                    <p className="text-2xl font-bold text-blue-600">{dashboard.summary.totalSessions}</p>
-                    <p className="text-xs text-muted-foreground">{isArabic ? "عدد الجلسات" : "Total Sessions"}</p>
+                  <CardContent className="p-3 sm:p-4 text-center">
+                    <Users className="w-5 h-5 sm:w-6 sm:h-6 mx-auto mb-1 sm:mb-2 text-blue-500" />
+                    <p className="text-lg sm:text-2xl font-bold text-blue-600">{dashboard.summary.totalSessions}</p>
+                    <p className="text-[10px] sm:text-xs text-muted-foreground leading-tight">{isArabic ? "الجلسات" : "Sessions"}</p>
                   </CardContent>
                 </Card>
                 
                 <Card>
-                  <CardContent className="p-4 text-center">
-                    <Zap className="w-6 h-6 mx-auto mb-2 text-amber-500" />
-                    <p className="text-2xl font-bold text-amber-600">{dashboard.summary.totalEnergy.toFixed(1)}</p>
-                    <p className="text-xs text-muted-foreground">{isArabic ? "الطاقة (kWh)" : "Energy (kWh)"}</p>
+                  <CardContent className="p-3 sm:p-4 text-center">
+                    <Zap className="w-5 h-5 sm:w-6 sm:h-6 mx-auto mb-1 sm:mb-2 text-amber-500" />
+                    <p className="text-lg sm:text-2xl font-bold text-amber-600 truncate">{dashboard.summary.totalEnergy.toFixed(1)}</p>
+                    <p className="text-[10px] sm:text-xs text-muted-foreground leading-tight">{isArabic ? "الطاقة (kWh)" : "Energy (kWh)"}</p>
                   </CardContent>
                 </Card>
                 
                 <Card>
-                  <CardContent className="p-4 text-center">
-                    <Home className="w-6 h-6 mx-auto mb-2 text-purple-500" />
-                    <p className="text-2xl font-bold text-purple-600">{dashboard.summary.chargerCount}</p>
-                    <p className="text-xs text-muted-foreground">{isArabic ? "الشواحن" : "Chargers"}</p>
+                  <CardContent className="p-3 sm:p-4 text-center">
+                    <Home className="w-5 h-5 sm:w-6 sm:h-6 mx-auto mb-1 sm:mb-2 text-purple-500" />
+                    <p className="text-lg sm:text-2xl font-bold text-purple-600">{dashboard.summary.chargerCount}</p>
+                    <p className="text-[10px] sm:text-xs text-muted-foreground leading-tight">{isArabic ? "الشواحن" : "Chargers"}</p>
                   </CardContent>
                 </Card>
               </div>
@@ -700,30 +701,30 @@ export default function MyCharger() {
                   <Accordion type="single" collapsible className="space-y-2">
                     {dashboard.chargers.map(charger => (
                       <AccordionItem key={charger.id} value={String(charger.id)} className="border rounded-lg overflow-hidden">
-                        <AccordionTrigger className="px-4 hover:no-underline">
-                          <div className="flex items-center justify-between w-full pe-4">
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                                <Home className="w-5 h-5 text-primary" />
+                        <AccordionTrigger className="px-3 sm:px-4 hover:no-underline">
+                          <div className="flex items-center justify-between w-full pe-2 sm:pe-4 gap-2">
+                            <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+                              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                                <Home className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
                               </div>
-                              <div className="text-start">
-                                <p className="font-medium">{isArabic ? charger.station?.nameAr : charger.station?.name}</p>
-                                <p className="text-xs text-muted-foreground flex items-center gap-1">
-                                  <MapPin className="w-3 h-3" />
-                                  {isArabic ? charger.station?.cityAr : charger.station?.city}
+                              <div className="text-start min-w-0">
+                                <p className="font-medium text-sm sm:text-base truncate">{isArabic ? charger.station?.nameAr : charger.station?.name}</p>
+                                <p className="text-[10px] sm:text-xs text-muted-foreground flex items-center gap-1">
+                                  <MapPin className="w-2.5 h-2.5 sm:w-3 sm:h-3 shrink-0" />
+                                  <span className="truncate">{isArabic ? charger.station?.cityAr : charger.station?.city}</span>
                                 </p>
                               </div>
                             </div>
-                            <div className="flex items-center gap-3">
-                              <Badge variant={charger.isAvailableForRent ? "default" : "secondary"}>
+                            <div className="flex flex-col sm:flex-row items-end sm:items-center gap-1 sm:gap-3 shrink-0">
+                              <Badge variant={charger.isAvailableForRent ? "default" : "secondary"} className="text-[10px] sm:text-xs px-1.5 sm:px-2.5">
                                 {charger.isAvailableForRent 
                                   ? (isArabic ? "متاح" : "Available")
                                   : (isArabic ? "متوقف" : "Paused")
                                 }
                               </Badge>
                               <div className="text-end">
-                                <p className="text-sm font-bold text-emerald-600">{charger.pricePerKwh} {charger.currency}/kWh</p>
-                                <p className="text-xs text-muted-foreground">
+                                <p className="text-xs sm:text-sm font-bold text-emerald-600 whitespace-nowrap">{charger.pricePerKwh} {charger.currency}/kWh</p>
+                                <p className="text-[10px] sm:text-xs text-muted-foreground">
                                   {isArabic ? `${charger.totalSessionsCount || 0} جلسة` : `${charger.totalSessionsCount || 0} sessions`}
                                 </p>
                               </div>
@@ -740,38 +741,38 @@ export default function MyCharger() {
                                 {charger.recentSessions.map(session => (
                                   <div 
                                     key={session.id} 
-                                    className="flex items-center justify-between p-3 rounded-lg bg-muted/50"
+                                    className="flex items-center justify-between p-2 sm:p-3 rounded-lg bg-muted/50 gap-2"
                                   >
-                                    <div className="flex items-center gap-3">
-                                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                                        <Users className="w-4 h-4 text-primary" />
+                                    <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+                                      <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                                        <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary" />
                                       </div>
-                                      <div>
+                                      <div className="min-w-0">
                                         {session.renterVehicle && (
-                                          <p className="text-sm font-medium">
+                                          <p className="text-xs sm:text-sm font-medium truncate">
                                             {session.renterVehicle.nickname}
                                           </p>
                                         )}
-                                        <p className="text-xs text-muted-foreground">
+                                        <p className="text-[10px] sm:text-xs text-muted-foreground truncate">
                                           {session.startTime && format(
                                             new Date(session.startTime),
-                                            "PPp",
+                                            isArabic ? "d MMM, HH:mm" : "MMM d, HH:mm",
                                             { locale: isArabic ? ar : undefined }
                                           )}
                                         </p>
                                       </div>
                                     </div>
-                                    <div className="text-end">
-                                      <p className="text-sm font-bold text-emerald-600">
+                                    <div className="text-end shrink-0">
+                                      <p className="text-xs sm:text-sm font-bold text-emerald-600 whitespace-nowrap">
                                         +{(session.rentalTotalCost || 0).toFixed(3)} {charger.currency}
                                       </p>
-                                      <p className="text-xs text-muted-foreground flex items-center gap-2 justify-end">
-                                        <span className="flex items-center gap-1">
-                                          <Zap className="w-3 h-3" />
-                                          {(session.energyKwh || 0).toFixed(2)} kWh
+                                      <p className="text-[10px] sm:text-xs text-muted-foreground flex items-center gap-1.5 sm:gap-2 justify-end">
+                                        <span className="flex items-center gap-0.5">
+                                          <Zap className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                                          {(session.energyKwh || 0).toFixed(1)}
                                         </span>
-                                        <span className="flex items-center gap-1">
-                                          <Clock className="w-3 h-3" />
+                                        <span className="flex items-center gap-0.5">
+                                          <Clock className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
                                           {formatDuration(session.durationMinutes)}
                                         </span>
                                       </p>
