@@ -185,6 +185,17 @@ export async function registerRoutes(
     }
   });
 
+  // Get station IDs that have active rentals (paid charging)
+  app.get("/api/stations/rental-stations", async (_req, res) => {
+    try {
+      const stationIds = await storage.getActiveRentalStationIds();
+      res.json({ stationIds });
+    } catch (error) {
+      console.error("Error getting rental stations:", error);
+      res.status(500).json({ message: "Failed to get rental stations" });
+    }
+  });
+
   app.get(api.stations.get.path, async (req, res) => {
     const station = await storage.getStation(Number(req.params.id));
     if (!station) {

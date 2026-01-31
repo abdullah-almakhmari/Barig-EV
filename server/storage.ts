@@ -104,6 +104,7 @@ export interface IStorage {
   deleteChargerRental(id: number): Promise<void>;
   getRentalSessions(stationId: number): Promise<RentalSessionWithDetails[]>;
   updateRentalStats(rentalId: number, energyKwh: number, cost: number): Promise<void>;
+  getActiveRentalStationIds(): Promise<number[]>;
   // Ownership Verification
   createOwnershipVerification(verification: InsertOwnershipVerification): Promise<OwnershipVerification>;
   getOwnershipVerification(id: number): Promise<OwnershipVerification | undefined>;
@@ -1035,6 +1036,13 @@ export class DatabaseStorage implements IStorage {
         updatedAt: new Date()
       })
       .where(eq(chargerRentals.id, rentalId));
+  }
+
+  async getActiveRentalStationIds(): Promise<number[]> {
+    const rentals = await db.select({ stationId: chargerRentals.stationId })
+      .from(chargerRentals)
+      .where(eq(chargerRentals.isAvailableForRent, true));
+    return rentals.map(r => r.stationId);
   }
 
   async createOwnershipVerification(verification: InsertOwnershipVerification): Promise<OwnershipVerification> {

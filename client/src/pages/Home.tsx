@@ -8,6 +8,7 @@ import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SEO } from "@/components/SEO";
+import { useQuery } from "@tanstack/react-query";
 
 const STATIONS_PER_PAGE = 12;
 
@@ -19,6 +20,12 @@ export default function Home() {
   const { data: stations, isLoading, error } = useStations({ 
     type: typeFilter !== "ALL" ? typeFilter : undefined 
   });
+
+  // Fetch rental station IDs
+  const { data: rentalStationsData } = useQuery<{ stationIds: number[] }>({
+    queryKey: ['/api/stations/rental-stations'],
+  });
+  const rentalStationIds = new Set(rentalStationsData?.stationIds || []);
 
   if (isLoading) {
     return (
@@ -85,7 +92,11 @@ export default function Home() {
         <TabsContent value="list" className="flex-1 mt-0 overflow-y-auto min-h-0">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {stationList.slice(0, visibleCount).map((station) => (
-              <StationCard key={station.id} station={station} />
+              <StationCard 
+                key={station.id} 
+                station={station} 
+                isRentalStation={rentalStationIds.has(station.id)}
+              />
             ))}
             {stationList.length === 0 && (
               <div className="col-span-full py-12 text-center text-muted-foreground">

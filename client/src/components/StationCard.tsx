@@ -42,9 +42,10 @@ function formatTimeAgo(isoString: string, t: (key: string, options?: any) => str
 interface StationCardProps {
   station: Station;
   variant?: "full" | "compact";
+  isRentalStation?: boolean;
 }
 
-export function StationCard({ station, variant = "full" }: StationCardProps) {
+export function StationCard({ station, variant = "full", isRentalStation = false }: StationCardProps) {
   const [, setLocation] = useLocation();
   const { t } = useTranslation();
   const { language } = useLanguage();
@@ -135,7 +136,11 @@ export function StationCard({ station, variant = "full" }: StationCardProps) {
           <Badge variant="secondary" className="font-mono text-xs">
             {station.powerKw ? `${station.powerKw} kW` : "N/A"}
           </Badge>
-          {station.isFree && (
+          {isRentalStation ? (
+            <Badge className="bg-violet-500 text-white border-0 text-xs">
+              {t("station.price.paid")}
+            </Badge>
+          ) : station.isFree && (
             <Badge className="bg-emerald-500 text-white border-0 text-xs">
               {t("station.price.free")}
             </Badge>
