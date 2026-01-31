@@ -223,6 +223,52 @@ export async function registerRoutes(
     res.json({ ...station, hasActiveConnector, hasActiveChargingSession });
   });
 
+  // Station Chargers - Get all chargers for a station
+  app.get("/api/stations/:id/chargers", async (req, res) => {
+    try {
+      const stationId = Number(req.params.id);
+      const chargers = await storage.getStationChargers(stationId);
+      res.json(chargers);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get station chargers" });
+    }
+  });
+
+  // Station Chargers - Add charger to station (authenticated)
+  app.post("/api/stations/:id/chargers", isAuthenticated, async (req: any, res) => {
+    try {
+      const stationId = Number(req.params.id);
+      const station = await storage.getStation(stationId);
+      if (!station) {
+        return res.status(404).json({ message: "Station not found" });
+      }
+      
+      const { chargerType, powerKw, count, connectorType } = req.body;
+      const charger = await storage.createStationCharger({
+        stationId,
+        chargerType,
+        powerKw: parseFloat(powerKw),
+        count: parseInt(count) || 1,
+        availableCount: parseInt(count) || 1,
+        connectorType: connectorType || null
+      });
+      res.json(charger);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to add charger" });
+    }
+  });
+
+  // Station Chargers - Delete charger
+  app.delete("/api/stations/:stationId/chargers/:chargerId", isAuthenticated, async (req: any, res) => {
+    try {
+      const chargerId = Number(req.params.chargerId);
+      await storage.deleteStationCharger(chargerId);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete charger" });
+    }
+  });
+
   app.post(api.stations.create.path, createLimiter, isAuthenticated, async (req: any, res) => {
     try {
       const input = api.stations.create.input.parse(req.body);
