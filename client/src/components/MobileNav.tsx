@@ -62,10 +62,10 @@ export function MobileNav() {
                 className="flex flex-col items-center justify-end min-w-[64px] h-full pt-2"
                 data-testid={`nav-${item.path.replace("/", "") || "home"}`}
               >
-                <div className={`relative transition-all duration-200 ${isActive ? 'scale-110' : ''}`}>
-                  <Icon className={`w-6 h-6 ${isActive ? "text-primary stroke-[2.5px]" : "text-muted-foreground"}`} />
+                <div className="relative w-6 h-6 flex items-center justify-center">
+                  <Icon className={`w-6 h-6 transition-all duration-200 ${isActive ? "text-primary stroke-[2.5px]" : "text-muted-foreground"}`} />
                 </div>
-                <span className={`text-[10px] mt-1 ${isActive ? 'text-primary font-semibold' : 'text-muted-foreground font-medium'}`}>
+                <span className={`text-[10px] mt-1 min-w-[40px] text-center ${isActive ? 'text-primary font-semibold' : 'text-muted-foreground font-medium'}`}>
                   {language === "ar" ? item.labelAr : item.labelEn}
                 </span>
               </button>
