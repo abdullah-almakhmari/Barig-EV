@@ -114,16 +114,11 @@ export default function NearbyStations() {
   return (
     <div className="container mx-auto px-4 py-6">
       <SEO title={t("nearby.title")} />
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-            <Navigation className="w-5 h-5 text-primary" />
-          </div>
-          <h1 className="text-2xl font-bold">{t("nearby.title")}</h1>
+      <div className="flex items-center gap-2 mb-4">
+        <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+          <Navigation className="w-4 h-4 text-primary" />
         </div>
-        <Button variant="outline" size="icon" onClick={getUserLocation} data-testid="button-refresh-location">
-          <RefreshCw className="w-4 h-4" />
-        </Button>
+        <h1 className="text-lg font-semibold">{t("nearby.title")}</h1>
       </div>
 
       <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
