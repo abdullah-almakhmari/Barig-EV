@@ -168,6 +168,10 @@ export class DatabaseStorage implements IStorage {
     return station;
   }
 
+  async getStationsByUser(userId: string): Promise<Station[]> {
+    return await db.select().from(stations).where(eq(stations.addedByUserId, userId));
+  }
+
   async getStationByLocation(lat: number, lng: number, radiusMeters: number = 50): Promise<Station | undefined> {
     // Use Haversine formula to find stations within radius
     // Convert radius from meters to approximate degrees (at equator, 1 degree ≈ 111,320 meters)

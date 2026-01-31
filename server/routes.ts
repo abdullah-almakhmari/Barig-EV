@@ -148,6 +148,22 @@ export async function registerRoutes(
     }
   });
 
+  // Get user's own stations (HOME type) for rental setup
+  app.get("/api/stations/my-stations", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const stations = await storage.getStationsByUser(userId);
+      res.json(stations);
+    } catch (error) {
+      console.error("[Stations] Error getting user stations:", error);
+      res.status(500).json({ message: "Failed to get stations" });
+    }
+  });
+
   // Get station IDs with active ESP32 (auto-tracked) charging sessions
   app.get("/api/stations/active-esp32-sessions", async (_req, res) => {
     try {
