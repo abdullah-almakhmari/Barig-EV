@@ -27,7 +27,7 @@ export function MobileNav() {
 
   return (
     <nav className="pwa-bottom-nav">
-      <div className="flex justify-around items-end h-[72px] pb-2 px-2 relative">
+      <div className="flex items-end h-[72px] pb-2 px-1">
         {navItems.map((item) => {
           const isActive = location === item.path;
           const Icon = item.icon;
@@ -35,32 +35,27 @@ export function MobileNav() {
           
           if (item.isCenter) {
             return (
-              <Link key={item.path} href={item.path}>
+              <Link key={item.path} href={item.path} className="flex-1">
                 <button
                   onClick={triggerHaptic}
-                  className="flex flex-col items-center justify-center -mt-4 relative z-10"
+                  className="w-full flex flex-col items-center -mt-3"
                   data-testid={`nav-${item.path.replace("/", "") || "home"}`}
                 >
                   <div 
                     className={`
                       w-14 h-14 rounded-2xl flex items-center justify-center 
-                      shadow-lg transition-all duration-300 ease-out
-                      ${isActive 
-                        ? "bg-primary text-white shadow-primary/40" 
-                        : "bg-primary text-white shadow-primary/30"
-                      }
+                      bg-primary text-white shadow-lg shadow-primary/30
+                      transition-colors duration-200
                     `}
-                    style={{
-                      transform: isActive ? 'translateY(-2px)' : 'translateY(0)',
-                    }}
                   >
                     <Icon className="w-6 h-6" strokeWidth={2.5} />
                   </div>
                   <span 
                     className={`
-                      text-[11px] mt-1.5 font-medium transition-colors duration-200
+                      text-[11px] mt-1 transition-colors duration-200
                       ${isActive ? 'text-primary' : 'text-muted-foreground'}
                     `}
+                    style={{ fontWeight: 500 }}
                   >
                     {label}
                   </span>
@@ -70,66 +65,53 @@ export function MobileNav() {
           }
           
           return (
-            <Link key={item.path} href={item.path}>
+            <Link key={item.path} href={item.path} className="flex-1">
               <button
                 onClick={triggerHaptic}
-                className="flex flex-col items-center justify-center min-w-[60px] py-1.5 relative group"
+                className="w-full flex flex-col items-center py-1.5 relative"
                 data-testid={`nav-${item.path.replace("/", "") || "home"}`}
               >
-                {/* Background pill for active state */}
+                {/* Background pill - using opacity instead of display */}
                 <div 
                   className={`
-                    absolute inset-x-1 top-0 bottom-1 rounded-2xl transition-all duration-300 ease-out
-                    ${isActive 
-                      ? 'bg-primary/10 dark:bg-primary/20' 
-                      : 'bg-transparent group-active:bg-muted/50'
-                    }
+                    absolute inset-x-2 top-0.5 bottom-0.5 rounded-xl
+                    bg-primary/10 dark:bg-primary/20
+                    transition-opacity duration-200
                   `}
+                  style={{ opacity: isActive ? 1 : 0 }}
                 />
                 
-                {/* Icon container */}
-                <div 
-                  className={`
-                    relative z-10 w-7 h-7 flex items-center justify-center 
-                    transition-all duration-200 ease-out
-                  `}
-                >
+                {/* Icon - fixed size container */}
+                <div className="relative z-10 w-7 h-7 flex items-center justify-center">
                   <Icon 
                     className={`
-                      w-[22px] h-[22px] transition-all duration-200
-                      ${isActive 
-                        ? "text-primary" 
-                        : "text-muted-foreground group-active:text-foreground"
-                      }
+                      w-[22px] h-[22px] transition-colors duration-200
+                      ${isActive ? "text-primary" : "text-muted-foreground"}
                     `}
                     strokeWidth={isActive ? 2.5 : 2}
                   />
                 </div>
                 
-                {/* Label */}
+                {/* Label - fixed font weight, only color changes */}
                 <span 
                   className={`
-                    relative z-10 text-[11px] mt-0.5 min-w-[48px] text-center
-                    transition-all duration-200
-                    ${isActive 
-                      ? 'text-primary font-semibold' 
-                      : 'text-muted-foreground font-medium group-active:text-foreground'
-                    }
+                    relative z-10 text-[11px] mt-0.5 transition-colors duration-200
                   `}
+                  style={{ 
+                    fontWeight: 500,
+                    color: isActive ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))'
+                  }}
                 >
                   {label}
                 </span>
                 
-                {/* Active indicator dot */}
+                {/* Active indicator dot - using opacity */}
                 <div 
-                  className={`
-                    absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full
-                    transition-all duration-300 ease-out
-                    ${isActive 
-                      ? 'bg-primary opacity-100 scale-100' 
-                      : 'bg-primary opacity-0 scale-0'
-                    }
-                  `}
+                  className="absolute bottom-0 left-1/2 w-1 h-1 rounded-full bg-primary transition-opacity duration-200"
+                  style={{ 
+                    transform: 'translateX(-50%)',
+                    opacity: isActive ? 1 : 0 
+                  }}
                 />
               </button>
             </Link>
