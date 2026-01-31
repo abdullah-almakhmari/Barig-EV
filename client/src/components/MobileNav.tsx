@@ -4,11 +4,11 @@ import { useLanguage } from "./LanguageContext";
 import { useIsPWA, useIsMobile } from "@/hooks/use-pwa";
 
 const navItems = [
-  { path: "/", icon: MapPin, labelAr: "الخريطة", labelEn: "Map" },
-  { path: "/nearby", icon: Navigation, labelAr: "قريب", labelEn: "Nearby" },
-  { path: "/add", icon: Plus, labelAr: "إضافة", labelEn: "Add", isCenter: true },
-  { path: "/history", icon: History, labelAr: "السجل", labelEn: "History" },
   { path: "/stats", icon: BarChart3, labelAr: "إحصائيات", labelEn: "Stats" },
+  { path: "/history", icon: History, labelAr: "السجل", labelEn: "History" },
+  { path: "/add", icon: Plus, labelAr: "إضافة", labelEn: "Add", isCenter: true },
+  { path: "/nearby", icon: Navigation, labelAr: "قريب", labelEn: "Nearby" },
+  { path: "/", icon: MapPin, labelAr: "الخريطة", labelEn: "Map" },
 ];
 
 const triggerHaptic = () => {
