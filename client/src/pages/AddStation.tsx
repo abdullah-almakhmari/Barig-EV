@@ -533,11 +533,11 @@ export default function AddStation() {
                 </div>
               </div>
               
-              {(form.watch("lat") !== 23.5880 || form.watch("lng") !== 58.3829) && (
+              {(Number(form.watch("lat")) !== 23.5880 || Number(form.watch("lng")) !== 58.3829) && typeof form.watch("lat") === "number" && typeof form.watch("lng") === "number" && (
                 <div className="p-3 bg-primary/5 border border-primary/20 rounded-lg flex items-center gap-2">
                   <Check className="h-4 w-4 text-primary" />
                   <span className="text-sm text-primary">
-                    {t("add.locationSet")}: {form.watch("lat").toFixed(4)}, {form.watch("lng").toFixed(4)}
+                    {t("add.locationSet")}: {Number(form.watch("lat")).toFixed(4)}, {Number(form.watch("lng")).toFixed(4)}
                   </span>
                 </div>
               )}
