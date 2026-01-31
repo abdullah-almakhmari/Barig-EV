@@ -168,6 +168,22 @@ export const chargerRentals = pgTable("charger_rentals", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Charger ownership verification requests - for non-ESP32 chargers
+export const ownershipVerifications = pgTable("ownership_verifications", {
+  id: serial("id").primaryKey(),
+  stationId: integer("station_id").notNull(),
+  userId: varchar("user_id").notNull(),
+  verificationCode: text("verification_code").notNull(), // Random code user must display
+  photoUrls: text("photo_urls"), // JSON array of uploaded photo URLs
+  status: text("status").default("PENDING"), // PENDING, APPROVED, REJECTED
+  rejectionReason: text("rejection_reason"),
+  reviewedBy: varchar("reviewed_by"),
+  reviewedAt: timestamp("reviewed_at"),
+  expiresAt: timestamp("expires_at"), // Approval expires after 1 year
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Trust events for idempotent rewards/penalties (persistent tracking)
 // Uses row-level locking + sliding window query for idempotency
 export const trustEvents = pgTable("trust_events", {
@@ -190,6 +206,7 @@ export const insertTrustEventSchema = createInsertSchema(trustEvents).omit({ id:
 export const insertContactMessageSchema = createInsertSchema(contactMessages).omit({ id: true, status: true, adminNotes: true, createdAt: true, updatedAt: true });
 export const insertTeslaConnectorSchema = createInsertSchema(teslaConnectors).omit({ id: true, isOnline: true, lastSeen: true, lastVitals: true, currentSessionId: true, createdAt: true, updatedAt: true });
 export const insertChargerRentalSchema = createInsertSchema(chargerRentals).omit({ id: true, totalEarnings: true, totalSessionsCount: true, totalEnergyKwh: true, createdAt: true, updatedAt: true });
+export const insertOwnershipVerificationSchema = createInsertSchema(ownershipVerifications).omit({ id: true, status: true, rejectionReason: true, reviewedBy: true, reviewedAt: true, expiresAt: true, createdAt: true, updatedAt: true });
 
 export type Station = typeof stations.$inferSelect;
 export type InsertStation = z.infer<typeof insertStationSchema>;
@@ -211,6 +228,8 @@ export type TeslaConnector = typeof teslaConnectors.$inferSelect;
 export type InsertTeslaConnector = z.infer<typeof insertTeslaConnectorSchema>;
 export type ChargerRental = typeof chargerRentals.$inferSelect;
 export type InsertChargerRental = z.infer<typeof insertChargerRentalSchema>;
+export type OwnershipVerification = typeof ownershipVerifications.$inferSelect;
+export type InsertOwnershipVerification = z.infer<typeof insertOwnershipVerificationSchema>;
 
 // Tesla Wall Connector vitals from ESP32
 export type TeslaVitals = {
