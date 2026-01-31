@@ -319,52 +319,48 @@ export function ActiveSessionBanner() {
 
   return (
     <>
-    <div className="bg-orange-500 text-white px-4 py-3" data-testid="active-session-banner">
-      <div className="container mx-auto flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="bg-white/20 rounded-full p-2">
-            <Zap className="h-5 w-5" />
+    <div 
+      className="bg-gradient-to-r from-orange-500 to-amber-500 text-white px-3 py-1.5 shadow-sm"
+      data-testid="active-session-banner"
+    >
+      <div className="container mx-auto flex items-center justify-between gap-2">
+        <button 
+          onClick={handleViewSession}
+          className="flex items-center gap-2 min-w-0 flex-1 hover:opacity-80 transition-opacity"
+        >
+          <div className="relative">
+            <Zap className="h-4 w-4" />
+            <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-white rounded-full animate-pulse" />
           </div>
-          <div>
-            <p className="font-medium" data-testid="text-active-session-message">
-              {t("charging.activeSessionBanner")} {stationName && `${t("charging.atStation")} ${stationName}`}
-            </p>
-            <div className="flex items-center gap-2 text-sm opacity-90">
-              <Clock className="h-3 w-3" />
-              <span data-testid="text-session-duration">{elapsedTime}</span>
-            </div>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={handleViewSession}
-            className="bg-white text-orange-600 hover:bg-orange-50"
-            data-testid="button-view-session"
-          >
-            {t("charging.resume")}
-          </Button>
+          <span className="text-sm font-medium truncate" data-testid="text-active-session-message">
+            {stationName || (language === "ar" ? "جاري الشحن" : "Charging")}
+          </span>
+          <span className="text-xs opacity-80 flex items-center gap-1 shrink-0">
+            <Clock className="h-3 w-3" />
+            <span data-testid="text-session-duration">{elapsedTime}</span>
+          </span>
+        </button>
+        <div className="flex items-center gap-1 shrink-0">
           {!(data?.session as any)?.isAutoTracked && (
             <Button
-              variant="outline"
+              variant="ghost"
               size="sm"
               onClick={handleEndSession}
               disabled={endSessionMutation.isPending}
-              className="bg-white/10 border-white/30 text-white hover:bg-white/20"
+              className="h-7 px-2 text-xs text-white hover:bg-white/20"
               data-testid="button-end-session"
             >
-              {t("charging.endNow")}
+              {language === "ar" ? "إنهاء" : "End"}
             </Button>
           )}
           <Button
             variant="ghost"
             size="icon"
             onClick={() => setDismissed(true)}
-            className="text-white hover:bg-white/20"
+            className="h-6 w-6 text-white/70 hover:text-white hover:bg-white/20"
             data-testid="button-dismiss-banner"
           >
-            <X className="h-4 w-4" />
+            <X className="h-3 w-3" />
           </Button>
         </div>
       </div>
