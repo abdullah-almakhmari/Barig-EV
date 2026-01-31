@@ -35,6 +35,18 @@ export const stations = pgTable("stations", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Multiple chargers per station (supports AC + DC at same station)
+export const stationChargers = pgTable("station_chargers", {
+  id: serial("id").primaryKey(),
+  stationId: integer("station_id").notNull(),
+  chargerType: text("charger_type").notNull(), // 'AC' or 'DC'
+  powerKw: real("power_kw").notNull(),
+  count: integer("count").default(1),
+  availableCount: integer("available_count").default(1),
+  connectorType: text("connector_type"), // 'Type 2', 'CCS', 'CHAdeMO', etc.
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const reports = pgTable("reports", {
   id: serial("id").primaryKey(),
   stationId: integer("station_id").notNull(),
@@ -197,6 +209,7 @@ export const trustEvents = pgTable("trust_events", {
 });
 
 export const insertStationSchema = createInsertSchema(stations).omit({ id: true, trustLevel: true, isHidden: true, approvalStatus: true, createdAt: true, updatedAt: true });
+export const insertStationChargerSchema = createInsertSchema(stationChargers).omit({ id: true, createdAt: true });
 export const insertReportSchema = createInsertSchema(reports).omit({ id: true, reviewStatus: true, reviewedBy: true, reviewedAt: true, createdAt: true, updatedAt: true });
 export const insertChargingSessionSchema = createInsertSchema(chargingSessions).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertEvVehicleSchema = createInsertSchema(evVehicles).omit({ id: true, createdAt: true, updatedAt: true });
@@ -210,6 +223,8 @@ export const insertOwnershipVerificationSchema = createInsertSchema(ownershipVer
 
 export type Station = typeof stations.$inferSelect;
 export type InsertStation = z.infer<typeof insertStationSchema>;
+export type StationCharger = typeof stationChargers.$inferSelect;
+export type InsertStationCharger = z.infer<typeof insertStationChargerSchema>;
 export type Report = typeof reports.$inferSelect;
 export type InsertReport = z.infer<typeof insertReportSchema>;
 export type ChargingSession = typeof chargingSessions.$inferSelect;
