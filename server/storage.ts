@@ -1,5 +1,5 @@
 import {
-  stations, reports, chargingSessions, evVehicles, userVehicles, users, stationVerifications, contactMessages, teslaConnectors, chargerRentals, ownershipVerifications,
+  stations, reports, chargingSessions, evVehicles, userVehicles, users, stationVerifications, contactMessages, teslaConnectors, chargerRentals, ownershipVerifications, stationChargers,
   type Station, type InsertStation,
   type Report, type InsertReport,
   type ChargingSession, type InsertChargingSession,
@@ -9,7 +9,8 @@ import {
   type ContactMessage, type InsertContactMessage,
   type TeslaConnector, type InsertTeslaConnector,
   type ChargerRental, type InsertChargerRental, type RentalSessionWithDetails,
-  type OwnershipVerification, type InsertOwnershipVerification
+  type OwnershipVerification, type InsertOwnershipVerification,
+  type StationCharger, type InsertStationCharger
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, ilike, or, ne, gte, sql, isNotNull } from "drizzle-orm";
@@ -114,6 +115,12 @@ export interface IStorage {
   updateOwnershipVerificationStatus(id: number, status: string, reviewedBy: string, rejectionReason?: string): Promise<OwnershipVerification | undefined>;
   updateOwnershipVerificationPhotos(id: number, photoUrls: string[]): Promise<OwnershipVerification | undefined>;
   isOwnershipVerified(stationId: number, userId: string): Promise<boolean>;
+  // Station Chargers (multiple charger types per station)
+  getStationChargers(stationId: number): Promise<StationCharger[]>;
+  createStationCharger(charger: InsertStationCharger): Promise<StationCharger>;
+  updateStationCharger(id: number, data: Partial<InsertStationCharger>): Promise<StationCharger | undefined>;
+  deleteStationCharger(id: number): Promise<void>;
+  deleteStationChargers(stationId: number): Promise<void>;
   seed(): Promise<void>;
 }
 
@@ -1137,6 +1144,29 @@ export class DatabaseStorage implements IStorage {
         gte(ownershipVerifications.expiresAt, new Date())
       ));
     return !!verification;
+  }
+
+  // Station Chargers (multiple charger types per station)
+  async getStationChargers(stationId: number): Promise<StationCharger[]> {
+    return await db.select().from(stationChargers).where(eq(stationChargers.stationId, stationId));
+  }
+
+  async createStationCharger(charger: InsertStationCharger): Promise<StationCharger> {
+    const [created] = await db.insert(stationChargers).values(charger).returning();
+    return created;
+  }
+
+  async updateStationCharger(id: number, data: Partial<InsertStationCharger>): Promise<StationCharger | undefined> {
+    const [updated] = await db.update(stationChargers).set(data).where(eq(stationChargers.id, id)).returning();
+    return updated;
+  }
+
+  async deleteStationCharger(id: number): Promise<void> {
+    await db.delete(stationChargers).where(eq(stationChargers.id, id));
+  }
+
+  async deleteStationChargers(stationId: number): Promise<void> {
+    await db.delete(stationChargers).where(eq(stationChargers.stationId, stationId));
   }
 }
 
