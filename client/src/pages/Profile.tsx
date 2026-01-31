@@ -972,6 +972,31 @@ export default function Profile() {
         </CardContent>
       </Card>
 
+      <Card className="border-primary/20 bg-gradient-to-r from-primary/5 to-transparent">
+        <CardContent className="p-6">
+          <Link href="/my-charger">
+            <div className="flex items-center justify-between hover-elevate rounded-lg cursor-pointer">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Zap className="w-6 h-6 text-primary" />
+                </div>
+                <div>
+                  <h3 className="font-medium text-lg">
+                    {isArabic ? "تأجير شاحني المنزلي" : "Rent Out My Charger"}
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    {isArabic 
+                      ? "اكسب المال من شاحنك المنزلي - تتبع الإيرادات والجلسات"
+                      : "Earn money from your home charger - track earnings & sessions"}
+                  </p>
+                </div>
+              </div>
+              <Settings2 className="w-5 h-5 text-muted-foreground" />
+            </div>
+          </Link>
+        </CardContent>
+      </Card>
+
       <AlertDialog open={showLogoutWarning} onOpenChange={setShowLogoutWarning}>
         <AlertDialogContent>
           <AlertDialogHeader>
