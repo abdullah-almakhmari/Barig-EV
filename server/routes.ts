@@ -1304,6 +1304,184 @@ export async function registerRoutes(
     }
   }, 60 * 60 * 1000); // Every hour
 
+  // ========== CHARGER RENTAL ROUTES ==========
+  
+  // Get user's charger rentals (stations they rent out)
+  app.get("/api/charger-rentals", isAuthenticated, async (req: any, res) => {
+    try {
+      const rentals = await storage.getUserChargerRentals(req.user.id);
+      
+      // Enrich with station details
+      const enrichedRentals = await Promise.all(rentals.map(async (rental) => {
+        const station = await storage.getStation(rental.stationId);
+        return { ...rental, station };
+      }));
+      
+      res.json(enrichedRentals);
+    } catch (err) {
+      console.error("[Charger Rental] Error fetching rentals:", err);
+      res.status(500).json({ message: "Failed to fetch rentals" });
+    }
+  });
+  
+  // Get rental settings for a station (public - for renters to see pricing)
+  app.get("/api/charger-rentals/station/:stationId", async (req, res) => {
+    try {
+      const stationId = parseInt(req.params.stationId);
+      const rental = await storage.getChargerRentalByStation(stationId);
+      
+      if (!rental) {
+        return res.json(null);
+      }
+      
+      // Only return public info (not earnings)
+      res.json({
+        stationId: rental.stationId,
+        isAvailableForRent: rental.isAvailableForRent,
+        pricePerKwh: rental.pricePerKwh,
+        currency: rental.currency,
+        description: rental.description,
+        descriptionAr: rental.descriptionAr,
+      });
+    } catch (err) {
+      console.error("[Charger Rental] Error fetching station rental:", err);
+      res.status(500).json({ message: "Failed to fetch rental settings" });
+    }
+  });
+  
+  // Create or update charger rental settings
+  const chargerRentalSchema = z.object({
+    stationId: z.number(),
+    pricePerKwh: z.number().min(0),
+    currency: z.string().optional(),
+    isAvailableForRent: z.boolean().optional(),
+    minSessionMinutes: z.number().optional(),
+    maxSessionMinutes: z.number().optional(),
+    requiresApproval: z.boolean().optional(),
+    description: z.string().optional(),
+    descriptionAr: z.string().optional(),
+  });
+  
+  app.post("/api/charger-rentals", isAuthenticated, async (req: any, res) => {
+    try {
+      const parsed = chargerRentalSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ message: "Invalid request", errors: parsed.error.errors });
+      }
+      
+      const { stationId, ...rentalData } = parsed.data;
+      
+      // Verify the user owns this station
+      const station = await storage.getStation(stationId);
+      if (!station || station.addedByUserId !== req.user.id) {
+        return res.status(403).json({ message: "You don't own this station" });
+      }
+      
+      // Check if rental already exists
+      const existingRental = await storage.getChargerRentalByStation(stationId);
+      
+      if (existingRental) {
+        // Update existing
+        const updated = await storage.updateChargerRental(existingRental.id, rentalData);
+        res.json(updated);
+      } else {
+        // Create new
+        const rental = await storage.createChargerRental({
+          stationId,
+          ownerId: req.user.id,
+          pricePerKwh: rentalData.pricePerKwh,
+          currency: rentalData.currency,
+          isAvailableForRent: rentalData.isAvailableForRent,
+          minSessionMinutes: rentalData.minSessionMinutes,
+          maxSessionMinutes: rentalData.maxSessionMinutes,
+          requiresApproval: rentalData.requiresApproval,
+          description: rentalData.description,
+          descriptionAr: rentalData.descriptionAr,
+        });
+        res.json(rental);
+      }
+    } catch (err) {
+      console.error("[Charger Rental] Error creating/updating rental:", err);
+      res.status(500).json({ message: "Failed to save rental settings" });
+    }
+  });
+  
+  // Get rental sessions for owner's station (with renter details)
+  app.get("/api/charger-rentals/:rentalId/sessions", isAuthenticated, async (req: any, res) => {
+    try {
+      const rentalId = parseInt(req.params.rentalId);
+      const rental = await storage.getChargerRental(rentalId);
+      
+      if (!rental || rental.ownerId !== req.user.id) {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+      
+      const sessions = await storage.getRentalSessions(rental.stationId);
+      res.json(sessions);
+    } catch (err) {
+      console.error("[Charger Rental] Error fetching sessions:", err);
+      res.status(500).json({ message: "Failed to fetch sessions" });
+    }
+  });
+  
+  // Get owner's earnings dashboard
+  app.get("/api/charger-rentals/dashboard", isAuthenticated, async (req: any, res) => {
+    try {
+      const rentals = await storage.getUserChargerRentals(req.user.id);
+      
+      // Calculate totals
+      let totalEarnings = 0;
+      let totalSessions = 0;
+      let totalEnergy = 0;
+      
+      const enrichedRentals = await Promise.all(rentals.map(async (rental) => {
+        totalEarnings += rental.totalEarnings || 0;
+        totalSessions += rental.totalSessionsCount || 0;
+        totalEnergy += rental.totalEnergyKwh || 0;
+        
+        const station = await storage.getStation(rental.stationId);
+        const recentSessions = await storage.getRentalSessions(rental.stationId);
+        
+        return {
+          ...rental,
+          station,
+          recentSessions: recentSessions.slice(0, 10), // Last 10 sessions
+        };
+      }));
+      
+      res.json({
+        summary: {
+          totalEarnings,
+          totalSessions,
+          totalEnergy,
+          chargerCount: rentals.length,
+        },
+        chargers: enrichedRentals,
+      });
+    } catch (err) {
+      console.error("[Charger Rental] Error fetching dashboard:", err);
+      res.status(500).json({ message: "Failed to fetch dashboard" });
+    }
+  });
+  
+  // Delete charger rental
+  app.delete("/api/charger-rentals/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const rentalId = parseInt(req.params.id);
+      const rental = await storage.getChargerRental(rentalId);
+      
+      if (!rental || rental.ownerId !== req.user.id) {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+      
+      await storage.deleteChargerRental(rentalId);
+      res.json({ success: true });
+    } catch (err) {
+      console.error("[Charger Rental] Error deleting rental:", err);
+      res.status(500).json({ message: "Failed to delete rental" });
+    }
+  });
+
   // Admin middleware
   const isAdmin = (req: any, res: any, next: any) => {
     if (!req.user) {

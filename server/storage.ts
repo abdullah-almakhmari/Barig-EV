@@ -1,5 +1,5 @@
 import {
-  stations, reports, chargingSessions, evVehicles, userVehicles, users, stationVerifications, contactMessages, teslaConnectors,
+  stations, reports, chargingSessions, evVehicles, userVehicles, users, stationVerifications, contactMessages, teslaConnectors, chargerRentals,
   type Station, type InsertStation,
   type Report, type InsertReport,
   type ChargingSession, type InsertChargingSession,
@@ -7,7 +7,8 @@ import {
   type UserVehicle, type InsertUserVehicle, type UserVehicleWithDetails,
   type StationVerification, type VerificationSummary,
   type ContactMessage, type InsertContactMessage,
-  type TeslaConnector, type InsertTeslaConnector
+  type TeslaConnector, type InsertTeslaConnector,
+  type ChargerRental, type InsertChargerRental, type RentalSessionWithDetails
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, ilike, or, ne, gte, sql, isNotNull } from "drizzle-orm";
@@ -93,6 +94,15 @@ export interface IStorage {
   createChargingSession(session: InsertChargingSession): Promise<ChargingSession>;
   getStaleAutoTrackedSessions(staleHours: number): Promise<ChargingSession[]>;
   getConnectorsWithStaleSessions(): Promise<TeslaConnector[]>;
+  // Charger Rentals
+  createChargerRental(rental: InsertChargerRental): Promise<ChargerRental>;
+  getChargerRental(id: number): Promise<ChargerRental | undefined>;
+  getChargerRentalByStation(stationId: number): Promise<ChargerRental | undefined>;
+  getUserChargerRentals(ownerId: string): Promise<ChargerRental[]>;
+  updateChargerRental(id: number, data: Partial<InsertChargerRental>): Promise<ChargerRental | undefined>;
+  deleteChargerRental(id: number): Promise<void>;
+  getRentalSessions(stationId: number): Promise<RentalSessionWithDetails[]>;
+  updateRentalStats(rentalId: number, energyKwh: number, cost: number): Promise<void>;
   seed(): Promise<void>;
 }
 
@@ -907,6 +917,86 @@ export class DatabaseStorage implements IStorage {
       .from(teslaConnectors)
       .where(isNotNull(teslaConnectors.currentSessionId));
     return connectors;
+  }
+
+  // Charger Rental methods
+  async createChargerRental(rental: InsertChargerRental): Promise<ChargerRental> {
+    const [newRental] = await db.insert(chargerRentals).values(rental).returning();
+    return newRental;
+  }
+
+  async getChargerRental(id: number): Promise<ChargerRental | undefined> {
+    const [rental] = await db.select().from(chargerRentals).where(eq(chargerRentals.id, id));
+    return rental;
+  }
+
+  async getChargerRentalByStation(stationId: number): Promise<ChargerRental | undefined> {
+    const [rental] = await db.select().from(chargerRentals).where(eq(chargerRentals.stationId, stationId));
+    return rental;
+  }
+
+  async getUserChargerRentals(ownerId: string): Promise<ChargerRental[]> {
+    return await db.select().from(chargerRentals).where(eq(chargerRentals.ownerId, ownerId));
+  }
+
+  async updateChargerRental(id: number, data: Partial<InsertChargerRental>): Promise<ChargerRental | undefined> {
+    const [updated] = await db.update(chargerRentals)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(chargerRentals.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteChargerRental(id: number): Promise<void> {
+    await db.delete(chargerRentals).where(eq(chargerRentals.id, id));
+  }
+
+  async getRentalSessions(stationId: number): Promise<RentalSessionWithDetails[]> {
+    const sessions = await db.select()
+      .from(chargingSessions)
+      .where(and(
+        eq(chargingSessions.stationId, stationId),
+        eq(chargingSessions.isRentalSession, true)
+      ))
+      .orderBy(desc(chargingSessions.startTime));
+    
+    // Enrich with renter details
+    const enrichedSessions: RentalSessionWithDetails[] = [];
+    for (const session of sessions) {
+      let renterName: string | undefined;
+      let renterVehicle: UserVehicleWithDetails | undefined;
+      
+      if (session.userId) {
+        const [user] = await db.select().from(users).where(eq(users.id, session.userId));
+        renterName = user?.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : user?.email || undefined;
+      }
+      
+      if (session.userVehicleId) {
+        renterVehicle = await this.getUserVehicle(session.userVehicleId);
+      }
+      
+      const [station] = await db.select().from(stations).where(eq(stations.id, session.stationId));
+      
+      enrichedSessions.push({
+        ...session,
+        renterName,
+        renterVehicle,
+        station
+      });
+    }
+    
+    return enrichedSessions;
+  }
+
+  async updateRentalStats(rentalId: number, energyKwh: number, cost: number): Promise<void> {
+    await db.update(chargerRentals)
+      .set({
+        totalEarnings: sql`${chargerRentals.totalEarnings} + ${cost}`,
+        totalSessionsCount: sql`${chargerRentals.totalSessionsCount} + 1`,
+        totalEnergyKwh: sql`${chargerRentals.totalEnergyKwh} + ${energyKwh}`,
+        updatedAt: new Date()
+      })
+      .where(eq(chargerRentals.id, rentalId));
   }
 }
 

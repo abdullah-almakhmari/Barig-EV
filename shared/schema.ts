@@ -99,6 +99,10 @@ export const chargingSessions = pgTable("charging_sessions", {
   maxPowerKw: real("max_power_kw"),
   maxTempC: real("max_temp_c"),
   teslaConnectorId: integer("tesla_connector_id"),
+  isRentalSession: boolean("is_rental_session").default(false),
+  rentalPricePerKwh: real("rental_price_per_kwh"),
+  rentalTotalCost: real("rental_total_cost"),
+  rentalOwnerId: varchar("rental_owner_id"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -144,6 +148,26 @@ export const teslaConnectors = pgTable("tesla_connectors", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Home charger rental settings - allows users to rent out their home chargers
+export const chargerRentals = pgTable("charger_rentals", {
+  id: serial("id").primaryKey(),
+  stationId: integer("station_id").notNull(),
+  ownerId: varchar("owner_id").notNull(),
+  isAvailableForRent: boolean("is_available_for_rent").default(true),
+  pricePerKwh: real("price_per_kwh").notNull(), // Price in OMR per kWh
+  currency: text("currency").default("OMR"),
+  minSessionMinutes: integer("min_session_minutes").default(0),
+  maxSessionMinutes: integer("max_session_minutes"),
+  requiresApproval: boolean("requires_approval").default(false),
+  description: text("description"),
+  descriptionAr: text("description_ar"),
+  totalEarnings: real("total_earnings").default(0),
+  totalSessionsCount: integer("total_sessions_count").default(0),
+  totalEnergyKwh: real("total_energy_kwh").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Trust events for idempotent rewards/penalties (persistent tracking)
 // Uses row-level locking + sliding window query for idempotency
 export const trustEvents = pgTable("trust_events", {
@@ -165,6 +189,7 @@ export const insertStationVerificationSchema = createInsertSchema(stationVerific
 export const insertTrustEventSchema = createInsertSchema(trustEvents).omit({ id: true, createdAt: true });
 export const insertContactMessageSchema = createInsertSchema(contactMessages).omit({ id: true, status: true, adminNotes: true, createdAt: true, updatedAt: true });
 export const insertTeslaConnectorSchema = createInsertSchema(teslaConnectors).omit({ id: true, isOnline: true, lastSeen: true, lastVitals: true, currentSessionId: true, createdAt: true, updatedAt: true });
+export const insertChargerRentalSchema = createInsertSchema(chargerRentals).omit({ id: true, totalEarnings: true, totalSessionsCount: true, totalEnergyKwh: true, createdAt: true, updatedAt: true });
 
 export type Station = typeof stations.$inferSelect;
 export type InsertStation = z.infer<typeof insertStationSchema>;
@@ -184,6 +209,8 @@ export type ContactMessage = typeof contactMessages.$inferSelect;
 export type InsertContactMessage = z.infer<typeof insertContactMessageSchema>;
 export type TeslaConnector = typeof teslaConnectors.$inferSelect;
 export type InsertTeslaConnector = z.infer<typeof insertTeslaConnectorSchema>;
+export type ChargerRental = typeof chargerRentals.$inferSelect;
+export type InsertChargerRental = z.infer<typeof insertChargerRentalSchema>;
 
 // Tesla Wall Connector vitals from ESP32
 export type TeslaVitals = {
@@ -221,6 +248,17 @@ export type UserVehicleWithDetails = UserVehicle & {
 export type ChargingSessionWithVehicle = ChargingSession & {
   vehicle?: EvVehicle;
   userVehicle?: UserVehicleWithDetails;
+};
+
+export type RentalSessionWithDetails = ChargingSession & {
+  renterName?: string;
+  renterVehicle?: UserVehicleWithDetails;
+  station?: Station;
+};
+
+export type ChargerRentalWithStats = ChargerRental & {
+  station?: Station;
+  recentSessions?: RentalSessionWithDetails[];
 };
 
 export type VerificationSummary = {
