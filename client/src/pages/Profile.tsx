@@ -62,14 +62,14 @@ export default function Profile() {
   });
 
   const updateConnectorMutation = useMutation({
-    mutationFn: async ({ id, stationId }: { id: number; stationId: number }) => {
-      return apiRequest("PATCH", `/api/tesla-connector/${id}`, { stationId });
+    mutationFn: async ({ id, stationId, userVehicleId }: { id: number; stationId?: number; userVehicleId?: number | null }) => {
+      return apiRequest("PATCH", `/api/tesla-connector/${id}`, { stationId, userVehicleId });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/tesla-connector/my-connectors"] });
       toast({
         title: isArabic ? "تم التحديث" : "Updated",
-        description: isArabic ? "تم ربط الشاحن بالمحطة" : "Charger linked to station",
+        description: isArabic ? "تم تحديث إعدادات الشاحن" : "Charger settings updated",
       });
     },
   });
@@ -87,8 +87,8 @@ export default function Profile() {
   });
 
   const registerConnectorMutation = useMutation({
-    mutationFn: async ({ stationId, deviceName }: { stationId: number; deviceName: string }) => {
-      const res = await apiRequest("POST", "/api/tesla-connector/register", { stationId, deviceName });
+    mutationFn: async ({ stationId, deviceName, userVehicleId }: { stationId: number; deviceName: string; userVehicleId?: number }) => {
+      const res = await apiRequest("POST", "/api/tesla-connector/register", { stationId, deviceName, userVehicleId });
       return res.json();
     },
     onSuccess: () => {
@@ -104,6 +104,8 @@ export default function Profile() {
   const [newConnectorName, setNewConnectorName] = useState("");
   const [editConnectorId, setEditConnectorId] = useState<number | null>(null);
   const [editConnectorStationId, setEditConnectorStationId] = useState<string>("");
+  const [newConnectorVehicleId, setNewConnectorVehicleId] = useState<string>("");
+  const [editConnectorVehicleId, setEditConnectorVehicleId] = useState<string>("");
   const [selectedCatalogId, setSelectedCatalogId] = useState<string>("");
   const [nickname, setNickname] = useState("");
   const [showCustomVehicle, setShowCustomVehicle] = useState(false);
@@ -708,6 +710,28 @@ export default function Profile() {
                       {isArabic ? "اختر محطتك المنزلية التي أضفتها مسبقاً" : "Select your home station that you added previously"}
                     </p>
                   </div>
+                  <div className="space-y-2">
+                    <Label>{isArabic ? "السيارة المرتبطة" : "Linked Vehicle"}</Label>
+                    <Select value={newConnectorVehicleId} onValueChange={setNewConnectorVehicleId}>
+                      <SelectTrigger data-testid="select-connector-vehicle">
+                        <SelectValue placeholder={isArabic ? "اختر سيارة (اختياري)" : "Select vehicle (optional)"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {userVehicles?.map((vehicle) => {
+                          const catalogVehicle = catalogVehicles?.find(v => v.id === vehicle.evVehicleId);
+                          const displayName = vehicle.nickname || catalogVehicle?.model || (isArabic ? "سيارة" : "Vehicle");
+                          return (
+                            <SelectItem key={vehicle.id} value={String(vehicle.id)}>
+                              {displayName} {vehicle.isDefault && (isArabic ? "(افتراضي)" : "(default)")}
+                            </SelectItem>
+                          );
+                        })}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      {isArabic ? "جلسات الشحن التلقائية ستُسجل لهذه السيارة" : "Auto-tracked sessions will be recorded for this vehicle"}
+                    </p>
+                  </div>
                   <Button
                     className="w-full"
                     disabled={!newConnectorStationId || registerConnectorMutation.isPending}
@@ -715,10 +739,12 @@ export default function Profile() {
                       const result = await registerConnectorMutation.mutateAsync({
                         stationId: Number(newConnectorStationId),
                         deviceName: newConnectorName || "Tesla Wall Connector",
+                        userVehicleId: newConnectorVehicleId ? Number(newConnectorVehicleId) : undefined,
                       });
                       setConnectorDialogOpen(false);
                       setNewConnectorName("");
                       setNewConnectorStationId("");
+                      setNewConnectorVehicleId("");
                       if (result?.connector?.deviceToken) {
                         toast({
                           title: isArabic ? "تم التسجيل بنجاح" : "Registered successfully",
@@ -775,6 +801,17 @@ export default function Profile() {
                             ? (isArabic ? linkedStation.nameAr || linkedStation.name : linkedStation.name)
                             : (isArabic ? "غير مربوط" : "Not linked")}
                         </div>
+                        {connector.userVehicleId && (
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Car className="w-3 h-3" />
+                            {(() => {
+                              const linkedVehicle = userVehicles?.find(v => v.id === connector.userVehicleId);
+                              if (!linkedVehicle) return isArabic ? "سيارة غير معروفة" : "Unknown vehicle";
+                              const catalogVehicle = catalogVehicles?.find(v => v.id === linkedVehicle.evVehicleId);
+                              return linkedVehicle.nickname || catalogVehicle?.model || (isArabic ? "سيارة" : "Vehicle");
+                            })()}
+                          </div>
+                        )}
                         {connector.lastSeen && (
                           <p className="text-xs text-muted-foreground">
                             {isArabic ? "آخر اتصال: " : "Last seen: "}
@@ -792,6 +829,7 @@ export default function Profile() {
                             onClick={() => {
                               setEditConnectorId(connector.id);
                               setEditConnectorStationId(String(connector.stationId || ""));
+                              setEditConnectorVehicleId(String(connector.userVehicleId || ""));
                             }}
                             data-testid={`button-edit-connector-${connector.id}`}
                           >
@@ -823,6 +861,31 @@ export default function Profile() {
                                 </SelectContent>
                               </Select>
                             </div>
+                            <div className="space-y-2">
+                              <Label>{isArabic ? "السيارة المرتبطة" : "Linked Vehicle"}</Label>
+                              <Select 
+                                value={editConnectorVehicleId} 
+                                onValueChange={setEditConnectorVehicleId}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue placeholder={isArabic ? "اختر سيارة" : "Select vehicle"} />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {userVehicles?.map((vehicle) => {
+                                    const catalogVehicle = catalogVehicles?.find(v => v.id === vehicle.evVehicleId);
+                                    const displayName = vehicle.nickname || catalogVehicle?.model || (isArabic ? "سيارة" : "Vehicle");
+                                    return (
+                                      <SelectItem key={vehicle.id} value={String(vehicle.id)}>
+                                        {displayName} {vehicle.isDefault && (isArabic ? "(افتراضي)" : "(default)")}
+                                      </SelectItem>
+                                    );
+                                  })}
+                                </SelectContent>
+                              </Select>
+                              <p className="text-xs text-muted-foreground">
+                                {isArabic ? "جلسات الشحن التلقائية ستُسجل لهذه السيارة" : "Auto-tracked sessions will be recorded for this vehicle"}
+                              </p>
+                            </div>
                             <div className="p-3 bg-muted rounded-lg space-y-2">
                               <p className="text-xs font-mono break-all">
                                 <span className="text-muted-foreground">{isArabic ? "التوكن: " : "Token: "}</span>
@@ -846,12 +909,13 @@ export default function Profile() {
                             </div>
                             <Button
                               className="w-full"
-                              disabled={!editConnectorStationId || updateConnectorMutation.isPending}
+                              disabled={updateConnectorMutation.isPending}
                               onClick={() => {
-                                if (editConnectorId && editConnectorStationId) {
+                                if (editConnectorId) {
                                   updateConnectorMutation.mutate({
                                     id: editConnectorId,
-                                    stationId: Number(editConnectorStationId),
+                                    stationId: editConnectorStationId ? Number(editConnectorStationId) : undefined,
+                                    userVehicleId: editConnectorVehicleId ? Number(editConnectorVehicleId) : null,
                                   });
                                 }
                               }}
