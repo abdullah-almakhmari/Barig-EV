@@ -1,5 +1,5 @@
 import {
-  stations, reports, chargingSessions, evVehicles, userVehicles, users, stationVerifications, contactMessages, teslaConnectors, chargerRentals,
+  stations, reports, chargingSessions, evVehicles, userVehicles, users, stationVerifications, contactMessages, teslaConnectors, chargerRentals, ownershipVerifications,
   type Station, type InsertStation,
   type Report, type InsertReport,
   type ChargingSession, type InsertChargingSession,
@@ -8,7 +8,8 @@ import {
   type StationVerification, type VerificationSummary,
   type ContactMessage, type InsertContactMessage,
   type TeslaConnector, type InsertTeslaConnector,
-  type ChargerRental, type InsertChargerRental, type RentalSessionWithDetails
+  type ChargerRental, type InsertChargerRental, type RentalSessionWithDetails,
+  type OwnershipVerification, type InsertOwnershipVerification
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, ilike, or, ne, gte, sql, isNotNull } from "drizzle-orm";
@@ -103,6 +104,15 @@ export interface IStorage {
   deleteChargerRental(id: number): Promise<void>;
   getRentalSessions(stationId: number): Promise<RentalSessionWithDetails[]>;
   updateRentalStats(rentalId: number, energyKwh: number, cost: number): Promise<void>;
+  // Ownership Verification
+  createOwnershipVerification(verification: InsertOwnershipVerification): Promise<OwnershipVerification>;
+  getOwnershipVerification(id: number): Promise<OwnershipVerification | undefined>;
+  getOwnershipVerificationByStation(stationId: number, userId: string): Promise<OwnershipVerification | undefined>;
+  getUserOwnershipVerifications(userId: string): Promise<OwnershipVerification[]>;
+  getAllPendingVerifications(): Promise<(OwnershipVerification & { station?: Station; userEmail?: string })[]>;
+  updateOwnershipVerificationStatus(id: number, status: string, reviewedBy: string, rejectionReason?: string): Promise<OwnershipVerification | undefined>;
+  updateOwnershipVerificationPhotos(id: number, photoUrls: string[]): Promise<OwnershipVerification | undefined>;
+  isOwnershipVerified(stationId: number, userId: string): Promise<boolean>;
   seed(): Promise<void>;
 }
 
@@ -1025,6 +1035,100 @@ export class DatabaseStorage implements IStorage {
         updatedAt: new Date()
       })
       .where(eq(chargerRentals.id, rentalId));
+  }
+
+  async createOwnershipVerification(verification: InsertOwnershipVerification): Promise<OwnershipVerification> {
+    const [created] = await db.insert(ownershipVerifications).values(verification).returning();
+    return created;
+  }
+
+  async getOwnershipVerification(id: number): Promise<OwnershipVerification | undefined> {
+    const [verification] = await db.select().from(ownershipVerifications).where(eq(ownershipVerifications.id, id));
+    return verification;
+  }
+
+  async getOwnershipVerificationByStation(stationId: number, userId: string): Promise<OwnershipVerification | undefined> {
+    const [verification] = await db.select()
+      .from(ownershipVerifications)
+      .where(and(
+        eq(ownershipVerifications.stationId, stationId),
+        eq(ownershipVerifications.userId, userId)
+      ))
+      .orderBy(desc(ownershipVerifications.createdAt));
+    return verification;
+  }
+
+  async getUserOwnershipVerifications(userId: string): Promise<OwnershipVerification[]> {
+    return await db.select()
+      .from(ownershipVerifications)
+      .where(eq(ownershipVerifications.userId, userId))
+      .orderBy(desc(ownershipVerifications.createdAt));
+  }
+
+  async getAllPendingVerifications(): Promise<(OwnershipVerification & { station?: Station; userEmail?: string })[]> {
+    const verifications = await db.select()
+      .from(ownershipVerifications)
+      .where(eq(ownershipVerifications.status, "PENDING"))
+      .orderBy(desc(ownershipVerifications.createdAt));
+    
+    const enriched = [];
+    for (const v of verifications) {
+      const [station] = await db.select().from(stations).where(eq(stations.id, v.stationId));
+      const [user] = await db.select().from(users).where(eq(users.id, v.userId));
+      enriched.push({
+        ...v,
+        station,
+        userEmail: user?.email
+      });
+    }
+    return enriched;
+  }
+
+  async updateOwnershipVerificationStatus(
+    id: number, 
+    status: string, 
+    reviewedBy: string, 
+    rejectionReason?: string
+  ): Promise<OwnershipVerification | undefined> {
+    const expiresAt = status === "APPROVED" ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) : null;
+    const [updated] = await db.update(ownershipVerifications)
+      .set({
+        status,
+        reviewedBy,
+        reviewedAt: new Date(),
+        rejectionReason: rejectionReason || null,
+        expiresAt,
+        updatedAt: new Date()
+      })
+      .where(eq(ownershipVerifications.id, id))
+      .returning();
+    return updated;
+  }
+
+  async updateOwnershipVerificationPhotos(id: number, photoUrls: string[]): Promise<OwnershipVerification | undefined> {
+    const [updated] = await db.update(ownershipVerifications)
+      .set({
+        photoUrls: JSON.stringify(photoUrls),
+        updatedAt: new Date()
+      })
+      .where(eq(ownershipVerifications.id, id))
+      .returning();
+    return updated;
+  }
+
+  async isOwnershipVerified(stationId: number, userId: string): Promise<boolean> {
+    const hasEsp32 = await this.stationHasConnectedDevice(stationId, userId);
+    if (hasEsp32) return true;
+    
+    const [verification] = await db.select()
+      .from(ownershipVerifications)
+      .where(and(
+        eq(ownershipVerifications.stationId, stationId),
+        eq(ownershipVerifications.userId, userId),
+        eq(ownershipVerifications.status, "APPROVED"),
+        gte(ownershipVerifications.expiresAt, new Date())
+      ));
+    return !!verification;
   }
 }
 
