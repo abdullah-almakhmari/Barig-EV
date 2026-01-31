@@ -27,28 +27,42 @@ export function MobileNav() {
 
   return (
     <nav className="pwa-bottom-nav">
-      <div className="flex justify-around items-center h-[68px] pb-1 relative">
+      <div className="flex justify-around items-end h-[72px] pb-2 px-2 relative">
         {navItems.map((item) => {
           const isActive = location === item.path;
           const Icon = item.icon;
+          const label = language === "ar" ? item.labelAr : item.labelEn;
           
           if (item.isCenter) {
             return (
               <Link key={item.path} href={item.path}>
                 <button
                   onClick={triggerHaptic}
-                  className="flex flex-col items-center justify-end min-w-[64px] h-full pt-1"
+                  className="flex flex-col items-center justify-center -mt-4 relative z-10"
                   data-testid={`nav-${item.path.replace("/", "") || "home"}`}
                 >
-                  <div className={`w-12 h-12 rounded-full flex items-center justify-center shadow-md transition-all duration-200 ${
-                    isActive 
-                      ? "bg-primary text-white scale-105" 
-                      : "bg-primary text-white"
-                  }`}>
-                    <Icon className="w-5 h-5" />
+                  <div 
+                    className={`
+                      w-14 h-14 rounded-2xl flex items-center justify-center 
+                      shadow-lg transition-all duration-300 ease-out
+                      ${isActive 
+                        ? "bg-primary text-white shadow-primary/40" 
+                        : "bg-primary text-white shadow-primary/30"
+                      }
+                    `}
+                    style={{
+                      transform: isActive ? 'translateY(-2px)' : 'translateY(0)',
+                    }}
+                  >
+                    <Icon className="w-6 h-6" strokeWidth={2.5} />
                   </div>
-                  <span className={`text-[10px] mt-1 ${isActive ? 'text-primary font-semibold' : 'text-muted-foreground font-medium'}`}>
-                    {language === "ar" ? item.labelAr : item.labelEn}
+                  <span 
+                    className={`
+                      text-[11px] mt-1.5 font-medium transition-colors duration-200
+                      ${isActive ? 'text-primary' : 'text-muted-foreground'}
+                    `}
+                  >
+                    {label}
                   </span>
                 </button>
               </Link>
@@ -59,15 +73,64 @@ export function MobileNav() {
             <Link key={item.path} href={item.path}>
               <button
                 onClick={triggerHaptic}
-                className="flex flex-col items-center justify-end min-w-[64px] h-full pt-2"
+                className="flex flex-col items-center justify-center min-w-[60px] py-1.5 relative group"
                 data-testid={`nav-${item.path.replace("/", "") || "home"}`}
               >
-                <div className="relative w-6 h-6 flex items-center justify-center">
-                  <Icon className={`w-6 h-6 transition-all duration-200 ${isActive ? "text-primary stroke-[2.5px]" : "text-muted-foreground"}`} />
+                {/* Background pill for active state */}
+                <div 
+                  className={`
+                    absolute inset-x-1 top-0 bottom-1 rounded-2xl transition-all duration-300 ease-out
+                    ${isActive 
+                      ? 'bg-primary/10 dark:bg-primary/20' 
+                      : 'bg-transparent group-active:bg-muted/50'
+                    }
+                  `}
+                />
+                
+                {/* Icon container */}
+                <div 
+                  className={`
+                    relative z-10 w-7 h-7 flex items-center justify-center 
+                    transition-all duration-200 ease-out
+                  `}
+                >
+                  <Icon 
+                    className={`
+                      w-[22px] h-[22px] transition-all duration-200
+                      ${isActive 
+                        ? "text-primary" 
+                        : "text-muted-foreground group-active:text-foreground"
+                      }
+                    `}
+                    strokeWidth={isActive ? 2.5 : 2}
+                  />
                 </div>
-                <span className={`text-[10px] mt-1 min-w-[40px] text-center ${isActive ? 'text-primary font-semibold' : 'text-muted-foreground font-medium'}`}>
-                  {language === "ar" ? item.labelAr : item.labelEn}
+                
+                {/* Label */}
+                <span 
+                  className={`
+                    relative z-10 text-[11px] mt-0.5 min-w-[48px] text-center
+                    transition-all duration-200
+                    ${isActive 
+                      ? 'text-primary font-semibold' 
+                      : 'text-muted-foreground font-medium group-active:text-foreground'
+                    }
+                  `}
+                >
+                  {label}
                 </span>
+                
+                {/* Active indicator dot */}
+                <div 
+                  className={`
+                    absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full
+                    transition-all duration-300 ease-out
+                    ${isActive 
+                      ? 'bg-primary opacity-100 scale-100' 
+                      : 'bg-primary opacity-0 scale-0'
+                    }
+                  `}
+                />
               </button>
             </Link>
           );
