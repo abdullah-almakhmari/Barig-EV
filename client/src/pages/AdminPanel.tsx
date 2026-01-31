@@ -6,12 +6,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Shield, FileWarning, MapPin, Check, X, AlertTriangle, Eye, EyeOff, Download, Database, Camera, BatteryCharging, MessageCircle, Users, Zap, BarChart3, FileSpreadsheet, GraduationCap, ChevronRight, Inbox, Bell, Clock, ExternalLink } from "lucide-react";
+import { Shield, FileWarning, MapPin, Check, X, AlertTriangle, Eye, EyeOff, Download, Database, Camera, BatteryCharging, MessageCircle, Users, Zap, BarChart3, FileSpreadsheet, GraduationCap, ChevronRight, Inbox, Bell, Clock, ExternalLink, ShieldCheck, Home } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Redirect, Link } from "wouter";
 import { SEO } from "@/components/SEO";
-import type { Station, ChargingSession, ContactMessage } from "@shared/schema";
+import type { Station, ChargingSession, ContactMessage, OwnershipVerification } from "@shared/schema";
 
 type AdminReport = {
   id: number;
@@ -30,7 +30,13 @@ type AdminReport = {
   reportCount?: number;
 };
 
-type ActiveSection = "overview" | "reports" | "stations" | "messages" | "sessions" | "export" | null;
+type ActiveSection = "overview" | "reports" | "stations" | "messages" | "sessions" | "export" | "verifications" | null;
+
+type OwnershipVerificationWithDetails = OwnershipVerification & {
+  stationName?: string;
+  stationNameAr?: string;
+  userEmail?: string;
+};
 
 export default function AdminPanel() {
   const { t, i18n } = useTranslation();
@@ -68,7 +74,15 @@ export default function AdminPanel() {
     staleTime: 0,
   });
 
+  const { data: ownershipVerifications, isLoading: verificationsLoading } = useQuery<OwnershipVerificationWithDetails[]>({
+    queryKey: ["/api/admin/ownership-verifications"],
+    enabled: user?.role === "admin",
+    refetchOnWindowFocus: true,
+    staleTime: 0,
+  });
+
   const [selectedScreenshot, setSelectedScreenshot] = useState<string | null>(null);
+  const [selectedVerificationPhoto, setSelectedVerificationPhoto] = useState<string | null>(null);
 
   const updateMessageMutation = useMutation({
     mutationFn: async ({ id, status }: { id: number; status: string }) => {
@@ -97,6 +111,24 @@ export default function AdminPanel() {
     if (!contactMessages) return [];
     return contactMessages.filter(m => m.status === "unread");
   }, [contactMessages]);
+
+  const pendingVerifications = useMemo(() => {
+    if (!ownershipVerifications) return [];
+    return ownershipVerifications.filter(v => v.status === "PENDING");
+  }, [ownershipVerifications]);
+
+  const updateVerificationMutation = useMutation({
+    mutationFn: async ({ id, status, rejectionReason }: { id: number; status: string; rejectionReason?: string }) => {
+      return await apiRequest("PATCH", `/api/admin/ownership-verifications/${id}/review`, { status, rejectionReason });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/ownership-verifications"] });
+      toast({ title: isArabic ? "تم تحديث التحقق" : "Verification updated" });
+    },
+    onError: () => {
+      toast({ title: t("common.error"), variant: "destructive" });
+    },
+  });
 
   const updateReportMutation = useMutation({
     mutationFn: async ({ id, reviewStatus }: { id: number; reviewStatus: string }) => {
@@ -154,7 +186,7 @@ export default function AdminPanel() {
     return <Redirect to="/" />;
   }
 
-  const totalActionItems = pendingReports.length + pendingStations.length + unreadMessages.length;
+  const totalActionItems = pendingReports.length + pendingStations.length + unreadMessages.length + pendingVerifications.length;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-8">
@@ -286,6 +318,41 @@ export default function AdminPanel() {
                       {unreadMessages.length > 2 && (
                         <p className="text-xs text-muted-foreground mt-2">
                           +{unreadMessages.length - 2} {isArabic ? "أخرى" : "more"}
+                        </p>
+                      )}
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-muted-foreground shrink-0 rtl:rotate-180" />
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Pending Ownership Verifications */}
+            {pendingVerifications.length > 0 && (
+              <Card className="border-2 border-teal-500/50 bg-teal-500/5 hover-elevate cursor-pointer" onClick={() => setActiveSection("verifications")} data-testid="card-pending-verifications">
+                <CardContent className="p-4">
+                  <div className="flex items-start gap-4">
+                    <div className="p-3 bg-teal-500/20 rounded-xl">
+                      <ShieldCheck className="w-6 h-6 text-teal-600" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2 mb-1">
+                        <h3 className="font-semibold">{isArabic ? "تحقق من الملكية" : "Ownership Verifications"}</h3>
+                        <Badge className="bg-teal-500">{pendingVerifications.length}</Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground mb-3">
+                        {isArabic ? "طلبات تحقق تنتظر المراجعة" : "Verification requests awaiting review"}
+                      </p>
+                      {pendingVerifications.slice(0, 2).map((v) => (
+                        <div key={v.id} className="text-sm py-1 border-t border-teal-500/20">
+                          <span className="font-medium">{isArabic ? v.stationNameAr : v.stationName}</span>
+                          <span className="text-muted-foreground mx-2">•</span>
+                          <span className="text-muted-foreground">{v.userEmail}</span>
+                        </div>
+                      ))}
+                      {pendingVerifications.length > 2 && (
+                        <p className="text-xs text-muted-foreground mt-2">
+                          +{pendingVerifications.length - 2} {isArabic ? "أخرى" : "more"}
                         </p>
                       )}
                     </div>
@@ -794,6 +861,119 @@ export default function AdminPanel() {
         </SectionCard>
       )}
 
+      {/* Ownership Verifications Section */}
+      {activeSection === "verifications" && (
+        <SectionCard
+          title={isArabic ? "التحقق من الملكية" : "Ownership Verifications"}
+          icon={<ShieldCheck className="w-5 h-5" />}
+          onClose={() => setActiveSection("overview")}
+          isArabic={isArabic}
+        >
+          {verificationsLoading ? (
+            <LoadingState />
+          ) : !ownershipVerifications || ownershipVerifications.length === 0 ? (
+            <EmptyState icon={<ShieldCheck />} text={isArabic ? "لا توجد طلبات تحقق" : "No verification requests"} />
+          ) : (
+            <div className="space-y-4">
+              {ownershipVerifications.map((v) => (
+                <Card 
+                  key={v.id} 
+                  className={`${v.status === "PENDING" ? "border-teal-500 border-2" : ""} ${v.status === "REJECTED" ? "opacity-60" : ""}`}
+                  data-testid={`card-verification-${v.id}`}
+                >
+                  <CardContent className="py-4">
+                    <div className="flex flex-col gap-4">
+                      <div className="flex items-start justify-between gap-4 flex-wrap">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-teal-500/20 rounded-lg">
+                            <Home className="w-5 h-5 text-teal-600" />
+                          </div>
+                          <div>
+                            <p className="font-semibold">{isArabic ? v.stationNameAr : v.stationName}</p>
+                            <p className="text-sm text-muted-foreground">{v.userEmail}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {v.status === "PENDING" && (
+                            <Badge className="bg-amber-500">
+                              <Clock className="w-3 h-3 mr-1 rtl:ml-1 rtl:mr-0" />
+                              {isArabic ? "قيد المراجعة" : "Pending"}
+                            </Badge>
+                          )}
+                          {v.status === "APPROVED" && (
+                            <Badge className="bg-green-500">
+                              <Check className="w-3 h-3 mr-1 rtl:ml-1 rtl:mr-0" />
+                              {isArabic ? "معتمد" : "Approved"}
+                            </Badge>
+                          )}
+                          {v.status === "REJECTED" && (
+                            <Badge variant="destructive">
+                              <X className="w-3 h-3 mr-1 rtl:ml-1 rtl:mr-0" />
+                              {isArabic ? "مرفوض" : "Rejected"}
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <div className="text-sm">
+                        <span className="text-muted-foreground">{isArabic ? "رمز التحقق:" : "Verification Code:"}</span>
+                        <span className="font-mono font-bold mx-2">{v.verificationCode}</span>
+                      </div>
+
+                      {v.photoUrls && (() => {
+                        const urls = typeof v.photoUrls === 'string' ? JSON.parse(v.photoUrls) : v.photoUrls;
+                        return urls.length > 0 && (
+                          <div className="flex flex-wrap gap-2">
+                            {urls.map((url: string, index: number) => (
+                              <button
+                                key={index}
+                                onClick={() => setSelectedVerificationPhoto(url.startsWith('/') ? url : `/objects/${url}`)}
+                                className="w-24 h-24 rounded-lg overflow-hidden bg-muted hover-elevate cursor-pointer"
+                              >
+                                <img 
+                                  src={url.startsWith('/') ? url : `/objects/${url}`}
+                                  alt={`Verification photo ${index + 1}`}
+                                  className="w-full h-full object-cover"
+                                />
+                              </button>
+                            ))}
+                          </div>
+                        );
+                      })()}
+
+                      {v.status === "PENDING" && (
+                        <div className="flex gap-2 pt-2 border-t">
+                          <Button
+                            size="sm"
+                            onClick={() => updateVerificationMutation.mutate({ id: v.id, status: "APPROVED" })}
+                            disabled={updateVerificationMutation.isPending}
+                            data-testid={`btn-approve-verification-${v.id}`}
+                          >
+                            <Check className="w-4 h-4 me-1" />
+                            {isArabic ? "اعتماد" : "Approve"}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-destructive"
+                            onClick={() => updateVerificationMutation.mutate({ id: v.id, status: "REJECTED", rejectionReason: "Photo does not show verification code clearly" })}
+                            disabled={updateVerificationMutation.isPending}
+                            data-testid={`btn-reject-verification-${v.id}`}
+                          >
+                            <X className="w-4 h-4 me-1" />
+                            {isArabic ? "رفض" : "Reject"}
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </SectionCard>
+      )}
+
       {/* Screenshot Dialog */}
       <Dialog open={!!selectedScreenshot} onOpenChange={() => setSelectedScreenshot(null)}>
         <DialogContent className="max-w-3xl p-0 overflow-hidden">
@@ -804,6 +984,22 @@ export default function AdminPanel() {
             <img
               src={selectedScreenshot.startsWith('/') ? selectedScreenshot : `/${selectedScreenshot}`}
               alt="Session screenshot"
+              className="w-full"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Verification Photo Dialog */}
+      <Dialog open={!!selectedVerificationPhoto} onOpenChange={() => setSelectedVerificationPhoto(null)}>
+        <DialogContent className="max-w-3xl p-0 overflow-hidden">
+          <DialogHeader className="p-4 pb-0">
+            <DialogTitle>{isArabic ? "صورة التحقق" : "Verification Photo"}</DialogTitle>
+          </DialogHeader>
+          {selectedVerificationPhoto && (
+            <img
+              src={selectedVerificationPhoto}
+              alt="Verification photo"
               className="w-full"
             />
           )}

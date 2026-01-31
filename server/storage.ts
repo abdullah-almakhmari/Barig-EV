@@ -109,7 +109,7 @@ export interface IStorage {
   getOwnershipVerification(id: number): Promise<OwnershipVerification | undefined>;
   getOwnershipVerificationByStation(stationId: number, userId: string): Promise<OwnershipVerification | undefined>;
   getUserOwnershipVerifications(userId: string): Promise<OwnershipVerification[]>;
-  getAllPendingVerifications(): Promise<(OwnershipVerification & { station?: Station; userEmail?: string })[]>;
+  getAllPendingVerifications(): Promise<(OwnershipVerification & { stationName?: string; stationNameAr?: string; userEmail?: string })[]>;
   updateOwnershipVerificationStatus(id: number, status: string, reviewedBy: string, rejectionReason?: string): Promise<OwnershipVerification | undefined>;
   updateOwnershipVerificationPhotos(id: number, photoUrls: string[]): Promise<OwnershipVerification | undefined>;
   isOwnershipVerified(stationId: number, userId: string): Promise<boolean>;
@@ -1065,10 +1065,9 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(ownershipVerifications.createdAt));
   }
 
-  async getAllPendingVerifications(): Promise<(OwnershipVerification & { station?: Station; userEmail?: string })[]> {
+  async getAllPendingVerifications(): Promise<(OwnershipVerification & { stationName?: string; stationNameAr?: string; userEmail?: string })[]> {
     const verifications = await db.select()
       .from(ownershipVerifications)
-      .where(eq(ownershipVerifications.status, "PENDING"))
       .orderBy(desc(ownershipVerifications.createdAt));
     
     const enriched = [];
@@ -1077,7 +1076,8 @@ export class DatabaseStorage implements IStorage {
       const [user] = await db.select().from(users).where(eq(users.id, v.userId));
       enriched.push({
         ...v,
-        station,
+        stationName: station?.name,
+        stationNameAr: station?.nameAr,
         userEmail: user?.email || undefined
       });
     }
