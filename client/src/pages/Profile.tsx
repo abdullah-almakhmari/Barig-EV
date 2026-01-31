@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { User, Car, Star, Trash2, Plus, Loader2, Check, Zap, Camera, Cpu, Link2, Settings2, Copy } from "lucide-react";
+import { User, Car, Star, Trash2, Plus, Loader2, Check, Zap, Camera, Cpu, Link2, Settings2, Copy, LogOut, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Redirect } from "wouter";
 import { SEO } from "@/components/SEO";
@@ -39,6 +39,22 @@ export default function Profile() {
   const { data: myStations } = useQuery<Station[]>({
     queryKey: ["/api/stations/my-stations"],
     enabled: !!user,
+  });
+
+  const { data: activeSession } = useQuery({
+    queryKey: ["/api/charging-sessions/my-active"],
+    queryFn: async () => {
+      const res = await fetch("/api/charging-sessions/my-active", { credentials: "include" });
+      if (!res.ok) return null;
+      return res.json();
+    },
+    enabled: !!user,
+  });
+
+  const endSessionMutation = useMutation({
+    mutationFn: async (sessionId: number) => {
+      return apiRequest("POST", `/api/charging-sessions/${sessionId}/end`, {});
+    },
   });
 
   const { data: allStations } = useQuery<Station[]>({
@@ -82,6 +98,8 @@ export default function Profile() {
 
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [connectorDialogOpen, setConnectorDialogOpen] = useState(false);
+  const [showLogoutWarning, setShowLogoutWarning] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [newConnectorStationId, setNewConnectorStationId] = useState<string>("");
   const [newConnectorName, setNewConnectorName] = useState("");
   const [editConnectorId, setEditConnectorId] = useState<number | null>(null);
@@ -181,6 +199,32 @@ export default function Profile() {
     const first = firstName?.charAt(0)?.toUpperCase() || "";
     const last = lastName?.charAt(0)?.toUpperCase() || "";
     return first + last || "U";
+  };
+
+  const handleLogoutClick = async () => {
+    if (activeSession) {
+      setShowLogoutWarning(true);
+    } else {
+      performLogout();
+    }
+  };
+
+  const performLogout = async () => {
+    setIsLoggingOut(true);
+    await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
+    window.location.href = "/";
+  };
+
+  const handleEndSessionAndLogout = async () => {
+    if (activeSession) {
+      setIsLoggingOut(true);
+      try {
+        await endSessionMutation.mutateAsync(activeSession.id);
+      } catch (e) {
+        console.error("Failed to end session:", e);
+      }
+    }
+    await performLogout();
   };
 
   const handleProfileImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -348,6 +392,23 @@ export default function Profile() {
               {isArabic ? "اضغط على الصورة لتغييرها" : "Click on the image to change it"}
             </p>
           </div>
+        </div>
+        
+        <div className="mt-4 pt-4 border-t border-white/20">
+          <Button
+            variant="outline"
+            className="w-full gap-2 bg-white/10 border-white/20 hover:bg-white/20 text-foreground"
+            onClick={handleLogoutClick}
+            disabled={isLoggingOut}
+            data-testid="button-logout"
+          >
+            {isLoggingOut ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <LogOut className="w-4 h-4" />
+            )}
+            {isArabic ? "تسجيل الخروج" : "Sign out"}
+          </Button>
         </div>
       </div>
 
@@ -846,6 +907,35 @@ export default function Profile() {
           )}
         </CardContent>
       </Card>
+
+      <AlertDialog open={showLogoutWarning} onOpenChange={setShowLogoutWarning}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-amber-500" />
+              {isArabic ? "جلسة شحن نشطة" : "Active Charging Session"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {isArabic 
+                ? "لديك جلسة شحن نشطة حالياً. ماذا تريد أن تفعل؟" 
+                : "You have an active charging session. What would you like to do?"}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col gap-2 sm:flex-row">
+            <AlertDialogCancel disabled={isLoggingOut}>
+              {isArabic ? "إلغاء" : "Cancel"}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleEndSessionAndLogout}
+              disabled={isLoggingOut}
+              className="bg-amber-500 hover:bg-amber-600"
+            >
+              {isLoggingOut && <Loader2 className="w-4 h-4 me-2 animate-spin" />}
+              {isArabic ? "إنهاء الجلسة وتسجيل الخروج" : "End session & logout"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

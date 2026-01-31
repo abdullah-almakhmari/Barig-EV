@@ -196,7 +196,7 @@ export function Header() {
 
           {!isLoading && (
             isAuthenticated ? (
-              <div className="flex items-center gap-2">
+              <>
                 <Link href="/profile" data-testid="link-profile">
                   <Avatar className="w-8 h-8 cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all">
                     <AvatarImage src={user?.profileImageUrl || undefined} />
@@ -205,17 +205,7 @@ export function Header() {
                     </AvatarFallback>
                   </Avatar>
                 </Link>
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="rounded-full" 
-                  onClick={handleLogoutClick}
-                  disabled={isLoggingOut}
-                  data-testid="button-logout"
-                >
-                  {isLoggingOut ? <Loader2 className="w-5 h-5 animate-spin" /> : <LogOut className="w-5 h-5" />}
-                </Button>
-              </div>
+              </>
             ) : (
               <Link href="/login">
                 <Button variant="default" size="sm" className="gap-2" data-testid="button-login">
