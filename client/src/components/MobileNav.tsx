@@ -27,7 +27,14 @@ export function MobileNav() {
 
   return (
     <nav className="pwa-bottom-nav">
-      <div className="flex items-center justify-around h-[72px] pb-2 px-1">
+      <div 
+        className="h-[72px] pb-2 px-1"
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(5, 1fr)',
+          alignItems: 'center',
+        }}
+      >
         {navItems.map((item) => {
           const isActive = location === item.path;
           const Icon = item.icon;
@@ -35,10 +42,10 @@ export function MobileNav() {
           
           if (item.isCenter) {
             return (
-              <Link key={item.path} href={item.path} className="flex-1 flex justify-center">
+              <Link key={item.path} href={item.path}>
                 <button
                   onClick={triggerHaptic}
-                  className="flex flex-col items-center -mt-3"
+                  className="w-full flex flex-col items-center -mt-3"
                   data-testid={`nav-${item.path.replace("/", "") || "home"}`}
                 >
                   <div 
@@ -47,7 +54,7 @@ export function MobileNav() {
                     <Icon className="w-6 h-6" strokeWidth={2} />
                   </div>
                   <span 
-                    className="text-[11px] mt-1 text-primary"
+                    className="text-[11px] mt-1 text-primary text-center whitespace-nowrap"
                     style={{ fontWeight: 500 }}
                   >
                     {label}
@@ -58,38 +65,47 @@ export function MobileNav() {
           }
           
           return (
-            <Link key={item.path} href={item.path} className="flex-1 flex justify-center">
+            <Link key={item.path} href={item.path}>
               <button
                 onClick={triggerHaptic}
-                className="w-16 h-14 flex flex-col items-center justify-center relative"
+                className="w-full flex flex-col items-center justify-center relative"
+                style={{ height: '56px' }}
                 data-testid={`nav-${item.path.replace("/", "") || "home"}`}
               >
                 <div 
-                  className="absolute inset-1 rounded-xl bg-primary/10 dark:bg-primary/20 transition-opacity duration-200"
-                  style={{ opacity: isActive ? 1 : 0 }}
+                  className="absolute inset-1 rounded-xl bg-primary/10 dark:bg-primary/20"
+                  style={{ 
+                    opacity: isActive ? 1 : 0,
+                    transition: 'opacity 200ms',
+                  }}
                 />
                 
                 <Icon 
-                  className="w-6 h-6 relative z-10 transition-colors duration-200"
+                  className="w-6 h-6 relative"
                   style={{ 
-                    color: isActive ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))'
+                    color: isActive ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
+                    transition: 'color 200ms',
                   }}
                   strokeWidth={2}
                 />
                 
                 <span 
-                  className="relative z-10 text-[11px] mt-1 transition-colors duration-200"
+                  className="relative text-[11px] mt-1 text-center whitespace-nowrap"
                   style={{ 
                     fontWeight: 500,
-                    color: isActive ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))'
+                    color: isActive ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
+                    transition: 'color 200ms',
                   }}
                 >
                   {label}
                 </span>
                 
                 <div 
-                  className="absolute bottom-1 w-1 h-1 rounded-full bg-primary transition-opacity duration-200"
-                  style={{ opacity: isActive ? 1 : 0 }}
+                  className="absolute bottom-1 w-1 h-1 rounded-full bg-primary"
+                  style={{ 
+                    opacity: isActive ? 1 : 0,
+                    transition: 'opacity 200ms',
+                  }}
                 />
               </button>
             </Link>
