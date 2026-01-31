@@ -3,7 +3,7 @@ import { useRoute } from "wouter";
 import { useStation, useStationReports } from "@/hooks/use-stations";
 import { useTranslation } from "react-i18next";
 import { useLanguage } from "@/components/LanguageContext";
-import type { StationWithConnector, ChargerRental } from "@shared/schema";
+import type { StationWithConnector, ChargerRental, StationCharger } from "@shared/schema";
 import { Loader2, Navigation, Clock, ShieldCheck, MapPin, BatteryCharging, Home, Phone, MessageCircle, AlertTriangle, CheckCircle2, XCircle, Users, ShieldAlert, ThumbsUp, ThumbsDown, Zap, Shield, Trash2, Cpu } from "lucide-react";
 import { useLocation } from "wouter";
 import { api } from "@shared/routes";
@@ -219,6 +219,17 @@ export default function StationDetails() {
       return res.json();
     },
     enabled: id > 0 && station?.stationType === 'HOME',
+  });
+
+  // Fetch additional chargers for this station
+  const { data: stationChargers } = useQuery<StationCharger[]>({
+    queryKey: ['/api/stations', id, 'chargers'],
+    queryFn: async () => {
+      const res = await fetch(`/api/stations/${id}/chargers`);
+      if (!res.ok) throw new Error('Failed to fetch chargers');
+      return res.json();
+    },
+    enabled: id > 0,
   });
   
   const submitVerification = useMutation({
@@ -625,12 +636,33 @@ export default function StationDetails() {
               {station.isFree ? t("station.price.free") : station.priceText || t("station.price.paid")}
             </span>
           </div>
-          <div className="flex justify-between py-2">
+          <div className="flex justify-between py-2 border-b border-dashed">
             <span className="text-muted-foreground">{t("station.statusLabel")}</span>
             <Badge variant={station.status === "OPERATIONAL" ? "default" : "destructive"}>
               {t(`station.status.${station.status?.toLowerCase()}`)}
             </Badge>
           </div>
+          
+          {/* Additional Chargers */}
+          {stationChargers && stationChargers.length > 0 && (
+            <div className="pt-3 space-y-2">
+              <span className="text-sm font-medium text-muted-foreground">{t("station.additionalChargers")}</span>
+              {stationChargers.map((charger) => (
+                <div key={charger.id} className="flex items-center justify-between py-2 px-3 bg-muted/30 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <Badge variant={charger.chargerType === "DC" ? "default" : "secondary"} className="text-xs">
+                      {charger.chargerType}
+                    </Badge>
+                    <span className="font-mono text-sm">{charger.powerKw} kW</span>
+                    {charger.connectorType && (
+                      <span className="text-xs text-muted-foreground">({charger.connectorType})</span>
+                    )}
+                  </div>
+                  <span className="text-sm text-muted-foreground">x{charger.count}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </details>
 
