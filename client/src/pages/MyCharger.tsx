@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/hooks/use-auth";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Loader2, Home, Zap, Users, Wallet, Clock, Plus, Settings, Trash2, MapPin, BatteryCharging, Wifi, WifiOff, Cable } from "lucide-react";
+import { Loader2, Home, Zap, Users, Wallet, Clock, Plus, Settings, Trash2, MapPin, BatteryCharging, Wifi, WifiOff, Cable, ShieldCheck, ShieldAlert, Camera, Upload, CheckCircle2, XCircle, Copy } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Redirect, Link } from "wouter";
 import { SEO } from "@/components/SEO";
@@ -18,7 +18,7 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
-import type { Station, ChargerRental, RentalSessionWithDetails } from "@shared/schema";
+import type { Station, ChargerRental, RentalSessionWithDetails, OwnershipVerification } from "@shared/schema";
 
 type ChargerRentalWithStation = ChargerRental & { station?: Station };
 
@@ -32,9 +32,11 @@ type DashboardData = {
   chargers: (ChargerRentalWithStation & { recentSessions?: RentalSessionWithDetails[] })[];
 };
 
-type StationWithConnection = Station & {
-  hasConnectedDevice: boolean;
-  isDeviceOnline: boolean;
+type StationWithVerification = Station & {
+  isVerified: boolean;
+  verificationMethod: "ESP32" | "MANUAL" | null;
+  verificationStatus: string | null;
+  verificationCode: string | null;
 };
 
 export default function MyCharger() {
@@ -44,20 +46,26 @@ export default function MyCharger() {
   const isArabic = i18n.language === "ar";
   
   const [showSetupDialog, setShowSetupDialog] = useState(false);
+  const [showVerificationDialog, setShowVerificationDialog] = useState(false);
+  const [selectedStation, setSelectedStation] = useState<StationWithVerification | null>(null);
   const [selectedStationId, setSelectedStationId] = useState<string>("");
   const [pricePerKwh, setPricePerKwh] = useState<string>("0.025");
   const [isAvailable, setIsAvailable] = useState(true);
   const [description, setDescription] = useState("");
   const [descriptionAr, setDescriptionAr] = useState("");
   const [editingRental, setEditingRental] = useState<ChargerRentalWithStation | null>(null);
+  const [uploadingPhotos, setUploadingPhotos] = useState(false);
+  const [uploadedPhotos, setUploadedPhotos] = useState<string[]>([]);
+  const [currentVerification, setCurrentVerification] = useState<OwnershipVerification | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const { data: dashboard, isLoading: dashboardLoading } = useQuery<DashboardData>({
     queryKey: ["/api/charger-rentals/dashboard"],
     enabled: !!user,
   });
   
-  const { data: myStations } = useQuery<StationWithConnection[]>({
-    queryKey: ["/api/stations/my-stations"],
+  const { data: homeStations, isLoading: stationsLoading } = useQuery<StationWithVerification[]>({
+    queryKey: ["/api/ownership-verifications/my-home-stations"],
     enabled: !!user,
   });
   
@@ -80,6 +88,48 @@ export default function MyCharger() {
       toast({
         title: isArabic ? "خطأ" : "Error",
         description: msg || (isArabic ? "فشل في حفظ الإعدادات" : "Failed to save settings"),
+        variant: "destructive",
+      });
+    },
+  });
+  
+  const startVerificationMutation = useMutation({
+    mutationFn: async (stationId: number) => {
+      const response = await apiRequest("POST", "/api/ownership-verifications", { stationId });
+      return response.json();
+    },
+    onSuccess: (data) => {
+      setCurrentVerification(data);
+      queryClient.invalidateQueries({ queryKey: ["/api/ownership-verifications/my-home-stations"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: isArabic ? "خطأ" : "Error",
+        description: error?.message || (isArabic ? "فشل في بدء التحقق" : "Failed to start verification"),
+        variant: "destructive",
+      });
+    },
+  });
+
+  const uploadPhotosMutation = useMutation({
+    mutationFn: async ({ verificationId, photoUrls }: { verificationId: number; photoUrls: string[] }) => {
+      return apiRequest("PATCH", `/api/ownership-verifications/${verificationId}/photos`, { photoUrls });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/ownership-verifications/my-home-stations"] });
+      setShowVerificationDialog(false);
+      setUploadedPhotos([]);
+      setCurrentVerification(null);
+      setSelectedStation(null);
+      toast({
+        title: isArabic ? "تم الإرسال" : "Submitted",
+        description: isArabic ? "تم إرسال طلب التحقق للمراجعة" : "Verification request submitted for review",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: isArabic ? "خطأ" : "Error",
+        description: error?.message || (isArabic ? "فشل في رفع الصور" : "Failed to upload photos"),
         variant: "destructive",
       });
     },
@@ -127,6 +177,87 @@ export default function MyCharger() {
     setDescriptionAr(rental.descriptionAr || "");
     setShowSetupDialog(true);
   };
+
+  const handleStartVerification = async (station: StationWithVerification) => {
+    setSelectedStation(station);
+    if (station.verificationCode && station.verificationStatus === "PENDING") {
+      setCurrentVerification({
+        id: 0,
+        stationId: station.id,
+        userId: user?.id || "",
+        verificationCode: station.verificationCode,
+        status: "PENDING",
+        photoUrls: null,
+        rejectionReason: null,
+        reviewedBy: null,
+        reviewedAt: null,
+        expiresAt: null,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      } as OwnershipVerification);
+      setShowVerificationDialog(true);
+    } else {
+      const result = await startVerificationMutation.mutateAsync(station.id);
+      setCurrentVerification(result);
+      setShowVerificationDialog(true);
+    }
+  };
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    setUploadingPhotos(true);
+    const newUrls: string[] = [];
+
+    try {
+      for (const file of Array.from(files)) {
+        const formData = new FormData();
+        formData.append("file", file);
+        
+        const response = await fetch("/api/uploads/upload", {
+          method: "POST",
+          body: formData,
+          credentials: "include"
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (data.objectPath) {
+            newUrls.push(data.objectPath);
+          }
+        }
+      }
+      
+      setUploadedPhotos(prev => [...prev, ...newUrls]);
+    } catch (error) {
+      toast({
+        title: isArabic ? "خطأ" : "Error",
+        description: isArabic ? "فشل في رفع الصور" : "Failed to upload photos",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingPhotos(false);
+    }
+  };
+
+  const handleSubmitVerification = () => {
+    if (!currentVerification || uploadedPhotos.length === 0) return;
+    uploadPhotosMutation.mutate({
+      verificationId: currentVerification.id,
+      photoUrls: uploadedPhotos
+    });
+  };
+
+  const copyVerificationCode = () => {
+    if (currentVerification?.verificationCode) {
+      navigator.clipboard.writeText(currentVerification.verificationCode);
+      toast({
+        title: isArabic ? "تم النسخ" : "Copied",
+        description: isArabic ? "تم نسخ رمز التحقق" : "Verification code copied",
+      });
+    }
+  };
   
   const formatDuration = (minutes: number | null) => {
     if (!minutes) return "-";
@@ -136,13 +267,13 @@ export default function MyCharger() {
     return `${mins}m`;
   };
   
-  const availableStationsForRent = myStations?.filter(s => 
-    s.approvalStatus === "APPROVED" && 
-    s.hasConnectedDevice &&
-    (!dashboard?.chargers?.some(c => c.stationId === s.id) || editingRental?.stationId === s.id)
-  ) || [];
+  const verifiedStations = homeStations?.filter(s => s.isVerified && s.approvalStatus === "APPROVED") || [];
+  const unverifiedStations = homeStations?.filter(s => !s.isVerified && s.approvalStatus === "APPROVED") || [];
+  const pendingVerificationStations = homeStations?.filter(s => s.verificationStatus === "PENDING") || [];
   
-  const connectedStations = myStations?.filter(s => s.hasConnectedDevice) || [];
+  const availableStationsForRent = verifiedStations.filter(s => 
+    !dashboard?.chargers?.some(c => c.stationId === s.id) || editingRental?.stationId === s.id
+  );
   
   if (authLoading) {
     return (
@@ -183,24 +314,98 @@ export default function MyCharger() {
               </Button>
             )}
           </div>
-          
-          {connectedStations.length > 0 && (
-            <Card className="border-primary/20">
+
+          {unverifiedStations.length > 0 && (
+            <Card className="border-amber-500/30 bg-amber-50/50 dark:bg-amber-950/20">
               <CardHeader className="pb-2">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Cable className="w-5 h-5 text-primary" />
-                  {isArabic ? "الشواحن المتصلة" : "Connected Chargers"}
+                <CardTitle className="text-base flex items-center gap-2 text-amber-700 dark:text-amber-400">
+                  <ShieldAlert className="w-5 h-5" />
+                  {isArabic ? "شواحن تحتاج للتحقق" : "Chargers Need Verification"}
+                </CardTitle>
+                <CardDescription>
+                  {isArabic 
+                    ? "يجب التحقق من ملكية الشاحن قبل تأجيره"
+                    : "Verify charger ownership before renting it out"
+                  }
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {unverifiedStations.map(station => (
+                  <div key={station.id} className="flex items-center justify-between p-3 rounded-lg bg-background border">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center">
+                        <Home className="w-5 h-5 text-amber-600" />
+                      </div>
+                      <div>
+                        <p className="font-medium">{isArabic ? station.nameAr : station.name}</p>
+                        <p className="text-xs text-muted-foreground flex items-center gap-1">
+                          <MapPin className="w-3 h-3" />
+                          {isArabic ? station.cityAr : station.city}
+                        </p>
+                      </div>
+                    </div>
+                    <Button 
+                      size="sm"
+                      onClick={() => handleStartVerification(station)}
+                      data-testid={`btn-verify-${station.id}`}
+                    >
+                      <ShieldCheck className="w-4 h-4 me-1" />
+                      {isArabic ? "تحقق" : "Verify"}
+                    </Button>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          )}
+
+          {pendingVerificationStations.length > 0 && (
+            <Card className="border-blue-500/30 bg-blue-50/50 dark:bg-blue-950/20">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base flex items-center gap-2 text-blue-700 dark:text-blue-400">
+                  <Clock className="w-5 h-5" />
+                  {isArabic ? "قيد المراجعة" : "Pending Review"}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
-                {connectedStations.map(station => (
+                {pendingVerificationStations.map(station => (
+                  <div key={station.id} className="flex items-center justify-between p-3 rounded-lg bg-background border">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center">
+                        <Home className="w-5 h-5 text-blue-600" />
+                      </div>
+                      <div>
+                        <p className="font-medium">{isArabic ? station.nameAr : station.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {isArabic ? "في انتظار مراجعة المسؤول" : "Waiting for admin review"}
+                        </p>
+                      </div>
+                    </div>
+                    <Badge variant="secondary">
+                      {isArabic ? "قيد المراجعة" : "Pending"}
+                    </Badge>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          )}
+
+          {verifiedStations.length > 0 && (
+            <Card className="border-emerald-500/30">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <ShieldCheck className="w-5 h-5 text-emerald-500" />
+                  {isArabic ? "الشواحن المُتحقق منها" : "Verified Chargers"}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {verifiedStations.map(station => (
                   <div key={station.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
                     <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${station.isDeviceOnline ? 'bg-emerald-100 dark:bg-emerald-900' : 'bg-muted'}`}>
-                        {station.isDeviceOnline ? (
+                      <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900 flex items-center justify-center">
+                        {station.verificationMethod === "ESP32" ? (
                           <Wifi className="w-5 h-5 text-emerald-600" />
                         ) : (
-                          <WifiOff className="w-5 h-5 text-muted-foreground" />
+                          <CheckCircle2 className="w-5 h-5 text-emerald-600" />
                         )}
                       </div>
                       <div>
@@ -211,10 +416,10 @@ export default function MyCharger() {
                         </p>
                       </div>
                     </div>
-                    <Badge variant={station.isDeviceOnline ? "default" : "secondary"}>
-                      {station.isDeviceOnline 
-                        ? (isArabic ? "متصل" : "Online")
-                        : (isArabic ? "غير متصل" : "Offline")
+                    <Badge variant="default" className="bg-emerald-600">
+                      {station.verificationMethod === "ESP32" 
+                        ? (isArabic ? "ESP32 متصل" : "ESP32 Connected")
+                        : (isArabic ? "مُتحقق منه" : "Verified")
                       }
                     </Badge>
                   </div>
@@ -222,6 +427,119 @@ export default function MyCharger() {
               </CardContent>
             </Card>
           )}
+          
+          <Dialog open={showVerificationDialog} onOpenChange={(open) => {
+            setShowVerificationDialog(open);
+            if (!open) {
+              setSelectedStation(null);
+              setCurrentVerification(null);
+              setUploadedPhotos([]);
+            }
+          }}>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>
+                  {isArabic ? "التحقق من ملكية الشاحن" : "Verify Charger Ownership"}
+                </DialogTitle>
+                <DialogDescription>
+                  {isArabic 
+                    ? "اتبع الخطوات التالية للتحقق من ملكيتك للشاحن"
+                    : "Follow these steps to verify your charger ownership"
+                  }
+                </DialogDescription>
+              </DialogHeader>
+              
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label className="font-medium">
+                    {isArabic ? "الخطوة 1: رمز التحقق" : "Step 1: Verification Code"}
+                  </Label>
+                  <p className="text-sm text-muted-foreground">
+                    {isArabic 
+                      ? "اكتب هذا الرمز على ورقة وضعها بجانب الشاحن"
+                      : "Write this code on paper and place it next to your charger"
+                    }
+                  </p>
+                  <div className="flex items-center gap-2 p-4 bg-muted rounded-lg">
+                    <span className="text-3xl font-mono font-bold tracking-widest flex-1 text-center">
+                      {currentVerification?.verificationCode || "------"}
+                    </span>
+                    <Button size="icon" variant="ghost" onClick={copyVerificationCode}>
+                      <Copy className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="font-medium">
+                    {isArabic ? "الخطوة 2: التقط صورة" : "Step 2: Take a Photo"}
+                  </Label>
+                  <p className="text-sm text-muted-foreground">
+                    {isArabic 
+                      ? "التقط صورة للشاحن مع الورقة التي تحتوي على رمز التحقق"
+                      : "Take a photo of your charger with the paper showing the verification code"
+                    }
+                  </p>
+                  
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    className="hidden"
+                    onChange={handleFileUpload}
+                  />
+                  
+                  <Button 
+                    variant="outline" 
+                    className="w-full"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploadingPhotos}
+                  >
+                    {uploadingPhotos ? (
+                      <Loader2 className="w-4 h-4 me-2 animate-spin" />
+                    ) : (
+                      <Camera className="w-4 h-4 me-2" />
+                    )}
+                    {isArabic ? "رفع صورة" : "Upload Photo"}
+                  </Button>
+                  
+                  {uploadedPhotos.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {uploadedPhotos.map((url, index) => (
+                        <div key={index} className="relative w-20 h-20 rounded-lg overflow-hidden bg-muted">
+                          <img 
+                            src={`/objects/${url}`} 
+                            alt={`Photo ${index + 1}`}
+                            className="w-full h-full object-cover"
+                          />
+                          <Button
+                            size="icon"
+                            variant="destructive"
+                            className="absolute top-1 end-1 w-5 h-5"
+                            onClick={() => setUploadedPhotos(prev => prev.filter((_, i) => i !== index))}
+                          >
+                            <XCircle className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              <DialogFooter>
+                <Button 
+                  onClick={handleSubmitVerification}
+                  disabled={uploadedPhotos.length === 0 || uploadPhotosMutation.isPending}
+                  data-testid="btn-submit-verification"
+                >
+                  {uploadPhotosMutation.isPending && <Loader2 className="w-4 h-4 me-2 animate-spin" />}
+                  {isArabic ? "إرسال للمراجعة" : "Submit for Review"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
           
           <Dialog open={showSetupDialog} onOpenChange={(open) => {
             setShowSetupDialog(open);
@@ -248,7 +566,7 @@ export default function MyCharger() {
               
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
-                  <Label>{isArabic ? "اختر الشاحن المتصل" : "Select Connected Charger"}</Label>
+                  <Label>{isArabic ? "اختر الشاحن" : "Select Charger"}</Label>
                   <Select value={selectedStationId} onValueChange={setSelectedStationId} disabled={!!editingRental}>
                     <SelectTrigger data-testid="select-station">
                       <SelectValue placeholder={isArabic ? "اختر شاحن..." : "Choose a charger..."} />
@@ -257,11 +575,7 @@ export default function MyCharger() {
                       {availableStationsForRent.map(station => (
                         <SelectItem key={station.id} value={String(station.id)}>
                           <div className="flex items-center gap-2">
-                            {station.isDeviceOnline ? (
-                              <Wifi className="w-4 h-4 text-emerald-500" />
-                            ) : (
-                              <WifiOff className="w-4 h-4 text-muted-foreground" />
-                            )}
+                            <ShieldCheck className="w-4 h-4 text-emerald-500" />
                             {isArabic ? station.nameAr : station.name}
                           </div>
                         </SelectItem>
@@ -322,7 +636,7 @@ export default function MyCharger() {
             </DialogContent>
           </Dialog>
           
-          {dashboardLoading ? (
+          {dashboardLoading || stationsLoading ? (
             <div className="flex justify-center py-12">
               <Loader2 className="w-8 h-8 animate-spin text-primary" />
             </div>
@@ -501,48 +815,58 @@ export default function MyCharger() {
                 </CardContent>
               </Card>
             </>
+          ) : homeStations && homeStations.length === 0 ? (
+            <Card>
+              <CardContent className="py-12 text-center">
+                <Home className="w-16 h-16 mx-auto mb-4 text-muted-foreground/50" />
+                <h3 className="text-lg font-medium mb-2">
+                  {isArabic ? "لا يوجد شاحن منزلي" : "No Home Charger"}
+                </h3>
+                <p className="text-muted-foreground mb-4 max-w-md mx-auto">
+                  {isArabic 
+                    ? "لم تقم بإضافة شاحن منزلي بعد. تواصل مع المسؤول لإضافة شاحنك"
+                    : "You haven't added a home charger yet. Contact admin to add your charger"
+                  }
+                </p>
+                <Link href="/contact">
+                  <Button variant="outline" data-testid="btn-contact-admin">
+                    {isArabic ? "تواصل معنا" : "Contact Us"}
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+          ) : verifiedStations.length === 0 ? (
+            <Card>
+              <CardContent className="py-12 text-center">
+                <ShieldAlert className="w-16 h-16 mx-auto mb-4 text-amber-500/50" />
+                <h3 className="text-lg font-medium mb-2">
+                  {isArabic ? "يجب التحقق من الملكية أولاً" : "Verify Ownership First"}
+                </h3>
+                <p className="text-muted-foreground mb-4 max-w-md mx-auto">
+                  {isArabic 
+                    ? "يجب التحقق من ملكية شاحنك قبل تأجيره. اضغط على 'تحقق' بجانب شاحنك أعلاه"
+                    : "You need to verify your charger ownership before renting it out. Click 'Verify' next to your charger above"
+                  }
+                </p>
+              </CardContent>
+            </Card>
           ) : (
             <Card>
               <CardContent className="py-12 text-center">
-                <Cable className="w-16 h-16 mx-auto mb-4 text-muted-foreground/50" />
+                <BatteryCharging className="w-16 h-16 mx-auto mb-4 text-muted-foreground/50" />
                 <h3 className="text-lg font-medium mb-2">
-                  {connectedStations.length === 0 
-                    ? (isArabic ? "لا يوجد شاحن متصل" : "No Connected Charger")
-                    : (isArabic ? "لم تقم بإعداد تأجير بعد" : "No Rental Setup Yet")
-                  }
+                  {isArabic ? "لم تقم بإعداد تأجير بعد" : "No Rental Setup Yet"}
                 </h3>
                 <p className="text-muted-foreground mb-4 max-w-md mx-auto">
-                  {connectedStations.length === 0 
-                    ? (isArabic 
-                        ? "لتأجير شاحنك المنزلي، يجب أولاً توصيل جهاز ESP32 بشاحنك من خلال صفحة الملف الشخصي"
-                        : "To rent out your home charger, you need to first connect an ESP32 device to your charger from your Profile page"
-                      )
-                    : (isArabic 
-                        ? "لديك شاحن متصل! يمكنك الآن إعداد التأجير وتحديد السعر"
-                        : "You have a connected charger! You can now set up rental and set your price"
-                      )
+                  {isArabic 
+                    ? "لديك شاحن مُتحقق منه! يمكنك الآن إعداد التأجير وتحديد السعر"
+                    : "You have a verified charger! You can now set up rental and set your price"
                   }
                 </p>
-                {connectedStations.length === 0 ? (
-                  <Link href="/profile">
-                    <Button data-testid="btn-go-to-profile">
-                      <Cable className="w-4 h-4 me-2" />
-                      {isArabic ? "توصيل جهاز ESP32" : "Connect ESP32 Device"}
-                    </Button>
-                  </Link>
-                ) : availableStationsForRent.length > 0 ? (
-                  <Button onClick={() => setShowSetupDialog(true)} data-testid="btn-setup-first-rental">
-                    <Plus className="w-4 h-4 me-2" />
-                    {isArabic ? "إعداد التأجير" : "Setup Rental"}
-                  </Button>
-                ) : (
-                  <p className="text-sm text-muted-foreground">
-                    {isArabic 
-                      ? "جميع شواحنك المتصلة لديها إعداد تأجير بالفعل"
-                      : "All your connected chargers already have rental setups"
-                    }
-                  </p>
-                )}
+                <Button onClick={() => setShowSetupDialog(true)} data-testid="btn-setup-first-rental">
+                  <Plus className="w-4 h-4 me-2" />
+                  {isArabic ? "إعداد التأجير" : "Setup Rental"}
+                </Button>
               </CardContent>
             </Card>
           )}
