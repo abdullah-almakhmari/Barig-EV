@@ -1078,7 +1078,7 @@ export class DatabaseStorage implements IStorage {
       enriched.push({
         ...v,
         station,
-        userEmail: user?.email
+        userEmail: user?.email || undefined
       });
     }
     return enriched;

@@ -1397,19 +1397,19 @@ export async function registerRoutes(
       
       const { stationId, ...rentalData } = parsed.data;
       
-      // Verify the station has a connected ESP32 device owned by this user
-      const hasConnectedDevice = await storage.stationHasConnectedDevice(stationId, req.user.id);
-      if (!hasConnectedDevice) {
-        return res.status(403).json({ 
-          message: "Rental requires a connected ESP32 device. Please connect your charger first.",
-          messageAr: "التأجير يتطلب جهاز ESP32 متصل. يرجى توصيل شاحنك أولاً."
-        });
-      }
-      
       // Verify the station exists and is a HOME type
       const station = await storage.getStation(stationId);
       if (!station || station.stationType !== "HOME") {
         return res.status(403).json({ message: "Only home chargers can be rented out" });
+      }
+      
+      // Verify ownership is verified (ESP32 OR manual verification)
+      const isVerified = await storage.isOwnershipVerified(stationId, req.user.id);
+      if (!isVerified) {
+        return res.status(403).json({ 
+          message: "Ownership verification required. Please verify your charger first.",
+          messageAr: "يجب التحقق من ملكية الشاحن أولاً."
+        });
       }
       
       // Check if rental already exists
@@ -1514,6 +1514,129 @@ export async function registerRoutes(
     } catch (err) {
       console.error("[Charger Rental] Error deleting rental:", err);
       res.status(500).json({ message: "Failed to delete rental" });
+    }
+  });
+
+  // ==================== OWNERSHIP VERIFICATION ====================
+  
+  // Generate verification code helper
+  const generateVerificationCode = () => {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let code = '';
+    for (let i = 0; i < 6; i++) {
+      code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return code;
+  };
+
+  // Get user's home stations (for starting verification)
+  app.get("/api/ownership-verifications/my-home-stations", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const userStations = await storage.getStationsByUser(userId);
+      const homeStations = userStations.filter(s => s.stationType === "HOME");
+      
+      // Add verification status for each station
+      const stationsWithStatus = await Promise.all(homeStations.map(async (station) => {
+        const isVerified = await storage.isOwnershipVerified(station.id, userId);
+        const verification = await storage.getOwnershipVerificationByStation(station.id, userId);
+        const hasEsp32 = await storage.stationHasConnectedDevice(station.id, userId);
+        
+        return {
+          ...station,
+          isVerified,
+          verificationMethod: hasEsp32 ? "ESP32" : (verification?.status === "APPROVED" ? "MANUAL" : null),
+          verificationStatus: hasEsp32 ? "APPROVED" : (verification?.status || null),
+          verificationCode: verification?.verificationCode || null
+        };
+      }));
+      
+      res.json(stationsWithStatus);
+    } catch (err) {
+      console.error("[Ownership] Error getting user home stations:", err);
+      res.status(500).json({ message: "Failed to get stations" });
+    }
+  });
+
+  // Start ownership verification process for a station
+  app.post("/api/ownership-verifications", isAuthenticated, async (req: any, res) => {
+    try {
+      const { stationId } = req.body;
+      if (!stationId) {
+        return res.status(400).json({ message: "Station ID required" });
+      }
+      
+      // Verify the user owns this station
+      const station = await storage.getStation(stationId);
+      if (!station || station.addedByUserId !== req.user.id) {
+        return res.status(403).json({ message: "You don't own this station" });
+      }
+      
+      // Check if already has ESP32 verification
+      const hasEsp32 = await storage.stationHasConnectedDevice(stationId, req.user.id);
+      if (hasEsp32) {
+        return res.status(400).json({ 
+          message: "Station already verified via ESP32 device",
+          messageAr: "المحطة مُتحقق منها بالفعل عبر جهاز ESP32"
+        });
+      }
+      
+      // Check for existing pending verification
+      const existing = await storage.getOwnershipVerificationByStation(stationId, req.user.id);
+      if (existing && existing.status === "PENDING") {
+        return res.json(existing); // Return existing pending verification
+      }
+      
+      // Create new verification request
+      const verificationCode = generateVerificationCode();
+      const verification = await storage.createOwnershipVerification({
+        stationId,
+        userId: req.user.id,
+        verificationCode
+      });
+      
+      res.json(verification);
+    } catch (err) {
+      console.error("[Ownership] Error creating verification:", err);
+      res.status(500).json({ message: "Failed to create verification request" });
+    }
+  });
+
+  // Update verification with photo URLs (photos uploaded separately via /api/uploads/upload)
+  app.patch("/api/ownership-verifications/:id/photos", isAuthenticated, async (req: any, res) => {
+    try {
+      const verificationId = parseInt(req.params.id);
+      const verification = await storage.getOwnershipVerification(verificationId);
+      
+      if (!verification || verification.userId !== req.user.id) {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+      
+      if (verification.status !== "PENDING") {
+        return res.status(400).json({ message: "Verification already processed" });
+      }
+      
+      const { photoUrls } = req.body;
+      if (!photoUrls || !Array.isArray(photoUrls)) {
+        return res.status(400).json({ message: "Photo URLs required" });
+      }
+      
+      const updated = await storage.updateOwnershipVerificationPhotos(verificationId, photoUrls);
+      res.json(updated);
+    } catch (err) {
+      console.error("[Ownership] Error updating photos:", err);
+      res.status(500).json({ message: "Failed to update photos" });
+    }
+  });
+
+  // Get user's verification requests
+  app.get("/api/ownership-verifications/mine", isAuthenticated, async (req: any, res) => {
+    try {
+      const verifications = await storage.getUserOwnershipVerifications(req.user.id);
+      res.json(verifications);
+    } catch (err) {
+      console.error("[Ownership] Error getting verifications:", err);
+      res.status(500).json({ message: "Failed to get verifications" });
     }
   });
 
@@ -1723,6 +1846,50 @@ export async function registerRoutes(
       res.json(station);
     } catch (err) {
       throw err;
+    }
+  });
+
+  // Admin: Get pending ownership verifications
+  app.get("/api/admin/ownership-verifications", isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const verifications = await storage.getAllPendingVerifications();
+      res.json(verifications);
+    } catch (err) {
+      console.error("[Admin] Error fetching ownership verifications:", err);
+      res.status(500).json({ message: "Failed to fetch verifications" });
+    }
+  });
+
+  // Admin: Approve or reject ownership verification
+  const ownershipVerificationReviewSchema = z.object({
+    status: z.enum(["APPROVED", "REJECTED"]),
+    rejectionReason: z.string().optional()
+  });
+
+  app.patch("/api/admin/ownership-verifications/:id/review", isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const parsed = ownershipVerificationReviewSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ message: "Invalid review data" });
+      }
+      
+      const verificationId = parseInt(req.params.id);
+      const updated = await storage.updateOwnershipVerificationStatus(
+        verificationId,
+        parsed.data.status,
+        req.user.id,
+        parsed.data.rejectionReason
+      );
+      
+      if (!updated) {
+        return res.status(404).json({ message: "Verification not found" });
+      }
+      
+      console.log(`[Admin] Ownership verification ${verificationId} ${parsed.data.status} by ${req.user?.email}`);
+      res.json(updated);
+    } catch (err) {
+      console.error("[Admin] Error reviewing ownership verification:", err);
+      res.status(500).json({ message: "Failed to review verification" });
     }
   });
 
