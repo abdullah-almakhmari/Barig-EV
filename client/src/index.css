@@ -253,6 +253,7 @@ img.interactive {
   backdrop-filter: blur(10px);
   border-top: 1px solid hsl(var(--border));
   padding-bottom: env(safe-area-inset-bottom, 0px);
+  direction: ltr !important;
 }
 
 /* Mobile Container Improvements */
