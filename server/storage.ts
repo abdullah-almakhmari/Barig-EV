@@ -872,6 +872,30 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(teslaConnectors).where(eq(teslaConnectors.userId, userId));
   }
 
+  async getUserConnectedStations(userId: string): Promise<Station[]> {
+    const connectors = await db.select().from(teslaConnectors).where(eq(teslaConnectors.userId, userId));
+    if (connectors.length === 0) return [];
+    
+    const stationIds = Array.from(new Set(connectors.map(c => c.stationId)));
+    const userStations = await db.select().from(stations).where(
+      and(
+        sql`${stations.id} = ANY(${stationIds})`,
+        eq(stations.stationType, "HOME")
+      )
+    );
+    return userStations;
+  }
+
+  async stationHasConnectedDevice(stationId: number, userId: string): Promise<boolean> {
+    const connectors = await db.select().from(teslaConnectors).where(
+      and(
+        eq(teslaConnectors.stationId, stationId),
+        eq(teslaConnectors.userId, userId)
+      )
+    );
+    return connectors.length > 0;
+  }
+
   async getStationTeslaConnectors(stationId: number): Promise<TeslaConnector[]> {
     return await db.select().from(teslaConnectors).where(eq(teslaConnectors.stationId, stationId));
   }

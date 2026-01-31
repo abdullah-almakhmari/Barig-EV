@@ -1,24 +1,23 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/hooks/use-auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Loader2, Home, Zap, Users, Wallet, Clock, Plus, Settings, Trash2, MapPin, BatteryCharging, Navigation } from "lucide-react";
+import { Loader2, Home, Zap, Users, Wallet, Clock, Plus, Settings, Trash2, MapPin, BatteryCharging, Wifi, WifiOff, Cable } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { Redirect } from "wouter";
+import { Redirect, Link } from "wouter";
 import { SEO } from "@/components/SEO";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
-import { MapPicker } from "@/components/MapPicker";
 import type { Station, ChargerRental, RentalSessionWithDetails } from "@shared/schema";
 
 type ChargerRentalWithStation = ChargerRental & { station?: Station };
@@ -33,6 +32,11 @@ type DashboardData = {
   chargers: (ChargerRentalWithStation & { recentSessions?: RentalSessionWithDetails[] })[];
 };
 
+type StationWithConnection = Station & {
+  hasConnectedDevice: boolean;
+  isDeviceOnline: boolean;
+};
+
 export default function MyCharger() {
   const { t, i18n } = useTranslation();
   const { user, isLoading: authLoading } = useAuth();
@@ -40,7 +44,6 @@ export default function MyCharger() {
   const isArabic = i18n.language === "ar";
   
   const [showSetupDialog, setShowSetupDialog] = useState(false);
-  const [showAddChargerDialog, setShowAddChargerDialog] = useState(false);
   const [selectedStationId, setSelectedStationId] = useState<string>("");
   const [pricePerKwh, setPricePerKwh] = useState<string>("0.025");
   const [isAvailable, setIsAvailable] = useState(true);
@@ -48,51 +51,14 @@ export default function MyCharger() {
   const [descriptionAr, setDescriptionAr] = useState("");
   const [editingRental, setEditingRental] = useState<ChargerRentalWithStation | null>(null);
   
-  const [chargerName, setChargerName] = useState("");
-  const [chargerNameAr, setChargerNameAr] = useState("");
-  const [chargerCity, setChargerCity] = useState("");
-  const [chargerCityAr, setChargerCityAr] = useState("");
-  const [chargerLat, setChargerLat] = useState(23.588);
-  const [chargerLng, setChargerLng] = useState(58.3829);
-  const [chargerPowerKw, setChargerPowerKw] = useState("11");
-  const [chargerType, setChargerType] = useState<"AC" | "DC">("AC");
-  const [contactPhone, setContactPhone] = useState("");
-  const [isGettingLocation, setIsGettingLocation] = useState(false);
-  
   const { data: dashboard, isLoading: dashboardLoading } = useQuery<DashboardData>({
     queryKey: ["/api/charger-rentals/dashboard"],
     enabled: !!user,
   });
   
-  const { data: myStations, refetch: refetchStations } = useQuery<Station[]>({
+  const { data: myStations } = useQuery<StationWithConnection[]>({
     queryKey: ["/api/stations/my-stations"],
     enabled: !!user,
-  });
-  
-  const createStationMutation = useMutation({
-    mutationFn: async (data: any) => {
-      return apiRequest("POST", "/api/stations", data);
-    },
-    onSuccess: async (response) => {
-      const newStation = await response.json();
-      await refetchStations();
-      queryClient.invalidateQueries({ queryKey: ["/api/stations"] });
-      setShowAddChargerDialog(false);
-      resetChargerForm();
-      toast({
-        title: isArabic ? "تم إضافة الشاحن" : "Charger Added",
-        description: isArabic 
-          ? "تم إضافة شاحنك المنزلي بنجاح. بانتظار موافقة المسؤول." 
-          : "Your home charger has been added. Waiting for admin approval.",
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: isArabic ? "خطأ" : "Error",
-        description: error.message || (isArabic ? "فشل في إضافة الشاحن" : "Failed to add charger"),
-        variant: "destructive",
-      });
-    },
   });
   
   const createRentalMutation = useMutation({
@@ -109,10 +75,11 @@ export default function MyCharger() {
         description: isArabic ? "تم حفظ إعدادات التأجير بنجاح" : "Rental settings saved successfully",
       });
     },
-    onError: () => {
+    onError: (error: any) => {
+      const msg = error?.messageAr && isArabic ? error.messageAr : error?.message;
       toast({
         title: isArabic ? "خطأ" : "Error",
-        description: isArabic ? "فشل في حفظ الإعدادات" : "Failed to save settings",
+        description: msg || (isArabic ? "فشل في حفظ الإعدادات" : "Failed to save settings"),
         variant: "destructive",
       });
     },
@@ -139,18 +106,6 @@ export default function MyCharger() {
     setDescriptionAr("");
   };
   
-  const resetChargerForm = () => {
-    setChargerName("");
-    setChargerNameAr("");
-    setChargerCity("");
-    setChargerCityAr("");
-    setChargerLat(23.588);
-    setChargerLng(58.3829);
-    setChargerPowerKw("11");
-    setChargerType("AC");
-    setContactPhone("");
-  };
-  
   const handleSetupRental = () => {
     if (!selectedStationId || !pricePerKwh) return;
     
@@ -160,37 +115,6 @@ export default function MyCharger() {
       isAvailableForRent: isAvailable,
       description,
       descriptionAr,
-    });
-  };
-  
-  const handleAddCharger = () => {
-    if (!chargerName && !chargerNameAr) {
-      toast({
-        title: isArabic ? "خطأ" : "Error",
-        description: isArabic ? "يرجى إدخال اسم الشاحن" : "Please enter charger name",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    createStationMutation.mutate({
-      name: chargerName || chargerNameAr,
-      nameAr: chargerNameAr || chargerName,
-      city: chargerCity,
-      cityAr: chargerCityAr || chargerCity,
-      operator: "",
-      lat: chargerLat,
-      lng: chargerLng,
-      chargerType: chargerType,
-      powerKw: parseInt(chargerPowerKw) || 11,
-      chargerCount: 1,
-      availableChargers: 1,
-      isFree: true,
-      priceText: "",
-      status: "OPERATIONAL",
-      stationType: "HOME",
-      contactPhone: contactPhone,
-      contactWhatsapp: "",
     });
   };
   
@@ -212,45 +136,13 @@ export default function MyCharger() {
     return `${mins}m`;
   };
   
-  const getMyLocation = () => {
-    if (!navigator.geolocation) {
-      toast({
-        title: isArabic ? "خطأ" : "Error",
-        description: isArabic ? "المتصفح لا يدعم تحديد الموقع" : "Browser doesn't support geolocation",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    setIsGettingLocation(true);
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setChargerLat(position.coords.latitude);
-        setChargerLng(position.coords.longitude);
-        setIsGettingLocation(false);
-        toast({
-          title: isArabic ? "تم تحديد الموقع" : "Location detected",
-          description: isArabic ? "تم تحديد موقعك الحالي" : "Your current location has been set",
-        });
-      },
-      (error) => {
-        setIsGettingLocation(false);
-        toast({
-          title: isArabic ? "خطأ" : "Error",
-          description: isArabic ? "فشل في تحديد الموقع" : "Failed to get location",
-          variant: "destructive",
-        });
-      },
-      { enableHighAccuracy: true, timeout: 10000 }
-    );
-  };
-  
   const availableStationsForRent = myStations?.filter(s => 
     s.approvalStatus === "APPROVED" && 
+    s.hasConnectedDevice &&
     (!dashboard?.chargers?.some(c => c.stationId === s.id) || editingRental?.stationId === s.id)
   ) || [];
   
-  const pendingStations = myStations?.filter(s => s.approvalStatus === "PENDING") || [];
+  const connectedStations = myStations?.filter(s => s.hasConnectedDevice) || [];
   
   if (authLoading) {
     return (
@@ -284,284 +176,151 @@ export default function MyCharger() {
               </p>
             </div>
             
-            <Dialog open={showAddChargerDialog} onOpenChange={setShowAddChargerDialog}>
-              <DialogTrigger asChild>
-                <Button data-testid="btn-add-charger">
-                  <Plus className="w-4 h-4 me-2" />
-                  {isArabic ? "إضافة شاحن" : "Add Charger"}
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle>
-                    {isArabic ? "إضافة شاحنك المنزلي" : "Add Your Home Charger"}
-                  </DialogTitle>
-                  <DialogDescription>
-                    {isArabic 
-                      ? "أضف معلومات شاحنك المنزلي لتتمكن من تأجيره"
-                      : "Add your home charger details to start renting it out"
-                    }
-                  </DialogDescription>
-                </DialogHeader>
-                
-                <div className="space-y-4 py-4">
-                  <div className="space-y-2">
-                    <Label>{isArabic ? "اسم الشاحن (عربي)" : "Charger Name (Arabic)"}</Label>
-                    <Input 
-                      value={chargerNameAr}
-                      onChange={(e) => setChargerNameAr(e.target.value)}
-                      placeholder={isArabic ? "مثال: شاحن بيت أحمد" : "e.g. Ahmed's Home Charger"}
-                      dir="rtl"
-                      data-testid="input-charger-name-ar"
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label>{isArabic ? "اسم الشاحن (إنجليزي)" : "Charger Name (English)"}</Label>
-                    <Input 
-                      value={chargerName}
-                      onChange={(e) => setChargerName(e.target.value)}
-                      placeholder="e.g. Ahmed's Home Charger"
-                      data-testid="input-charger-name-en"
-                    />
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-2">
-                      <Label>{isArabic ? "المدينة (عربي)" : "City (Arabic)"}</Label>
-                      <Input 
-                        value={chargerCityAr}
-                        onChange={(e) => setChargerCityAr(e.target.value)}
-                        placeholder={isArabic ? "مسقط" : "Muscat"}
-                        dir="rtl"
-                        data-testid="input-city-ar"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>{isArabic ? "المدينة (إنجليزي)" : "City (English)"}</Label>
-                      <Input 
-                        value={chargerCity}
-                        onChange={(e) => setChargerCity(e.target.value)}
-                        placeholder="Muscat"
-                        data-testid="input-city-en"
-                      />
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label>{isArabic ? "رقم الهاتف (اختياري)" : "Phone Number (Optional)"}</Label>
-                    <Input 
-                      value={contactPhone}
-                      onChange={(e) => setContactPhone(e.target.value)}
-                      placeholder="+968 XXXXXXXX"
-                      type="tel"
-                      data-testid="input-phone"
-                    />
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-2">
-                      <Label>{isArabic ? "نوع الشاحن" : "Charger Type"}</Label>
-                      <Select value={chargerType} onValueChange={(v: "AC" | "DC") => setChargerType(v)}>
-                        <SelectTrigger data-testid="select-charger-type">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="AC">AC</SelectItem>
-                          <SelectItem value="DC">DC</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>{isArabic ? "القوة (kW)" : "Power (kW)"}</Label>
-                      <Input 
-                        type="number"
-                        value={chargerPowerKw}
-                        onChange={(e) => setChargerPowerKw(e.target.value)}
-                        placeholder="11"
-                        data-testid="input-power"
-                      />
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label>{isArabic ? "موقع الشاحن" : "Charger Location"}</Label>
-                      <Button 
-                        type="button" 
-                        variant="outline" 
-                        size="sm"
-                        onClick={getMyLocation}
-                        disabled={isGettingLocation}
-                        data-testid="btn-get-location"
-                      >
-                        {isGettingLocation ? (
-                          <Loader2 className="w-4 h-4 animate-spin me-1" />
-                        ) : (
-                          <Navigation className="w-4 h-4 me-1" />
-                        )}
-                        {isArabic ? "موقعي الحالي" : "My Location"}
-                      </Button>
-                    </div>
-                    <MapPicker
-                      initialLat={chargerLat}
-                      initialLng={chargerLng}
-                      onConfirm={(lat, lng) => {
-                        setChargerLat(lat);
-                        setChargerLng(lng);
-                      }}
-                      renderTrigger={(onClick) => (
-                        <Button 
-                          type="button" 
-                          variant="outline" 
-                          className="w-full"
-                          onClick={onClick}
-                          data-testid="btn-pick-location"
-                        >
-                          <MapPin className="w-4 h-4 me-2" />
-                          {isArabic ? "اختر الموقع على الخريطة" : "Pick Location on Map"}
-                        </Button>
-                      )}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      {isArabic 
-                        ? `الموقع الحالي: ${chargerLat.toFixed(4)}, ${chargerLng.toFixed(4)}`
-                        : `Current location: ${chargerLat.toFixed(4)}, ${chargerLng.toFixed(4)}`
-                      }
-                    </p>
-                  </div>
-                </div>
-                
-                <DialogFooter>
-                  <Button 
-                    onClick={handleAddCharger}
-                    disabled={createStationMutation.isPending || (!chargerName && !chargerNameAr)}
-                    data-testid="btn-submit-charger"
-                  >
-                    {createStationMutation.isPending && <Loader2 className="w-4 h-4 me-2 animate-spin" />}
-                    {isArabic ? "إضافة الشاحن" : "Add Charger"}
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
+            {availableStationsForRent.length > 0 && (
+              <Button onClick={() => setShowSetupDialog(true)} data-testid="btn-add-rental">
+                <Plus className="w-4 h-4 me-2" />
+                {isArabic ? "إعداد تأجير" : "Setup Rental"}
+              </Button>
+            )}
           </div>
           
-          {pendingStations.length > 0 && (
-            <Card className="border-amber-200 bg-amber-50 dark:bg-amber-950/20">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-900 flex items-center justify-center">
-                    <Clock className="w-5 h-5 text-amber-600" />
-                  </div>
-                  <div>
-                    <p className="font-medium text-amber-800 dark:text-amber-200">
-                      {isArabic ? "بانتظار الموافقة" : "Pending Approval"}
-                    </p>
-                    <p className="text-sm text-amber-600 dark:text-amber-400">
-                      {isArabic 
-                        ? `لديك ${pendingStations.length} شاحن بانتظار موافقة المسؤول`
-                        : `You have ${pendingStations.length} charger(s) waiting for admin approval`
+          {connectedStations.length > 0 && (
+            <Card className="border-primary/20">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Cable className="w-5 h-5 text-primary" />
+                  {isArabic ? "الشواحن المتصلة" : "Connected Chargers"}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {connectedStations.map(station => (
+                  <div key={station.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${station.isDeviceOnline ? 'bg-emerald-100 dark:bg-emerald-900' : 'bg-muted'}`}>
+                        {station.isDeviceOnline ? (
+                          <Wifi className="w-5 h-5 text-emerald-600" />
+                        ) : (
+                          <WifiOff className="w-5 h-5 text-muted-foreground" />
+                        )}
+                      </div>
+                      <div>
+                        <p className="font-medium">{isArabic ? station.nameAr : station.name}</p>
+                        <p className="text-xs text-muted-foreground flex items-center gap-1">
+                          <MapPin className="w-3 h-3" />
+                          {isArabic ? station.cityAr : station.city}
+                        </p>
+                      </div>
+                    </div>
+                    <Badge variant={station.isDeviceOnline ? "default" : "secondary"}>
+                      {station.isDeviceOnline 
+                        ? (isArabic ? "متصل" : "Online")
+                        : (isArabic ? "غير متصل" : "Offline")
                       }
-                    </p>
+                    </Badge>
                   </div>
-                </div>
+                ))}
               </CardContent>
             </Card>
           )}
           
-          {availableStationsForRent.length > 0 && (
-            <Dialog open={showSetupDialog} onOpenChange={(open) => {
-              setShowSetupDialog(open);
-              if (!open) {
-                setEditingRental(null);
-                resetForm();
-              }
-            }}>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>
-                    {editingRental 
-                      ? (isArabic ? "تعديل إعدادات التأجير" : "Edit Rental Settings")
-                      : (isArabic ? "إعداد تأجير الشاحن" : "Setup Charger Rental")
-                    }
-                  </DialogTitle>
-                  <DialogDescription>
-                    {isArabic 
-                      ? "حدد السعر لكل كيلوواط ساعة لتأجير شاحنك"
-                      : "Set your price per kWh to rent out your charger"
-                    }
-                  </DialogDescription>
-                </DialogHeader>
-                
-                <div className="space-y-4 py-4">
-                  <div className="space-y-2">
-                    <Label>{isArabic ? "اختر الشاحن" : "Select Charger"}</Label>
-                    <Select value={selectedStationId} onValueChange={setSelectedStationId} disabled={!!editingRental}>
-                      <SelectTrigger data-testid="select-station">
-                        <SelectValue placeholder={isArabic ? "اختر شاحن..." : "Choose a charger..."} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {availableStationsForRent.map(station => (
-                          <SelectItem key={station.id} value={String(station.id)}>
+          <Dialog open={showSetupDialog} onOpenChange={(open) => {
+            setShowSetupDialog(open);
+            if (!open) {
+              setEditingRental(null);
+              resetForm();
+            }
+          }}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>
+                  {editingRental 
+                    ? (isArabic ? "تعديل إعدادات التأجير" : "Edit Rental Settings")
+                    : (isArabic ? "إعداد تأجير الشاحن" : "Setup Charger Rental")
+                  }
+                </DialogTitle>
+                <DialogDescription>
+                  {isArabic 
+                    ? "حدد السعر لكل كيلوواط ساعة لتأجير شاحنك"
+                    : "Set your price per kWh to rent out your charger"
+                  }
+                </DialogDescription>
+              </DialogHeader>
+              
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label>{isArabic ? "اختر الشاحن المتصل" : "Select Connected Charger"}</Label>
+                  <Select value={selectedStationId} onValueChange={setSelectedStationId} disabled={!!editingRental}>
+                    <SelectTrigger data-testid="select-station">
+                      <SelectValue placeholder={isArabic ? "اختر شاحن..." : "Choose a charger..."} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableStationsForRent.map(station => (
+                        <SelectItem key={station.id} value={String(station.id)}>
+                          <div className="flex items-center gap-2">
+                            {station.isDeviceOnline ? (
+                              <Wifi className="w-4 h-4 text-emerald-500" />
+                            ) : (
+                              <WifiOff className="w-4 h-4 text-muted-foreground" />
+                            )}
                             {isArabic ? station.nameAr : station.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label>{isArabic ? "السعر لكل كيلوواط/ساعة (ر.ع)" : "Price per kWh (OMR)"}</Label>
-                    <Input 
-                      type="number"
-                      step="0.001"
-                      min="0"
-                      value={pricePerKwh}
-                      onChange={(e) => setPricePerKwh(e.target.value)}
-                      placeholder="0.025"
-                      data-testid="input-price"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      {isArabic 
-                        ? `مثال: إذا شحن شخص 50 kWh = ${(parseFloat(pricePerKwh || "0") * 50).toFixed(3)} ر.ع`
-                        : `Example: If someone charges 50 kWh = ${(parseFloat(pricePerKwh || "0") * 50).toFixed(3)} OMR`
-                      }
-                    </p>
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <Label>{isArabic ? "متاح للتأجير" : "Available for Rent"}</Label>
-                    <Switch 
-                      checked={isAvailable} 
-                      onCheckedChange={setIsAvailable}
-                      data-testid="switch-available"
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label>{isArabic ? "وصف (اختياري)" : "Description (Optional)"}</Label>
-                    <Input 
-                      value={isArabic ? descriptionAr : description}
-                      onChange={(e) => isArabic ? setDescriptionAr(e.target.value) : setDescription(e.target.value)}
-                      placeholder={isArabic ? "معلومات إضافية للمستأجرين..." : "Additional info for renters..."}
-                      data-testid="input-description"
-                    />
-                  </div>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 
-                <DialogFooter>
-                  <Button 
-                    onClick={handleSetupRental}
-                    disabled={!selectedStationId || !pricePerKwh || createRentalMutation.isPending}
-                    data-testid="btn-save-rental"
-                  >
-                    {createRentalMutation.isPending && <Loader2 className="w-4 h-4 me-2 animate-spin" />}
-                    {isArabic ? "حفظ" : "Save"}
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          )}
+                <div className="space-y-2">
+                  <Label>{isArabic ? "السعر لكل كيلوواط/ساعة (ر.ع)" : "Price per kWh (OMR)"}</Label>
+                  <Input 
+                    type="number"
+                    step="0.001"
+                    min="0"
+                    value={pricePerKwh}
+                    onChange={(e) => setPricePerKwh(e.target.value)}
+                    placeholder="0.025"
+                    data-testid="input-price"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    {isArabic 
+                      ? `مثال: إذا شحن شخص 50 kWh = ${(parseFloat(pricePerKwh || "0") * 50).toFixed(3)} ر.ع`
+                      : `Example: If someone charges 50 kWh = ${(parseFloat(pricePerKwh || "0") * 50).toFixed(3)} OMR`
+                    }
+                  </p>
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <Label>{isArabic ? "متاح للتأجير" : "Available for Rent"}</Label>
+                  <Switch 
+                    checked={isAvailable} 
+                    onCheckedChange={setIsAvailable}
+                    data-testid="switch-available"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label>{isArabic ? "وصف (اختياري)" : "Description (Optional)"}</Label>
+                  <Input 
+                    value={isArabic ? descriptionAr : description}
+                    onChange={(e) => isArabic ? setDescriptionAr(e.target.value) : setDescription(e.target.value)}
+                    placeholder={isArabic ? "معلومات إضافية للمستأجرين..." : "Additional info for renters..."}
+                    data-testid="input-description"
+                  />
+                </div>
+              </div>
+              
+              <DialogFooter>
+                <Button 
+                  onClick={handleSetupRental}
+                  disabled={!selectedStationId || !pricePerKwh || createRentalMutation.isPending}
+                  data-testid="btn-save-rental"
+                >
+                  {createRentalMutation.isPending && <Loader2 className="w-4 h-4 me-2 animate-spin" />}
+                  {isArabic ? "حفظ" : "Save"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
           
           {dashboardLoading ? (
             <div className="flex justify-center py-12">
@@ -615,7 +374,7 @@ export default function MyCharger() {
                         size="sm" 
                         variant="outline"
                         onClick={() => setShowSetupDialog(true)}
-                        data-testid="btn-add-rental"
+                        data-testid="btn-add-rental-header"
                       >
                         <Plus className="w-4 h-4 me-1" />
                         {isArabic ? "إعداد تأجير" : "Setup Rental"}
@@ -745,26 +504,44 @@ export default function MyCharger() {
           ) : (
             <Card>
               <CardContent className="py-12 text-center">
-                <Home className="w-16 h-16 mx-auto mb-4 text-muted-foreground/50" />
+                <Cable className="w-16 h-16 mx-auto mb-4 text-muted-foreground/50" />
                 <h3 className="text-lg font-medium mb-2">
-                  {isArabic ? "لم تقم بإضافة شاحن منزلي بعد" : "No home charger added yet"}
+                  {connectedStations.length === 0 
+                    ? (isArabic ? "لا يوجد شاحن متصل" : "No Connected Charger")
+                    : (isArabic ? "لم تقم بإعداد تأجير بعد" : "No Rental Setup Yet")
+                  }
                 </h3>
-                <p className="text-muted-foreground mb-4">
-                  {isArabic 
-                    ? "أضف شاحنك المنزلي لتتمكن من تأجيره وكسب المال"
-                    : "Add your home charger to start renting it out and earning money"
+                <p className="text-muted-foreground mb-4 max-w-md mx-auto">
+                  {connectedStations.length === 0 
+                    ? (isArabic 
+                        ? "لتأجير شاحنك المنزلي، يجب أولاً توصيل جهاز ESP32 بشاحنك من خلال صفحة الملف الشخصي"
+                        : "To rent out your home charger, you need to first connect an ESP32 device to your charger from your Profile page"
+                      )
+                    : (isArabic 
+                        ? "لديك شاحن متصل! يمكنك الآن إعداد التأجير وتحديد السعر"
+                        : "You have a connected charger! You can now set up rental and set your price"
+                      )
                   }
                 </p>
-                {availableStationsForRent.length > 0 ? (
+                {connectedStations.length === 0 ? (
+                  <Link href="/profile">
+                    <Button data-testid="btn-go-to-profile">
+                      <Cable className="w-4 h-4 me-2" />
+                      {isArabic ? "توصيل جهاز ESP32" : "Connect ESP32 Device"}
+                    </Button>
+                  </Link>
+                ) : availableStationsForRent.length > 0 ? (
                   <Button onClick={() => setShowSetupDialog(true)} data-testid="btn-setup-first-rental">
                     <Plus className="w-4 h-4 me-2" />
                     {isArabic ? "إعداد التأجير" : "Setup Rental"}
                   </Button>
                 ) : (
-                  <Button onClick={() => setShowAddChargerDialog(true)} data-testid="btn-add-first-charger">
-                    <Plus className="w-4 h-4 me-2" />
-                    {isArabic ? "أضف شاحنك المنزلي" : "Add Your Home Charger"}
-                  </Button>
+                  <p className="text-sm text-muted-foreground">
+                    {isArabic 
+                      ? "جميع شواحنك المتصلة لديها إعداد تأجير بالفعل"
+                      : "All your connected chargers already have rental setups"
+                    }
+                  </p>
                 )}
               </CardContent>
             </Card>

@@ -148,7 +148,7 @@ export async function registerRoutes(
     }
   });
 
-  // Get user's own stations (HOME type) for rental setup
+  // Get user's connected stations (HOME type with ESP32 connector) for rental setup
   app.get("/api/stations/my-stations", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user?.id;
@@ -156,8 +156,18 @@ export async function registerRoutes(
         return res.status(401).json({ message: "Not authenticated" });
       }
       
-      const stations = await storage.getStationsByUser(userId);
-      res.json(stations);
+      // Only return stations that have an ESP32 connector linked to them
+      const connectedStations = await storage.getUserConnectedStations(userId);
+      
+      // Add connection status for each station
+      const stationsWithStatus = await Promise.all(connectedStations.map(async (station) => {
+        const connectors = await storage.getStationTeslaConnectors(station.id);
+        const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+        const isOnline = connectors.some(c => c.isOnline && c.lastSeen && new Date(c.lastSeen) > fiveMinutesAgo);
+        return { ...station, hasConnectedDevice: true, isDeviceOnline: isOnline };
+      }));
+      
+      res.json(stationsWithStatus);
     } catch (error) {
       console.error("[Stations] Error getting user stations:", error);
       res.status(500).json({ message: "Failed to get stations" });
@@ -1387,10 +1397,19 @@ export async function registerRoutes(
       
       const { stationId, ...rentalData } = parsed.data;
       
-      // Verify the user owns this station
+      // Verify the station has a connected ESP32 device owned by this user
+      const hasConnectedDevice = await storage.stationHasConnectedDevice(stationId, req.user.id);
+      if (!hasConnectedDevice) {
+        return res.status(403).json({ 
+          message: "Rental requires a connected ESP32 device. Please connect your charger first.",
+          messageAr: "التأجير يتطلب جهاز ESP32 متصل. يرجى توصيل شاحنك أولاً."
+        });
+      }
+      
+      // Verify the station exists and is a HOME type
       const station = await storage.getStation(stationId);
-      if (!station || station.addedByUserId !== req.user.id) {
-        return res.status(403).json({ message: "You don't own this station" });
+      if (!station || station.stationType !== "HOME") {
+        return res.status(403).json({ message: "Only home chargers can be rented out" });
       }
       
       // Check if rental already exists
