@@ -6,7 +6,7 @@ import { useIsPWA, useIsMobile } from "@/hooks/use-pwa";
 const navItems = [
   { path: "/stats", icon: BarChart3, labelAr: "إحصائيات", labelEn: "Stats" },
   { path: "/history", icon: History, labelAr: "السجل", labelEn: "History" },
-  { path: "/add", icon: Plus, labelAr: "إضافة", labelEn: "Add", isCenter: true },
+  { path: "/admin/add-station", icon: Plus, labelAr: "إضافة", labelEn: "Add", isCenter: true },
   { path: "/nearby", icon: Navigation, labelAr: "قريب", labelEn: "Nearby" },
   { path: "/", icon: MapPin, labelAr: "الخريطة", labelEn: "Map" },
 ];
@@ -46,7 +46,7 @@ export function MobileNav() {
                 <button
                   onClick={triggerHaptic}
                   className="w-full flex flex-col items-center -mt-3"
-                  data-testid={`nav-${item.path.replace("/", "") || "home"}`}
+                  data-testid={`nav-${item.path.split("/").filter(Boolean).pop() || "home"}`}
                 >
                   <div 
                     className="w-14 h-14 rounded-2xl flex items-center justify-center bg-primary text-white shadow-lg shadow-primary/30"
@@ -70,7 +70,7 @@ export function MobileNav() {
                 onClick={triggerHaptic}
                 className="w-full flex flex-col items-center justify-center relative"
                 style={{ height: '56px' }}
-                data-testid={`nav-${item.path.replace("/", "") || "home"}`}
+                data-testid={`nav-${item.path.split("/").filter(Boolean).pop() || "home"}`}
               >
                 <div 
                   className="absolute inset-1 rounded-xl bg-primary/10 dark:bg-primary/20"
