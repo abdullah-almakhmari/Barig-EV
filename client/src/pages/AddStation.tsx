@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, PlusCircle, MapPin, Navigation, Home, Building2, Phone, Check, Banknote } from "lucide-react";
+import { Loader2, PlusCircle, MapPin, Navigation, Home, Building2, Phone, Check, Banknote, ClipboardPaste } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { useState, useEffect } from "react";
 import { MapPicker } from "@/components/MapPicker";
@@ -68,6 +68,68 @@ export default function AddStation() {
   const isFree = form.watch("isFree");
   const [phoneCountryCode, setPhoneCountryCode] = useState("+968");
   const [whatsappCountryCode, setWhatsappCountryCode] = useState("+968");
+  const [manualCoords, setManualCoords] = useState("");
+
+  function parseCoordinates(input: string): { lat: number; lng: number } | null {
+    const cleaned = input.trim();
+    
+    // Try common formats:
+    // "23.5880, 58.3829" or "23.5880,58.3829"
+    // "23.5880 58.3829"
+    // Google Maps format: "23.5880, 58.3829"
+    const patterns = [
+      /^(-?\d+\.?\d*)\s*[,،]\s*(-?\d+\.?\d*)$/,  // comma separated (including Arabic comma)
+      /^(-?\d+\.?\d*)\s+(-?\d+\.?\d*)$/,          // space separated
+    ];
+    
+    for (const pattern of patterns) {
+      const match = cleaned.match(pattern);
+      if (match) {
+        const lat = parseFloat(match[1]);
+        const lng = parseFloat(match[2]);
+        if (!isNaN(lat) && !isNaN(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+          return { lat, lng };
+        }
+      }
+    }
+    return null;
+  }
+
+  function handleManualCoordsChange(value: string) {
+    setManualCoords(value);
+    const coords = parseCoordinates(value);
+    if (coords) {
+      form.setValue("lat", coords.lat);
+      form.setValue("lng", coords.lng);
+    }
+  }
+
+  function handlePasteCoords() {
+    navigator.clipboard.readText().then((text) => {
+      const coords = parseCoordinates(text);
+      if (coords) {
+        setManualCoords(text);
+        form.setValue("lat", coords.lat);
+        form.setValue("lng", coords.lng);
+        toast({
+          title: t("add.locationSuccess"),
+          description: `${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)}`,
+        });
+      } else {
+        toast({
+          variant: "destructive",
+          title: t("common.error"),
+          description: t("add.invalidCoordinates"),
+        });
+      }
+    }).catch(() => {
+      toast({
+        variant: "destructive",
+        title: t("common.error"),
+        description: t("add.pasteError"),
+      });
+    });
+  }
 
   useEffect(() => {
     if (stationType === "HOME") {
@@ -531,6 +593,35 @@ export default function AddStation() {
                   )}
                   <span className="font-medium">{t("add.useMyLocation")}</span>
                 </div>
+              </div>
+              
+              {/* Manual coordinates input */}
+              <div className="space-y-2">
+                <FormLabel className="text-sm flex items-center gap-2">
+                  <ClipboardPaste className="h-4 w-4" />
+                  {t("add.pasteCoordinates")}
+                </FormLabel>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder={t("add.coordinatesPlaceholder")}
+                    value={manualCoords}
+                    onChange={(e) => handleManualCoordsChange(e.target.value)}
+                    className="flex-1"
+                    data-testid="input-manual-coordinates"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handlePasteCoords}
+                    className="shrink-0"
+                    data-testid="button-paste-coordinates"
+                  >
+                    <ClipboardPaste className="h-4 w-4" />
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {t("add.coordinatesHint")}
+                </p>
               </div>
               
               {(Number(form.watch("lat")) !== 23.5880 || Number(form.watch("lng")) !== 58.3829) && typeof form.watch("lat") === "number" && typeof form.watch("lng") === "number" && (
