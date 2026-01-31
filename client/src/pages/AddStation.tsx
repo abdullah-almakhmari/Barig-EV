@@ -270,7 +270,14 @@ export default function AddStation() {
                   <FormItem>
                     <FormLabel>Power (kW)</FormLabel>
                     <FormControl>
-                      <Input type="number" {...field} />
+                      <Input 
+                        type="number" 
+                        value={field.value ?? ""} 
+                        onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+                        onBlur={field.onBlur}
+                        name={field.name}
+                        ref={field.ref}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -543,7 +550,24 @@ export default function AddStation() {
                     <FormItem>
                       <FormLabel>{t("add.latitude")}</FormLabel>
                       <FormControl>
-                        <Input type="number" step="any" {...field} />
+                        <Input 
+                          type="text"
+                          inputMode="decimal"
+                          placeholder="23.5880"
+                          value={field.value ?? ""}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            if (val === "" || val === "-") {
+                              field.onChange(val);
+                            } else {
+                              const num = parseFloat(val);
+                              field.onChange(isNaN(num) ? val : num);
+                            }
+                          }}
+                          onBlur={field.onBlur}
+                          name={field.name}
+                          ref={field.ref}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -556,7 +580,24 @@ export default function AddStation() {
                     <FormItem>
                       <FormLabel>{t("add.longitude")}</FormLabel>
                       <FormControl>
-                        <Input type="number" step="any" {...field} />
+                        <Input 
+                          type="text"
+                          inputMode="decimal"
+                          placeholder="58.3829"
+                          value={field.value ?? ""}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            if (val === "" || val === "-") {
+                              field.onChange(val);
+                            } else {
+                              const num = parseFloat(val);
+                              field.onChange(isNaN(num) ? val : num);
+                            }
+                          }}
+                          onBlur={field.onBlur}
+                          name={field.name}
+                          ref={field.ref}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
