@@ -63,13 +63,6 @@ Preferred communication style: Simple, everyday language.
     - **Notifications Page**: `/notifications` route showing all user notifications with mark as read and delete functionality.
     - **Notification Types**: `rental_complete` (for renters), `rental_income` (for owners), `session_complete` (for regular sessions).
     - **Bilingual Support**: All notifications have both English and Arabic titles/messages.
-- **Trip Planner**:
-    - **Route Planning**: Users can search for origin and destination using OpenStreetMap Nominatim API with autocomplete.
-    - **Route Visualization**: Routes are calculated using OSRM (Open Source Routing Machine) and displayed as polylines on the map.
-    - **Stations Along Route**: Charging stations within a configurable distance (1-20 km) from the route are displayed on the map and listed below.
-    - **Smart Filtering**: Filter stations by type (public/home), free only, and DC fast chargers only.
-    - **Distance Algorithm**: Uses proper point-to-line-segment distance calculation for accurate station inclusion along the route.
-
 ## External Dependencies
 
 - **Database**: PostgreSQL
