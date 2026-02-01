@@ -4,11 +4,12 @@ import { useStation, useStationReports } from "@/hooks/use-stations";
 import { useTranslation } from "react-i18next";
 import { useLanguage } from "@/components/LanguageContext";
 import type { StationWithConnector, ChargerRental, StationCharger } from "@shared/schema";
-import { Loader2, Navigation, Clock, ShieldCheck, MapPin, BatteryCharging, Home, Phone, MessageCircle, AlertTriangle, CheckCircle2, XCircle, Users, ShieldAlert, ThumbsUp, ThumbsDown, Zap, Shield, Trash2, Cpu, Edit3 } from "lucide-react";
+import { Loader2, Navigation, Clock, ShieldCheck, MapPin, BatteryCharging, Home, Phone, MessageCircle, AlertTriangle, CheckCircle2, XCircle, Users, ShieldAlert, ThumbsUp, ThumbsDown, Zap, Shield, Trash2, Cpu, Edit3, ChevronDown, Plug, DollarSign, Info, CircleDot } from "lucide-react";
 import { useLocation } from "wouter";
 import { api } from "@shared/routes";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -49,7 +50,7 @@ function formatTimeAgo(isoString: string, t: (key: string, options?: any) => str
 
 type PrimaryStatus = 'WORKING' | 'BUSY' | 'NOT_WORKING' | 'NOT_RECENTLY_VERIFIED' | 'CHARGING';
 
-const RECENCY_THRESHOLD_MS = 30 * 60 * 1000; // 30 minutes - same as verification window
+const RECENCY_THRESHOLD_MS = 30 * 60 * 1000;
 
 function isRecentlyVerified(lastVerifiedAt: string | null | undefined): boolean {
   if (!lastVerifiedAt) return false;
@@ -65,24 +66,19 @@ function getPrimaryStatus(
   totalChargers?: number,
   hasActiveChargingSession?: boolean
 ): PrimaryStatus {
-  // If station has active ESP32 charging session, show CHARGING
   if (hasActiveChargingSession) {
     return 'CHARGING';
   }
   
-  // If station is marked as OFFLINE by admin/system, always show NOT_WORKING
   if (stationStatus === 'OFFLINE') {
     return 'NOT_WORKING';
   }
   
-  // If no available chargers (all in use), show BUSY - matches map marker logic
   if (typeof availableChargers === 'number' && availableChargers === 0 && (totalChargers ?? 0) > 0) {
     return 'BUSY';
   }
   
-  // If station is OPERATIONAL, show WORKING
   if (stationStatus === 'OPERATIONAL') {
-    // Check if there are recent verifications indicating BUSY
     if (verificationSummary && 
         verificationSummary.totalVotes > 0 && 
         isRecentlyVerified(verificationSummary.lastVerifiedAt) &&
@@ -92,7 +88,6 @@ function getPrimaryStatus(
     return 'WORKING';
   }
   
-  // For other statuses (MAINTENANCE, etc), check verifications
   if (!verificationSummary || verificationSummary.totalVotes === 0) {
     return 'NOT_RECENTLY_VERIFIED';
   }
@@ -101,67 +96,66 @@ function getPrimaryStatus(
     return 'NOT_RECENTLY_VERIFIED';
   }
   
-  // Only show leadingVote for display purposes (BUSY indicator)
   if (verificationSummary.leadingVote === 'BUSY') return 'BUSY';
   
   return 'NOT_RECENTLY_VERIFIED';
 }
 
-function getStatusConfig(status: PrimaryStatus, t: (key: string) => string) {
+function getStatusConfig(status: PrimaryStatus, isAr: boolean) {
   switch (status) {
     case 'WORKING':
       return {
-        label: t("status.working"),
-        recommendation: t("status.recommendedNow"),
-        actionLabel: t("status.goHere"),
+        label: isAr ? "يعمل" : "Working",
+        sublabel: isAr ? "جاهز للاستخدام" : "Ready to use",
         bgColor: 'bg-emerald-500',
+        lightBg: 'bg-emerald-50 dark:bg-emerald-950/30',
         textColor: 'text-white',
-        borderColor: 'border-emerald-600',
+        accentColor: 'text-emerald-600',
         icon: CheckCircle2,
         isRecommended: true,
       };
     case 'BUSY':
       return {
-        label: t("status.busy"),
-        recommendation: t("status.notRecommended"),
-        actionLabel: t("status.tryAnother"),
+        label: isAr ? "مشغول" : "Busy",
+        sublabel: isAr ? "جميع الشواحن قيد الاستخدام" : "All chargers in use",
         bgColor: 'bg-orange-500',
+        lightBg: 'bg-orange-50 dark:bg-orange-950/30',
         textColor: 'text-white',
-        borderColor: 'border-orange-600',
+        accentColor: 'text-orange-600',
         icon: Clock,
         isRecommended: false,
       };
     case 'NOT_WORKING':
       return {
-        label: t("status.notWorking"),
-        recommendation: t("status.notRecommended"),
-        actionLabel: t("status.tryAnother"),
+        label: isAr ? "لا يعمل" : "Not Working",
+        sublabel: isAr ? "المحطة معطلة حالياً" : "Station is currently down",
         bgColor: 'bg-red-500',
+        lightBg: 'bg-red-50 dark:bg-red-950/30',
         textColor: 'text-white',
-        borderColor: 'border-red-600',
+        accentColor: 'text-red-600',
         icon: XCircle,
         isRecommended: false,
       };
     case 'CHARGING':
       return {
-        label: t("status.charging"),
-        recommendation: t("status.chargingInProgress"),
-        actionLabel: null,
+        label: isAr ? "جاري الشحن" : "Charging",
+        sublabel: isAr ? "جلسة شحن نشطة" : "Active charging session",
         bgColor: 'bg-orange-500',
+        lightBg: 'bg-orange-50 dark:bg-orange-950/30',
         textColor: 'text-white',
-        borderColor: 'border-orange-600',
+        accentColor: 'text-orange-600',
         icon: Zap,
         isRecommended: false,
       };
     case 'NOT_RECENTLY_VERIFIED':
     default:
       return {
-        label: t("status.notRecentlyVerified"),
-        recommendation: t("status.noRecentData"),
-        actionLabel: null,
+        label: isAr ? "غير مؤكد" : "Unverified",
+        sublabel: isAr ? "لا توجد تأكيدات حديثة" : "No recent confirmations",
         bgColor: 'bg-muted',
+        lightBg: 'bg-muted/50',
         textColor: 'text-muted-foreground',
-        borderColor: 'border-border',
+        accentColor: 'text-muted-foreground',
         icon: ShieldAlert,
         isRecommended: false,
       };
@@ -175,6 +169,8 @@ export default function StationDetails() {
   const { language } = useLanguage();
   const { toast } = useToast();
   const { user, isAuthenticated } = useAuth();
+  const [showDetails, setShowDetails] = useState(false);
+  const [showHistory, setShowHistory] = useState(true);
   
   const { data: stationData, isLoading } = useStation(id);
   const station = stationData as StationWithConnector | undefined;
@@ -221,7 +217,6 @@ export default function StationDetails() {
     enabled: id > 0 && station?.stationType === 'HOME',
   });
 
-  // Fetch additional chargers for this station
   const { data: stationChargers } = useQuery<StationCharger[]>({
     queryKey: ['/api/stations', id, 'chargers'],
     queryFn: async () => {
@@ -275,7 +270,6 @@ export default function StationDetails() {
   const [, navigate] = useLocation();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  // Delete station mutation - only for station owner
   const deleteStationMutation = useMutation({
     mutationFn: async () => {
       return apiRequest('DELETE', `/api/stations/${id}`);
@@ -310,271 +304,318 @@ export default function StationDetails() {
     station.chargerCount ?? undefined,
     (station as any).hasActiveChargingSession ?? false
   );
-  const statusConfig = getStatusConfig(primaryStatus, t);
+  const statusConfig = getStatusConfig(primaryStatus, isAr);
   const StatusIcon = statusConfig.icon;
 
+  const availableCount = station.availableChargers ?? 0;
+  const totalCount = station.chargerCount ?? 0;
+  const occupiedCount = totalCount - availableCount;
+
+  const getAvailabilityStatus = () => {
+    if (availableCount === 0 && totalCount > 0) {
+      return { label: isAr ? "جميع الشواحن مشغولة" : "All chargers occupied", color: "text-orange-600", bg: "bg-orange-50 dark:bg-orange-950/30" };
+    }
+    if (availableCount === totalCount) {
+      return { label: isAr ? "جميع الشواحن متاحة" : "All chargers available", color: "text-emerald-600", bg: "bg-emerald-50 dark:bg-emerald-950/30" };
+    }
+    return { label: isAr ? `${availableCount} من ${totalCount} متاح` : `${availableCount} of ${totalCount} available`, color: "text-blue-600", bg: "bg-blue-50 dark:bg-blue-950/30" };
+  };
+
+  const getPricingStatus = () => {
+    if (rentalInfo?.isAvailableForRent && rentalInfo?.pricePerKwh > 0) {
+      return { 
+        label: isAr ? "إيجار منزلي" : "Home Rental", 
+        sublabel: isAr ? `${rentalInfo.pricePerKwh} ر.ع./ك.و.س` : `${rentalInfo.pricePerKwh} OMR/kWh`,
+        color: "text-purple-600", 
+        bg: "bg-purple-50 dark:bg-purple-950/30" 
+      };
+    }
+    if (station.isFree) {
+      return { label: isAr ? "مجاني" : "Free", sublabel: isAr ? "شحن بدون رسوم" : "No charging fees", color: "text-emerald-600", bg: "bg-emerald-50 dark:bg-emerald-950/30" };
+    }
+    return { 
+      label: isAr ? "مدفوع" : "Paid", 
+      sublabel: station.priceText || (isAr ? "تحقق من الأسعار" : "Check pricing"), 
+      color: "text-amber-600", 
+      bg: "bg-amber-50 dark:bg-amber-950/30" 
+    };
+  };
+
+  const availabilityStatus = getAvailabilityStatus();
+  const pricingStatus = getPricingStatus();
+
   return (
-    <div className="max-w-4xl mx-auto space-y-4 pb-20">
+    <div className="max-w-2xl mx-auto px-4 py-4 pb-24 space-y-4">
       <SEO title={name} description={`${name} - ${city}`} />
       
-      {/* PRIMARY STATUS HERO - The 5-Second Decision Section */}
-      <div 
-        className={`rounded-3xl p-6 sm:p-8 ${statusConfig.bgColor} ${statusConfig.textColor} shadow-xl relative overflow-hidden`}
-        data-testid="status-hero"
-      >
-        <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-bl-full -mr-12 -mt-12 pointer-events-none" />
-        
-        <div className="relative z-10 text-center">
-          {/* Primary Status - BIGGEST text */}
-          <div className="flex items-center justify-center gap-3 mb-2">
-            <StatusIcon className="w-10 h-10 sm:w-12 sm:h-12" />
-            <h1 className="text-4xl sm:text-5xl font-black tracking-tight" data-testid="text-primary-status">
-              {statusConfig.label}
-            </h1>
+      {/* Compact Status Header */}
+      <Card className={`overflow-hidden ${statusConfig.lightBg} border-0`} data-testid="status-hero">
+        <div className="p-4">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex-1 min-w-0">
+              <h1 className="text-xl font-bold text-foreground truncate" data-testid="text-station-name">{name}</h1>
+              <div className="flex items-center gap-1.5 mt-1 text-sm text-muted-foreground">
+                <MapPin className="w-3.5 h-3.5 shrink-0" />
+                <span className="truncate">{city}</span>
+                <span className="text-muted-foreground/50">•</span>
+                <span className="uppercase text-xs tracking-wide">{station.operator}</span>
+              </div>
+            </div>
+            
+            <div className={`shrink-0 flex items-center gap-2 px-3 py-2 rounded-xl ${statusConfig.bgColor}`}>
+              <StatusIcon className={`w-5 h-5 ${statusConfig.textColor}`} />
+              <div className="text-end">
+                <div className={`text-sm font-bold ${statusConfig.textColor}`} data-testid="text-primary-status">
+                  {statusConfig.label}
+                </div>
+              </div>
+            </div>
           </div>
           
-          {/* Time Context */}
-          <div className="mb-4 opacity-90" data-testid="text-time-context">
-            {verificationSummary?.lastVerifiedAt ? (
-              <p className="text-lg flex items-center justify-center gap-2">
-                <Clock className="w-4 h-4" />
-                {isRecentlyVerified(verificationSummary.lastVerifiedAt) 
-                  ? t("status.verifiedAgo", { time: formatTimeAgo(verificationSummary.lastVerifiedAt, t) })
-                  : t("status.lastConfirmedAgo", { time: formatTimeAgo(verificationSummary.lastVerifiedAt, t) })
-                }
-              </p>
-            ) : (
-              <p className="text-lg">{t("status.noRecentData")}</p>
-            )}
+          {/* Recommendation Badge */}
+          <div className="flex items-center justify-center mt-3">
+            <div 
+              className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium ${statusConfig.isRecommended ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300' : 'bg-muted text-muted-foreground'}`}
+              data-testid="badge-recommendation"
+            >
+              {statusConfig.isRecommended ? (
+                <ThumbsUp className="w-4 h-4" />
+              ) : (
+                <ThumbsDown className="w-4 h-4" />
+              )}
+              <span>{statusConfig.isRecommended ? (isAr ? "موصى به الآن" : "Recommended now") : (isAr ? "غير موصى به" : "Not recommended")}</span>
+            </div>
           </div>
           
-          {/* Recommendation Label */}
-          <div 
-            className={`inline-flex items-center gap-2 px-4 py-2 rounded-full ${statusConfig.isRecommended ? 'bg-white/20' : 'bg-black/20'}`}
-            data-testid="badge-recommendation"
-          >
-            {statusConfig.isRecommended ? (
-              <ThumbsUp className="w-5 h-5" />
-            ) : (
-              <ThumbsDown className="w-5 h-5" />
-            )}
-            <span className="font-semibold text-lg">{statusConfig.recommendation}</span>
-          </div>
-          
-          {/* Trusted Users Confirmation - subtle */}
+          {/* Trusted Confirmation */}
           {verificationSummary && verificationSummary.isStrongVerified && (
-            <p className="mt-3 text-sm opacity-80 flex items-center justify-center gap-1" data-testid="text-trusted-confirmation">
-              <ShieldCheck className="w-4 h-4" />
+            <p className="mt-2 text-xs text-center text-muted-foreground flex items-center justify-center gap-1" data-testid="text-trusted-confirmation">
+              <ShieldCheck className="w-3 h-3" />
               {t("status.confirmedByTrusted")}
             </p>
           )}
+          
+          {/* Badges Row */}
+          <div className="flex flex-wrap gap-2 mt-3">
+            {station.stationType === "HOME" && (
+              <Badge variant="secondary" className="bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 text-xs" data-testid="badge-home-charger">
+                <Home className="w-3 h-3 me-1" />
+                {t("station.type.home")}
+              </Badge>
+            )}
+            {station.hasActiveConnector && (
+              <Badge variant="secondary" className="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 text-xs" data-testid="badge-auto-tracked">
+                <Cpu className="w-3 h-3 me-1" />
+                {isAr ? "تتبع آلي" : "Auto-tracked"}
+              </Badge>
+            )}
+            {station.trustLevel === "LOW" && (
+              <Badge variant="secondary" className="bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 text-xs" data-testid="badge-low-trust">
+                <AlertTriangle className="w-3 h-3 me-1" />
+                {t("station.underReview")}
+              </Badge>
+            )}
+            {verificationSummary?.lastVerifiedAt && (
+              <Badge variant="outline" className="text-xs" data-testid="badge-last-verified">
+                <Clock className="w-3 h-3 me-1" />
+                {formatTimeAgo(verificationSummary.lastVerifiedAt, t)}
+              </Badge>
+            )}
+          </div>
         </div>
-      </div>
+        
+        {/* Quick Actions */}
+        <div className="px-4 pb-4 flex gap-2">
+          <Button 
+            className="flex-1 shadow-md" 
+            onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${station.lat},${station.lng}`, '_blank')}
+            data-testid="button-navigate"
+          >
+            <Navigation className="w-4 h-4 me-2" />
+            {t("station.navigate")}
+          </Button>
+          {station.stationType === "HOME" && station.contactWhatsapp && (
+            <Button 
+              variant="outline"
+              className="border-green-500 text-green-600"
+              onClick={() => window.open(`https://wa.me/${station.contactWhatsapp?.replace(/[^0-9]/g, '')}`, '_blank')}
+              data-testid="button-contact-whatsapp"
+            >
+              <MessageCircle className="w-4 h-4" />
+            </Button>
+          )}
+          {station.stationType === "HOME" && station.contactPhone && (
+            <Button 
+              variant="outline"
+              onClick={() => window.open(`tel:${station.contactPhone}`, '_blank')}
+              data-testid="button-contact-phone"
+            >
+              <Phone className="w-4 h-4" />
+            </Button>
+          )}
+        </div>
+      </Card>
 
       {/* Admin Controls */}
       {isAdmin && (
-        <div className="bg-card rounded-2xl p-4 border shadow-sm border-primary/30">
+        <Card className="p-4 border-primary/30">
           <div className="flex items-center gap-2 mb-3">
-            <ShieldAlert className="w-5 h-5 text-primary" />
-            <span className="font-semibold text-foreground">
-              {language === "ar" ? "تحكم الأدمن" : "Admin Controls"}
-            </span>
+            <ShieldAlert className="w-4 h-4 text-primary" />
+            <span className="font-semibold text-sm">{isAr ? "تحكم الأدمن" : "Admin Controls"}</span>
           </div>
-          <div className="flex flex-wrap gap-3">
+          <div className="flex gap-2">
             <Button
               size="sm"
-              className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white"
+              className="flex-1 bg-emerald-500 text-white"
               onClick={() => updateStationStatusMutation.mutate('OPERATIONAL')}
               disabled={updateStationStatusMutation.isPending || station.status === 'OPERATIONAL'}
               data-testid="button-admin-set-working"
             >
-              <CheckCircle2 className="w-4 h-4" />
-              {language === "ar" ? "تعيين كـ يعمل" : "Set as Working"}
+              <CheckCircle2 className="w-4 h-4 me-1" />
+              {isAr ? "يعمل" : "Working"}
             </Button>
             <Button
               size="sm"
-              className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white"
+              className="flex-1 bg-red-500 text-white"
               onClick={() => updateStationStatusMutation.mutate('OFFLINE')}
               disabled={updateStationStatusMutation.isPending || station.status === 'OFFLINE'}
               data-testid="button-admin-set-not-working"
             >
-              <XCircle className="w-4 h-4" />
-              {language === "ar" ? "تعيين كـ لا يعمل" : "Set as Not Working"}
+              <XCircle className="w-4 h-4 me-1" />
+              {isAr ? "لا يعمل" : "Not Working"}
             </Button>
           </div>
-        </div>
+        </Card>
       )}
 
-      {/* Station Name & Quick Actions - Secondary but visible */}
-      <div className="bg-card rounded-2xl p-5 border shadow-sm">
-        <div className="flex flex-col sm:flex-row justify-between gap-4">
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-1 flex-wrap">
-              <h2 className="text-2xl font-bold text-foreground">{name}</h2>
-              {station.trustLevel === "LOW" && (
-                <Badge variant="secondary" className="bg-yellow-100 text-yellow-700 text-xs" data-testid="badge-low-trust">
-                  <AlertTriangle className="w-3 h-3 mr-1" />
-                  {t("station.underReview")}
-                </Badge>
-              )}
-              {station.stationType === "HOME" && (
-                <Badge variant="secondary" className="bg-orange-100 text-orange-700 text-xs">
-                  <Home className="w-3 h-3 mr-1" />
-                  {t("station.type.home")}
-                </Badge>
-              )}
-              {rentalInfo?.isAvailableForRent && (
-                <Badge variant="secondary" className="bg-emerald-100 text-emerald-700 text-xs">
-                  <Zap className="w-3 h-3 mr-1" />
-                  {language === 'ar' 
-                    ? `${rentalInfo.pricePerKwh} ر.ع./ك.و.س` 
-                    : `${rentalInfo.pricePerKwh} OMR/kWh`}
-                </Badge>
-              )}
-            </div>
-            <div className="flex items-center text-muted-foreground gap-2 text-sm">
-              <MapPin className="w-4 h-4" />
-              <span>{city}</span>
-              <span className="text-muted-foreground/50">•</span>
-              <span className="uppercase tracking-wide">{station.operator}</span>
-            </div>
-            
-            {/* Station Description */}
-            {description && (
-              <div className="mt-3 p-3 bg-muted/50 rounded-lg">
-                <p className="text-sm text-muted-foreground leading-relaxed">{description}</p>
-              </div>
-            )}
-            
-            {/* Trust Score Badge - Feature Flagged */}
-            <div className="mt-2">
+      {/* Owner Actions */}
+      {user && station.addedByUserId === user.id && (
+        <Card className="p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Badge variant="secondary" className="text-xs">
+                {t("station.youAdded")}
+              </Badge>
               <TrustScoreBadge stationId={id} />
             </div>
-            
-            {/* Show if user is the owner */}
-            {user && station.addedByUserId === user.id && (
-              <div className="mt-2 flex items-center gap-2 flex-wrap">
-                <Badge variant="secondary" className="text-xs">
-                  {t("station.youAdded")}
-                </Badge>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => navigate(`/station/${id}/edit`)}
-                  data-testid="button-edit-station"
-                >
-                  <Edit3 className="w-4 h-4 me-1" />
-                  {i18n.language === "ar" ? "تعديل" : "Edit"}
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                  onClick={() => setShowDeleteConfirm(true)}
-                  data-testid="button-delete-station"
-                >
-                  <Trash2 className="w-4 h-4 me-1" />
-                  {t("station.delete")}
-                </Button>
-              </div>
-            )}
-          </div>
-
-          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-            <Button 
-              size="lg"
-              className="shadow-lg shadow-primary/20 w-full sm:w-auto" 
-              onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${station.lat},${station.lng}`, '_blank')}
-              data-testid="button-navigate"
-            >
-              <Navigation className="mr-2 h-5 w-5 rtl:ml-2 rtl:mr-0" />
-              {t("station.navigate")}
-            </Button>
-            {station.stationType === "HOME" && station.contactWhatsapp && (
-              <Button 
+            <div className="flex gap-2">
+              <Button
                 variant="outline"
-                size="lg"
-                className="border-green-500 text-green-600 hover:bg-green-50 w-full sm:w-auto"
-                onClick={() => window.open(`https://wa.me/${station.contactWhatsapp?.replace(/[^0-9]/g, '')}`, '_blank')}
-                data-testid="button-contact-whatsapp"
+                size="sm"
+                onClick={() => navigate(`/station/${id}/edit`)}
+                data-testid="button-edit-station"
               >
-                <MessageCircle className="mr-2 h-5 w-5 rtl:ml-2 rtl:mr-0" />
-                WhatsApp
+                <Edit3 className="w-4 h-4 me-1" />
+                {isAr ? "تعديل" : "Edit"}
               </Button>
-            )}
-            {station.stationType === "HOME" && station.contactPhone && (
-              <Button 
-                variant="outline"
-                size="lg"
-                className="w-full sm:w-auto"
-                onClick={() => window.open(`tel:${station.contactPhone}`, '_blank')}
-                data-testid="button-contact-phone"
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-destructive"
+                onClick={() => setShowDeleteConfirm(true)}
+                data-testid="button-delete-station"
               >
-                <Phone className="mr-2 h-5 w-5 rtl:ml-2 rtl:mr-0" />
-                {t("station.contact")}
+                <Trash2 className="w-4 h-4" />
               </Button>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Charger Availability - Compact */}
-      <div className="bg-card rounded-2xl p-5 border shadow-sm">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-            <div className="flex items-center gap-2">
-              <BatteryCharging className="w-5 h-5 text-primary" />
-              <span className="font-semibold">{t("charging.title")}</span>
-              {station.hasActiveConnector && (
-                <Badge variant="outline" className="text-xs bg-emerald-50 dark:bg-emerald-950 border-emerald-300 text-emerald-700 dark:text-emerald-300" data-testid="badge-auto-tracked">
-                  <Cpu className="w-3 h-3 me-1" />
-                  {language === "ar" ? "تتبع آلي" : "Auto-tracked"}
-                </Badge>
-              )}
             </div>
-            <div className="flex justify-around sm:justify-start gap-6">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-emerald-600">{station.availableChargers ?? 0}</div>
-                <div className="text-xs text-muted-foreground">{t("charging.available")}</div>
+          </div>
+        </Card>
+      )}
+
+      {/* Station Info Cards - Professional Status Display */}
+      <div className="space-y-3">
+        {/* Availability Status */}
+        <Card className={`p-4 ${availabilityStatus.bg} border-0`} data-testid="card-availability">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className={`w-10 h-10 rounded-xl ${availabilityStatus.color === 'text-emerald-600' ? 'bg-emerald-500' : availabilityStatus.color === 'text-orange-600' ? 'bg-orange-500' : 'bg-blue-500'} flex items-center justify-center`}>
+                <BatteryCharging className="w-5 h-5 text-white" />
               </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-orange-600">{(station.chargerCount ?? 0) - (station.availableChargers ?? 0)}</div>
-                <div className="text-xs text-muted-foreground">{t("charging.occupied")}</div>
+              <div>
+                <p className="text-sm text-muted-foreground">{isAr ? "توفر الشواحن" : "Charger Availability"}</p>
+                <p className={`font-bold ${availabilityStatus.color}`} data-testid="text-availability-status">{availabilityStatus.label}</p>
               </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-muted-foreground">{station.chargerCount ?? 0}</div>
-                <div className="text-xs text-muted-foreground">{t("charging.total")}</div>
+            </div>
+            <div className="text-end">
+              <div className="flex items-center gap-3">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-emerald-600">{availableCount}</div>
+                  <div className="text-[10px] text-muted-foreground">{isAr ? "متاح" : "Free"}</div>
+                </div>
+                <div className="w-px h-8 bg-border" />
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-orange-600">{occupiedCount}</div>
+                  <div className="text-[10px] text-muted-foreground">{isAr ? "مشغول" : "Used"}</div>
+                </div>
               </div>
             </div>
           </div>
-          <ChargingSessionDialog 
-            stationId={id}
-            availableChargers={station.availableChargers ?? 0}
-            totalChargers={station.chargerCount ?? 1}
-            stationStatus={station.status ?? undefined}
-            hasActiveConnector={station.hasActiveConnector ?? false}
-          />
-        </div>
+          <div className="mt-3">
+            <ChargingSessionDialog 
+              stationId={id}
+              availableChargers={availableCount}
+              totalChargers={totalCount || 1}
+              stationStatus={station.status ?? undefined}
+              hasActiveConnector={station.hasActiveConnector ?? false}
+            />
+          </div>
+        </Card>
+
+        {/* Pricing Status */}
+        <Card className={`p-4 ${pricingStatus.bg} border-0`} data-testid="card-pricing">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className={`w-10 h-10 rounded-xl ${pricingStatus.color === 'text-emerald-600' ? 'bg-emerald-500' : pricingStatus.color === 'text-purple-600' ? 'bg-purple-500' : 'bg-amber-500'} flex items-center justify-center`}>
+                <DollarSign className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">{isAr ? "التسعير" : "Pricing"}</p>
+                <p className={`font-bold ${pricingStatus.color}`} data-testid="text-pricing-status">{pricingStatus.label}</p>
+              </div>
+            </div>
+            <p className="text-sm text-muted-foreground">{pricingStatus.sublabel}</p>
+          </div>
+        </Card>
+
+        {/* Power Info */}
+        <Card className="p-4 bg-blue-50 dark:bg-blue-950/30 border-0" data-testid="card-power">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-blue-500 flex items-center justify-center">
+                <Zap className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">{isAr ? "قدرة الشحن" : "Charging Power"}</p>
+                <p className="font-bold text-blue-600" data-testid="text-power-output">{station.powerKw} kW</p>
+              </div>
+            </div>
+            <div className="flex gap-1 flex-wrap justify-end">
+              {station.chargerType.split(',').map(type => (
+                <Badge key={type} variant="secondary" className="text-xs bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300">
+                  {type.trim()}
+                </Badge>
+              ))}
+            </div>
+          </div>
+        </Card>
       </div>
 
-      {/* Community Verification - Quick Actions */}
-      <div className="bg-card rounded-2xl p-5 border shadow-sm">
-        <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+      {/* Community Verification */}
+      <Card className="p-4">
+        <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <Users className="w-5 h-5 text-primary" />
-            <span className="font-semibold">{t("verify.title")}</span>
+            <Users className="w-4 h-4 text-primary" />
+            <span className="font-semibold text-sm">{isAr ? "تأكيد المجتمع" : "Community Verification"}</span>
             {verificationSummary && verificationSummary.totalVotes > 0 && (
-              <span className="text-sm text-muted-foreground">
-                ({verificationSummary.totalVotes} {t("verify.verifiedBy", { count: verificationSummary.totalVotes }).split(' ').slice(-2).join(' ')})
-              </span>
+              <Badge variant="outline" className="text-xs">{verificationSummary.totalVotes}</Badge>
             )}
           </div>
           {isAuthenticated && <TrustedUserBadge trustLevel={user?.userTrustLevel} />}
         </div>
         
-        <p className="text-sm text-muted-foreground mb-3">{t("verify.helpOthers")}</p>
+        <p className="text-xs text-muted-foreground mb-3">{t("verify.helpOthers")}</p>
         
-        <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
+        <div className="grid grid-cols-2 gap-2">
           <Button
             variant="outline"
             size="sm"
@@ -586,10 +627,10 @@ export default function StationDetails() {
               submitVerification.mutate('WORKING');
             }}
             disabled={submitVerification.isPending}
-            className="border-emerald-500 text-emerald-600 hover:bg-emerald-50"
+            className="border-emerald-500 text-emerald-600"
             data-testid="button-verify-working"
           >
-            <CheckCircle2 className="w-4 h-4 mr-1 rtl:ml-1 rtl:mr-0" />
+            <CheckCircle2 className="w-4 h-4 me-1" />
             {t("verify.confirmWorking")}
           </Button>
           <Button
@@ -603,160 +644,143 @@ export default function StationDetails() {
               submitVerification.mutate('NOT_WORKING');
             }}
             disabled={submitVerification.isPending}
-            className="border-red-500 text-red-600 hover:bg-red-50"
+            className="border-red-500 text-red-600"
             data-testid="button-verify-not-working"
           >
-            <XCircle className="w-4 h-4 mr-1 rtl:ml-1 rtl:mr-0" />
+            <XCircle className="w-4 h-4 me-1" />
             {t("verify.confirmNotWorking")}
           </Button>
-          <div className="col-span-2 sm:col-span-1">
-            <ReportDialog stationId={id} />
-          </div>
         </div>
-      </div>
+        
+        <div className="mt-3">
+          <ReportDialog stationId={id} />
+        </div>
+      </Card>
 
-      {/* Station Details - De-emphasized, collapsible feel */}
-      <details className="group bg-card rounded-2xl border shadow-sm">
-        <summary className="cursor-pointer p-5 flex items-center justify-between hover:bg-muted/50 rounded-2xl transition-colors">
+      {/* Station Details - Expandable */}
+      <Card className="overflow-hidden">
+        <button
+          onClick={() => setShowDetails(!showDetails)}
+          className="w-full p-4 flex items-center justify-between hover-elevate transition-colors"
+          data-testid="button-toggle-details"
+        >
           <div className="flex items-center gap-2">
-            <Zap className="w-5 h-5 text-primary" />
-            <span className="font-semibold">{t("station.stationDetails")}</span>
+            <Info className="w-4 h-4 text-primary" />
+            <span className="font-semibold text-sm">{isAr ? "تفاصيل المحطة" : "Station Details"}</span>
           </div>
-          <span className="text-muted-foreground text-sm group-open:hidden">{t("station.tapToExpand")}</span>
-        </summary>
-        <div className="px-5 pb-5 space-y-3 border-t">
-          <div className="flex justify-between py-2 border-b border-dashed">
-            <span className="text-muted-foreground">{t("station.powerOutput")}</span>
-            <span className="font-mono font-medium">{station.powerKw} kW</span>
-          </div>
-          <div className="flex justify-between py-2 border-b border-dashed">
-            <span className="text-muted-foreground">{t("station.connectorType")}</span>
-            <div className="flex gap-1 flex-wrap justify-end">
-              {station.chargerType.split(',').map(type => (
-                <Badge key={type} variant="secondary" className="text-xs">
-                  {type.trim()}
-                </Badge>
-              ))}
-            </div>
-          </div>
-          <div className="flex justify-between py-2 border-b border-dashed">
-            <span className="text-muted-foreground">{t("station.pricing")}</span>
-            {rentalInfo?.isAvailableForRent && rentalInfo?.pricePerKwh > 0 ? (
-              <span className="font-medium text-red-600">
-                {t("station.price.paid")}
-              </span>
-            ) : (
-              <span className={`font-medium ${station.isFree ? "text-emerald-600" : "text-red-600"}`}>
-                {station.isFree ? t("station.price.free") : station.priceText || t("station.price.paid")}
-              </span>
+          <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${showDetails ? 'rotate-180' : ''}`} />
+        </button>
+        
+        {showDetails && (
+          <div className="px-4 pb-4 space-y-3 border-t">
+            {description && (
+              <div className="pt-3">
+                <p className="text-sm text-muted-foreground leading-relaxed">{description}</p>
+              </div>
+            )}
+            
+            {/* Additional Chargers */}
+            {stationChargers && stationChargers.length > 0 && (
+              <div className="pt-2 space-y-2">
+                <p className="text-xs font-medium text-muted-foreground">{isAr ? "الشواحن الإضافية" : "Additional Chargers"}</p>
+                {stationChargers.map((charger) => (
+                  <div key={charger.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <Plug className="w-4 h-4 text-muted-foreground" />
+                      <Badge variant={charger.chargerType === "DC" ? "default" : "secondary"} className="text-xs">
+                        {charger.chargerType}
+                      </Badge>
+                      <span className="font-mono text-sm">{charger.powerKw} kW</span>
+                      {charger.connectorType && (
+                        <span className="text-xs text-muted-foreground">({charger.connectorType})</span>
+                      )}
+                    </div>
+                    <span className="text-sm text-muted-foreground">x{charger.count}</span>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
-          <div className="flex justify-between py-2 border-b border-dashed">
-            <span className="text-muted-foreground">{t("station.statusLabel")}</span>
-            <Badge variant={station.status === "OPERATIONAL" ? "default" : "destructive"}>
-              {t(`station.status.${station.status?.toLowerCase()}`)}
-            </Badge>
-          </div>
+        )}
+      </Card>
+
+      {/* Verification History */}
+      {verificationHistory && verificationHistory.length > 0 && (
+        <Card className="overflow-hidden">
+          <button
+            onClick={() => setShowHistory(!showHistory)}
+            className="w-full p-4 flex items-center justify-between hover-elevate transition-colors"
+            data-testid="button-toggle-history"
+          >
+            <div className="flex items-center gap-2">
+              <Users className="w-4 h-4 text-primary" />
+              <span className="font-semibold text-sm">{isAr ? "سجل التأكيدات" : "Verification History"}</span>
+              <Badge variant="outline" className="text-xs">{verificationHistory.length}</Badge>
+            </div>
+            <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${showHistory ? 'rotate-180' : ''}`} />
+          </button>
           
-          {/* Additional Chargers */}
-          {stationChargers && stationChargers.length > 0 && (
-            <div className="pt-3 space-y-2">
-              <span className="text-sm font-medium text-muted-foreground">{t("station.additionalChargers")}</span>
-              {stationChargers.map((charger) => (
-                <div key={charger.id} className="flex items-center justify-between py-2 px-3 bg-muted/30 rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <Badge variant={charger.chargerType === "DC" ? "default" : "secondary"} className="text-xs">
-                      {charger.chargerType}
-                    </Badge>
-                    <span className="font-mono text-sm">{charger.powerKw} kW</span>
-                    {charger.connectorType && (
-                      <span className="text-xs text-muted-foreground">({charger.connectorType})</span>
-                    )}
+          {showHistory && (
+            <div className="px-4 pb-4 space-y-2 border-t max-h-[250px] overflow-y-auto">
+              {verificationHistory.map((item) => (
+                <div key={item.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg mt-2 first:mt-3">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold ${
+                      item.vote === 'WORKING' ? 'bg-emerald-500' : 
+                      item.vote === 'NOT_WORKING' ? 'bg-red-500' : 'bg-orange-500'
+                    }`}>
+                      {item.userName.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-sm">{item.userName}</span>
+                        {item.userTrustLevel === 'TRUSTED' && (
+                          <Shield className="w-3 h-3 text-green-500" />
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {formatTimeAgo(item.createdAt, t)}
+                      </p>
+                    </div>
                   </div>
-                  <span className="text-sm text-muted-foreground">x{charger.count}</span>
+                  <Badge className={`${
+                    item.vote === 'WORKING' ? 'bg-emerald-500' : 
+                    item.vote === 'NOT_WORKING' ? 'bg-red-500' : 'bg-orange-500'
+                  } text-white border-0 text-xs`}>
+                    {item.vote === 'WORKING' ? (isAr ? "يعمل" : "Working") : 
+                     item.vote === 'NOT_WORKING' ? (isAr ? "لا يعمل" : "Not Working") : (isAr ? "مشغول" : "Busy")}
+                  </Badge>
                 </div>
               ))}
             </div>
           )}
-        </div>
-      </details>
-
-      {/* Community Verification History */}
-      {verificationHistory && verificationHistory.length > 0 && (
-        <details className="group bg-card rounded-2xl border shadow-sm" open>
-          <summary className="cursor-pointer p-5 flex items-center justify-between hover:bg-muted/50 rounded-2xl transition-colors">
-            <div className="flex items-center gap-2">
-              <Users className="w-5 h-5 text-primary" />
-              <span className="font-semibold">{t("verify.communityHistory")}</span>
-              <Badge variant="outline" className="text-xs">{verificationHistory.length}</Badge>
-            </div>
-            <span className="text-muted-foreground text-sm group-open:hidden">{t("station.tapToExpand")}</span>
-          </summary>
-          <div className="px-5 pb-5 space-y-2 border-t max-h-[250px] overflow-y-auto">
-            {verificationHistory.map((item) => (
-              <div key={item.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-xl">
-                <div className="flex items-center gap-3">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold ${
-                    item.vote === 'WORKING' ? 'bg-emerald-500' : 
-                    item.vote === 'NOT_WORKING' ? 'bg-red-500' : 'bg-orange-500'
-                  }`}>
-                    {item.userName.charAt(0).toUpperCase()}
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-sm">{item.userName}</span>
-                      {item.userTrustLevel === 'TRUSTED' && (
-                        <Badge variant="outline" className="text-xs border-green-500/50 text-green-600">
-                          <Shield className="w-3 h-3 me-1" />
-                          {t("trust.trustedUser")}
-                        </Badge>
-                      )}
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      {formatTimeAgo(item.createdAt, t)}
-                    </p>
-                  </div>
-                </div>
-                <Badge className={`${
-                  item.vote === 'WORKING' ? 'bg-emerald-500' : 
-                  item.vote === 'NOT_WORKING' ? 'bg-red-500' : 'bg-orange-500'
-                } text-white border-0`}>
-                  {item.vote === 'WORKING' ? t("status.working") : 
-                   item.vote === 'NOT_WORKING' ? t("status.notWorking") : t("status.busy")}
-                </Badge>
-              </div>
-            ))}
-          </div>
-        </details>
+        </Card>
       )}
 
-      {/* Recent Reports - De-emphasized */}
+      {/* Recent Reports */}
       {reports && reports.length > 0 && (
-        <details className="group bg-card rounded-2xl border shadow-sm">
-          <summary className="cursor-pointer p-5 flex items-center justify-between hover:bg-muted/50 rounded-2xl transition-colors">
-            <div className="flex items-center gap-2">
-              <ShieldCheck className="w-5 h-5 text-muted-foreground" />
-              <span className="font-semibold text-muted-foreground">{t("station.recentReports")}</span>
-              <Badge variant="outline" className="text-xs">{reports.length}</Badge>
-            </div>
-            <span className="text-muted-foreground text-sm group-open:hidden">{t("station.tapToExpand")}</span>
-          </summary>
-          <div className="px-5 pb-5 space-y-2 border-t max-h-[200px] overflow-y-auto">
-            {reports.map((report) => (
-              <div key={report.id} className="flex items-start gap-3 p-3 bg-muted/30 rounded-xl">
-                <div className={`w-2 h-2 rounded-full mt-2 shrink-0 ${report.status === 'WORKING' ? 'bg-emerald-500' : 'bg-red-500'}`} />
-                <div>
-                  <p className="font-medium text-sm">
+        <Card className="p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <ShieldCheck className="w-4 h-4 text-muted-foreground" />
+            <span className="font-semibold text-sm text-muted-foreground">{isAr ? "البلاغات الأخيرة" : "Recent Reports"}</span>
+            <Badge variant="outline" className="text-xs">{reports.length}</Badge>
+          </div>
+          <div className="space-y-2 max-h-[150px] overflow-y-auto">
+            {reports.slice(0, 5).map((report) => (
+              <div key={report.id} className="flex items-center gap-3 p-2 bg-muted/30 rounded-lg">
+                <CircleDot className={`w-3 h-3 shrink-0 ${report.status === 'WORKING' ? 'text-emerald-500' : 'text-red-500'}`} />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">
                     {report.status === 'WORKING' ? t("station.report.working") : t("station.report.broken")}
                   </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {formatDistanceToNow(new Date(report.createdAt!), { addSuffix: true })}
-                  </p>
                 </div>
+                <p className="text-xs text-muted-foreground shrink-0">
+                  {formatDistanceToNow(new Date(report.createdAt!), { addSuffix: true })}
+                </p>
               </div>
             ))}
           </div>
-        </details>
+        </Card>
       )}
 
       {/* Delete Confirmation Dialog */}
