@@ -3,8 +3,8 @@ import { useTranslation } from "react-i18next";
 import { useLanguage } from "@/components/LanguageContext";
 import { useChargingSessions, useStations, useUserVehicles } from "@/hooks/use-stations";
 import { useAuth } from "@/hooks/use-auth";
-import { Loader2, BarChart3, Zap, Clock, MapPin, TrendingUp, Calendar, ChevronLeft, ChevronRight, Settings, Check, Car } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Loader2, Zap, Clock, MapPin, TrendingUp, ChevronLeft, ChevronRight, Settings, Check, Car, Fuel, Leaf, Battery } from "lucide-react";
+import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,11 +47,10 @@ export default function ChargingStats() {
     return saved || "all";
   });
 
-  // Save vehicle filter to localStorage when changed
   useEffect(() => {
     localStorage.setItem(VEHICLE_FILTER_KEY, selectedVehicleId);
   }, [selectedVehicleId]);
-  const [viewMode, setViewMode] = useState<"month" | "year">("month");
+  
   const [electricityRate, setElectricityRate] = useState(DEFAULT_ELECTRICITY_RATE);
   const [petrolPrice, setPetrolPrice] = useState(DEFAULT_PETROL_PRICE);
   const [currency, setCurrency] = useState(DEFAULT_CURRENCY);
@@ -61,7 +60,6 @@ export default function ChargingStats() {
   const [showSettings, setShowSettings] = useState(false);
 
   const selectedCurrency = CURRENCIES.find(c => c.code === currency) || CURRENCIES[0];
-  const getCurrencySymbol = () => isArabic ? selectedCurrency.symbol : selectedCurrency.code;
 
   useEffect(() => {
     const savedElecRate = localStorage.getItem(ELECTRICITY_STORAGE_KEY);
@@ -214,14 +212,19 @@ export default function ChargingStats() {
 
   if (!user) {
     return (
-      <div className="max-w-4xl mx-auto pb-20">
-        <Card className="p-12 text-center">
-          <BarChart3 className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-          <p className="text-lg font-medium text-muted-foreground">
+      <div className="max-w-2xl mx-auto px-4 py-6 pb-24">
+        <Card className="p-8 text-center bg-muted/30">
+          <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+            <Zap className="w-8 h-8 text-primary" />
+          </div>
+          <p className="text-lg font-medium mb-2">
             {isArabic ? "سجل الدخول لرؤية إحصائياتك" : "Login to see your statistics"}
           </p>
+          <p className="text-sm text-muted-foreground mb-4">
+            {isArabic ? "تتبع استهلاكك للطاقة والتوفير" : "Track your energy consumption and savings"}
+          </p>
           <Link href="/login">
-            <Button className="mt-4">
+            <Button data-testid="button-login">
               {isArabic ? "تسجيل الدخول" : "Login"}
             </Button>
           </Link>
@@ -239,338 +242,323 @@ export default function ChargingStats() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto pb-20">
+    <div className="max-w-2xl mx-auto px-4 py-4 pb-24 space-y-4">
       <SEO title={isArabic ? "إحصائيات الشحن" : "Charging Statistics"} />
       
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-            <BarChart3 className="w-6 h-6 text-primary" />
+      {/* Header Card */}
+      <Card className="p-4 bg-gradient-to-br from-primary/5 to-primary/10 border-0" data-testid="stats-header">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center">
+              <Zap className="w-6 h-6 text-primary" />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold" data-testid="text-page-title">
+                {isArabic ? "إحصائيات الشحن" : "Charging Statistics"}
+              </h1>
+              <p className="text-sm text-muted-foreground">
+                {isArabic ? "تتبع استهلاكك للطاقة" : "Track your energy consumption"}
+              </p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-2xl font-bold">
-              {isArabic ? "إحصائيات الشحن" : "Charging Statistics"}
-            </h1>
-            <p className="text-muted-foreground text-sm">
-              {isArabic ? "تتبع استهلاكك للطاقة" : "Track your energy consumption"}
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2">
+          
           <Dialog open={showSettings} onOpenChange={setShowSettings}>
             <DialogTrigger asChild>
-            <Button variant="outline" size="icon" data-testid="button-settings">
-              <Settings className="w-4 h-4" />
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-sm">
-            <DialogHeader>
-              <DialogTitle>
-                {isArabic ? "إعدادات التسعيرة" : "Pricing Settings"}
-              </DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="currency-select">
-                  {isArabic ? "العملة" : "Currency"}
-                </Label>
-                <Select value={currencyInput} onValueChange={setCurrencyInput}>
-                  <SelectTrigger id="currency-select" data-testid="select-currency">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {CURRENCIES.map((curr) => (
-                      <SelectItem key={curr.code} value={curr.code} data-testid={`currency-option-${curr.code}`}>
-                        <span className="flex items-center gap-2">
-                          <span className="font-medium">{curr.symbol}</span>
-                          <span>{isArabic ? curr.nameAr : curr.nameEn}</span>
-                        </span>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="electricity-rate">
-                  {isArabic 
-                    ? `سعر الكيلوواط (${CURRENCIES.find(c => c.code === currencyInput)?.symbol || "ر.ع"})` 
-                    : `Electricity price per kWh (${currencyInput})`}
-                </Label>
-                <Input
-                  id="electricity-rate"
-                  type="number"
-                  step="0.001"
-                  min="0"
-                  placeholder="0.1"
-                  value={rateInput}
-                  onChange={(e) => setRateInput(e.target.value)}
-                  data-testid="input-electricity-rate"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="petrol-price">
-                  {isArabic 
-                    ? `سعر لتر البنزين (${CURRENCIES.find(c => c.code === currencyInput)?.symbol || "ر.ع"})` 
-                    : `Petrol price per liter (${currencyInput})`}
-                </Label>
-                <Input
-                  id="petrol-price"
-                  type="number"
-                  step="0.001"
-                  min="0"
-                  placeholder="0.180"
-                  value={petrolInput}
-                  onChange={(e) => setPetrolInput(e.target.value)}
-                  data-testid="input-petrol-price"
-                />
-              </div>
-
-              <Button onClick={saveSettings} className="w-full" data-testid="button-save-settings">
-                <Check className="w-4 h-4 me-2" />
-                {isArabic ? "حفظ الإعدادات" : "Save Settings"}
+              <Button variant="ghost" size="icon" data-testid="button-settings">
+                <Settings className="w-5 h-5" />
               </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-sm">
+              <DialogHeader>
+                <DialogTitle>
+                  {isArabic ? "إعدادات التسعيرة" : "Pricing Settings"}
+                </DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="currency-select">
+                    {isArabic ? "العملة" : "Currency"}
+                  </Label>
+                  <Select value={currencyInput} onValueChange={setCurrencyInput}>
+                    <SelectTrigger id="currency-select" data-testid="select-currency">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {CURRENCIES.map((curr) => (
+                        <SelectItem key={curr.code} value={curr.code} data-testid={`currency-option-${curr.code}`}>
+                          <span className="flex items-center gap-2">
+                            <span className="font-medium">{curr.symbol}</span>
+                            <span>{isArabic ? curr.nameAr : curr.nameEn}</span>
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-              <div className="p-3 bg-muted rounded-lg space-y-2">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">
-                    {isArabic ? "سعر الكهرباء" : "Electricity"}
-                  </span>
-                  <span className="font-semibold text-primary">
-                    {electricityRate.toFixed(3)} {isArabic ? `${selectedCurrency.symbol}/كيلوواط` : `${currency}/kWh`}
-                  </span>
+                <div className="space-y-2">
+                  <Label htmlFor="electricity-rate">
+                    {isArabic 
+                      ? `سعر الكيلوواط (${CURRENCIES.find(c => c.code === currencyInput)?.symbol || "ر.ع"})` 
+                      : `Electricity price per kWh (${currencyInput})`}
+                  </Label>
+                  <Input
+                    id="electricity-rate"
+                    type="number"
+                    step="0.001"
+                    min="0"
+                    placeholder="0.1"
+                    value={rateInput}
+                    onChange={(e) => setRateInput(e.target.value)}
+                    data-testid="input-electricity-rate"
+                  />
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">
-                    {isArabic ? "سعر البنزين" : "Petrol"}
-                  </span>
-                  <span className="font-semibold text-orange-600">
-                    {petrolPrice.toFixed(3)} {isArabic ? `${selectedCurrency.symbol}/لتر` : `${currency}/L`}
-                  </span>
+
+                <div className="space-y-2">
+                  <Label htmlFor="petrol-price">
+                    {isArabic 
+                      ? `سعر لتر البنزين (${CURRENCIES.find(c => c.code === currencyInput)?.symbol || "ر.ع"})` 
+                      : `Petrol price per liter (${currencyInput})`}
+                  </Label>
+                  <Input
+                    id="petrol-price"
+                    type="number"
+                    step="0.001"
+                    min="0"
+                    placeholder="0.180"
+                    value={petrolInput}
+                    onChange={(e) => setPetrolInput(e.target.value)}
+                    data-testid="input-petrol-price"
+                  />
                 </div>
+
+                <Button onClick={saveSettings} className="w-full" data-testid="button-save-settings">
+                  <Check className="w-4 h-4 me-2" />
+                  {isArabic ? "حفظ الإعدادات" : "Save Settings"}
+                </Button>
               </div>
-            </div>
-          </DialogContent>
-        </Dialog>
+            </DialogContent>
+          </Dialog>
         </div>
-      </div>
+      </Card>
 
-      {userVehicles.length > 0 && (
-        <div className="mb-6">
-          <Select value={selectedVehicleId} onValueChange={setSelectedVehicleId}>
-            <SelectTrigger className="w-full" data-testid="select-vehicle-filter">
-              <Car className="w-4 h-4 me-2" />
-              <SelectValue placeholder={isArabic ? "جميع السيارات" : "All vehicles"} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">
-                {isArabic ? "جميع السيارات" : "All vehicles"}
-              </SelectItem>
-              {userVehicles.map((vehicle) => (
-                <SelectItem key={vehicle.id} value={String(vehicle.id)}>
-                  {vehicle.nickname || (vehicle.evVehicle ? `${vehicle.evVehicle.brand} ${vehicle.evVehicle.model}` : (isArabic ? "سيارة غير معروفة" : "Unknown vehicle"))}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      )}
-
-      <div className="flex items-center justify-between gap-2 mb-4">
-        <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
-          <Button
-            variant={viewMode === "month" ? "default" : "ghost"}
-            size="sm"
-            className="h-8 px-2 text-xs"
-            onClick={() => setViewMode("month")}
-            data-testid="button-view-month"
-          >
-            <Calendar className="w-3.5 h-3.5" />
-          </Button>
-          <Button
-            variant={viewMode === "year" ? "default" : "ghost"}
-            size="sm"
-            className="h-8 px-2 text-xs"
-            onClick={() => setViewMode("year")}
-            data-testid="button-view-year"
-          >
-            <BarChart3 className="w-3.5 h-3.5" />
-          </Button>
-        </div>
-
-        <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
+      {/* Month Navigation */}
+      <Card className="p-3 border-0 bg-muted/50" data-testid="month-navigator">
+        <div className="flex items-center justify-between">
           <Button
             size="icon"
             variant="ghost"
-            className="h-8 w-8"
             onClick={() => navigateMonth("prev")}
             data-testid="button-prev-month"
           >
-            {isArabic ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+            {isArabic ? <ChevronRight className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
           </Button>
-          <div className="min-w-[90px] text-center text-sm font-medium px-1">
-            {format(selectedMonth, "MMM yyyy", { locale: isArabic ? ar : undefined })}
+          <div className="text-center">
+            <div className="font-bold text-lg" data-testid="text-selected-month">
+              {format(selectedMonth, "MMMM yyyy", { locale: isArabic ? ar : undefined })}
+            </div>
           </div>
           <Button
             size="icon"
             variant="ghost"
-            className="h-8 w-8"
             onClick={() => navigateMonth("next")}
             disabled={isSameMonth(selectedMonth, new Date())}
             data-testid="button-next-month"
           >
-            {isArabic ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+            {isArabic ? <ChevronLeft className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
           </Button>
         </div>
-      </div>
+      </Card>
 
-      {monthlyStats && (
+      {/* Vehicle Filter */}
+      {userVehicles.length > 0 && (
+        <Select value={selectedVehicleId} onValueChange={setSelectedVehicleId}>
+          <SelectTrigger className="bg-background" data-testid="select-vehicle-filter">
+            <Car className="w-4 h-4 me-2 shrink-0" />
+            <SelectValue placeholder={isArabic ? "جميع السيارات" : "All vehicles"} />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">
+              {isArabic ? "جميع السيارات" : "All vehicles"}
+            </SelectItem>
+            {userVehicles.map((vehicle) => (
+              <SelectItem key={vehicle.id} value={String(vehicle.id)}>
+                {vehicle.nickname || (vehicle.evVehicle ? `${vehicle.evVehicle.brand} ${vehicle.evVehicle.model}` : (isArabic ? "سيارة غير معروفة" : "Unknown vehicle"))}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      )}
+
+      {monthlyStats && monthlyStats.sessionCount > 0 ? (
         <>
-          <Card className="p-4 mb-4 bg-gradient-to-br from-emerald-500/5 to-emerald-500/10" data-testid="stat-main">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center">
-                  <Zap className="w-6 h-6 text-emerald-600" />
-                </div>
-                <div>
-                  <div className="text-3xl font-bold text-emerald-600">
-                    {monthlyStats.totalEnergy.toFixed(1)} <span className="text-lg">kWh</span>
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    {monthlyStats.sessionCount} {isArabic ? "جلسة شحن" : "sessions"}
-                  </div>
+          {/* Main Energy Card */}
+          <Card className="p-5 bg-emerald-50 dark:bg-emerald-950/30 border-0" data-testid="card-energy">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-xl bg-emerald-500 flex items-center justify-center shrink-0">
+                <Zap className="w-7 h-7 text-white" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm text-muted-foreground mb-1">{isArabic ? "إجمالي الطاقة" : "Total Energy"}</p>
+                <div className="text-3xl font-bold text-emerald-600" data-testid="text-total-energy">
+                  {monthlyStats.totalEnergy.toFixed(1)} <span className="text-lg font-normal">kWh</span>
                 </div>
               </div>
-              <div className="text-left">
-                <div className="text-lg font-bold text-primary">
-                  ~{monthlyStats.estimatedCost.toFixed(2)} {selectedCurrency.symbol}
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  {isArabic ? "التكلفة التقديرية" : "est. cost"}
-                </div>
+              <div className="text-end">
+                <Badge variant="secondary" className="bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300" data-testid="badge-sessions">
+                  {monthlyStats.sessionCount} {isArabic ? "جلسة" : "sessions"}
+                </Badge>
               </div>
             </div>
           </Card>
 
-          <div className="grid grid-cols-2 gap-3 mb-4">
-            <Card className="p-3" data-testid="stat-duration">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-purple-500/10 flex items-center justify-center shrink-0">
-                  <Clock className="w-4 h-4 text-purple-600" />
+          {/* Stats Grid */}
+          <div className="grid grid-cols-2 gap-3">
+            {/* Duration */}
+            <Card className="p-4 bg-purple-50 dark:bg-purple-950/30 border-0" data-testid="card-duration">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-purple-500 flex items-center justify-center shrink-0">
+                  <Clock className="w-5 h-5 text-white" />
                 </div>
                 <div className="min-w-0">
-                  <div className="text-lg font-bold text-purple-600 truncate">
+                  <p className="text-xs text-muted-foreground">{isArabic ? "إجمالي الوقت" : "Total Time"}</p>
+                  <p className="font-bold text-purple-600 truncate" data-testid="text-duration">
                     {formatDuration(monthlyStats.totalDuration)}
-                  </div>
-                  <div className="text-xs text-muted-foreground">{isArabic ? "إجمالي الوقت" : "total time"}</div>
+                  </p>
                 </div>
               </div>
             </Card>
 
-            <Card className="p-3" data-testid="stat-avg">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0">
-                  <TrendingUp className="w-4 h-4 text-blue-600" />
+            {/* Average */}
+            <Card className="p-4 bg-blue-50 dark:bg-blue-950/30 border-0" data-testid="card-average">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-blue-500 flex items-center justify-center shrink-0">
+                  <TrendingUp className="w-5 h-5 text-white" />
                 </div>
                 <div className="min-w-0">
-                  <div className="text-lg font-bold text-blue-600 truncate">
+                  <p className="text-xs text-muted-foreground">{isArabic ? "معدل الجلسة" : "Avg/Session"}</p>
+                  <p className="font-bold text-blue-600 truncate" data-testid="text-average">
                     {monthlyStats.avgEnergy.toFixed(1)} kWh
-                  </div>
-                  <div className="text-xs text-muted-foreground">{isArabic ? "معدل/جلسة" : "avg/session"}</div>
+                  </p>
+                </div>
+              </div>
+            </Card>
+
+            {/* Cost */}
+            <Card className="p-4 bg-amber-50 dark:bg-amber-950/30 border-0" data-testid="card-cost">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-500 flex items-center justify-center shrink-0">
+                  <Battery className="w-5 h-5 text-white" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs text-muted-foreground">{isArabic ? "تكلفة الكهرباء" : "Electricity Cost"}</p>
+                  <p className="font-bold text-amber-600 truncate" data-testid="text-cost">
+                    ~{monthlyStats.estimatedCost.toFixed(2)} {selectedCurrency.symbol}
+                  </p>
+                </div>
+              </div>
+            </Card>
+
+            {/* Savings */}
+            <Card className="p-4 bg-green-50 dark:bg-green-950/30 border-0" data-testid="card-savings">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-green-500 flex items-center justify-center shrink-0">
+                  <Leaf className="w-5 h-5 text-white" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs text-muted-foreground">{isArabic ? "وفرت من البنزين" : "Petrol Saved"}</p>
+                  <p className="font-bold text-green-600 truncate" data-testid="text-savings">
+                    {monthlyStats.petrolMoneySaved.toFixed(2)} {selectedCurrency.symbol}
+                  </p>
                 </div>
               </div>
             </Card>
           </div>
 
+          {/* Top Station */}
           {monthlyStats.topStation && (
-            <Card className="p-3 mb-4" data-testid="stat-top-station">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                  <MapPin className="w-4 h-4 text-primary" />
+            <Card className="p-4 border-0 bg-primary/5" data-testid="card-top-station">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center shrink-0">
+                  <MapPin className="w-5 h-5 text-primary-foreground" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-xs text-muted-foreground">
-                    {isArabic ? "المحطة الأكثر زيارة" : "Top station"}
-                  </div>
-                  <div className="font-medium text-sm truncate">{getStationName(monthlyStats.topStation.id)}</div>
+                  <p className="text-xs text-muted-foreground">{isArabic ? "المحطة الأكثر زيارة" : "Most Visited Station"}</p>
+                  <p className="font-bold truncate" data-testid="text-top-station">{getStationName(monthlyStats.topStation.id)}</p>
                 </div>
-                <Badge variant="secondary" className="shrink-0">
-                  {monthlyStats.topStation.visits}x
+                <Badge variant="secondary" data-testid="badge-visits">
+                  {monthlyStats.topStation.visits} {isArabic ? "زيارة" : "visits"}
                 </Badge>
               </div>
             </Card>
           )}
+
+          {/* Yearly Chart */}
+          {yearlyData.length > 0 && (
+            <Card className="p-4 border-0" data-testid="card-chart">
+              <div className="flex items-center gap-2 mb-4">
+                <TrendingUp className="w-4 h-4 text-primary" />
+                <span className="font-semibold text-sm">{isArabic ? "الاستهلاك الشهري" : "Monthly Consumption"}</span>
+              </div>
+              <div className="h-[200px]" data-testid="chart-container">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={yearlyData} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--muted))" />
+                    <XAxis 
+                      dataKey="month" 
+                      tick={{ fontSize: 10 }} 
+                      tickLine={false}
+                      axisLine={false}
+                    />
+                    <YAxis 
+                      tick={{ fontSize: 10 }} 
+                      tickLine={false}
+                      axisLine={false}
+                      tickFormatter={(value) => `${value}`}
+                    />
+                    <Tooltip
+                      content={({ active, payload }) => {
+                        if (active && payload && payload.length) {
+                          const data = payload[0].payload;
+                          return (
+                            <div className="bg-popover border rounded-lg p-3 shadow-lg">
+                              <div className="font-semibold mb-1">{data.fullMonth}</div>
+                              <div className="flex items-center gap-2 text-sm">
+                                <Zap className="w-3 h-3 text-emerald-500" />
+                                <span className="text-emerald-600 font-medium">{data.energy} kWh</span>
+                              </div>
+                              <div className="text-xs text-muted-foreground mt-1">
+                                {data.sessions} {isArabic ? "جلسة" : "sessions"}
+                              </div>
+                            </div>
+                          );
+                        }
+                        return null;
+                      }}
+                    />
+                    <Bar dataKey="energy" radius={[4, 4, 0, 0]}>
+                      {yearlyData.map((entry, index) => (
+                        <Cell 
+                          key={`cell-${index}`} 
+                          fill={entry.isCurrentMonth ? "hsl(var(--primary))" : "hsl(var(--primary) / 0.3)"} 
+                        />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </Card>
+          )}
         </>
-      )}
-
-      {yearlyData.length > 0 && (
-        <Card className="mb-6">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base flex items-center gap-2">
-              <Calendar className="w-4 h-4" />
-              {isArabic ? "استهلاك الطاقة الشهري" : "Monthly Energy Consumption"}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[250px]" data-testid="chart-container">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={yearlyData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--muted))" />
-                  <XAxis 
-                    dataKey="month" 
-                    tick={{ fontSize: 11 }} 
-                    tickLine={false}
-                    axisLine={false}
-                  />
-                  <YAxis 
-                    tick={{ fontSize: 11 }} 
-                    tickLine={false}
-                    axisLine={false}
-                    tickFormatter={(value) => `${value}`}
-                  />
-                  <Tooltip
-                    content={({ active, payload }) => {
-                      if (active && payload && payload.length) {
-                        const data = payload[0].payload;
-                        return (
-                          <div className="bg-popover border rounded-lg p-3 shadow-lg">
-                            <div className="font-semibold mb-1">{data.fullMonth}</div>
-                            <div className="text-sm text-emerald-600">
-                              ⚡ {data.energy} kWh
-                            </div>
-                            <div className="text-sm text-muted-foreground">
-                              🔌 {data.sessions} {isArabic ? "جلسة" : "sessions"}
-                            </div>
-                          </div>
-                        );
-                      }
-                      return null;
-                    }}
-                  />
-                  <Bar dataKey="energy" radius={[4, 4, 0, 0]}>
-                    {yearlyData.map((entry, index) => (
-                      <Cell 
-                        key={`cell-${index}`} 
-                        fill={entry.isCurrentMonth ? "hsl(var(--primary))" : "hsl(var(--primary) / 0.3)"} 
-                      />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {(!sessions || sessions.length === 0) && (
-        <Card className="p-12 text-center">
-          <BarChart3 className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-          <p className="text-lg font-medium text-muted-foreground">
-            {isArabic ? "لا توجد بيانات شحن بعد" : "No charging data yet"}
+      ) : (
+        <Card className="p-8 text-center bg-muted/30 border-0" data-testid="card-empty">
+          <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
+            <Zap className="w-8 h-8 text-muted-foreground" />
+          </div>
+          <p className="font-medium mb-1">
+            {isArabic ? "لا توجد بيانات لهذا الشهر" : "No data for this month"}
           </p>
-          <p className="text-sm text-muted-foreground mt-2">
+          <p className="text-sm text-muted-foreground">
             {isArabic 
               ? "ابدأ جلسة شحن لتتبع استهلاكك"
               : "Start a charging session to track your consumption"
@@ -579,13 +567,18 @@ export default function ChargingStats() {
         </Card>
       )}
 
-      <div className="text-center mt-6">
-        <Link href="/history">
-          <Button variant="outline">
-            {isArabic ? "عرض سجل الشحن الكامل" : "View full charging history"} →
-          </Button>
-        </Link>
-      </div>
+      {/* View History Link */}
+      <Link href="/history">
+        <Card className="p-4 hover-elevate cursor-pointer" data-testid="link-history">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Clock className="w-5 h-5 text-primary" />
+              <span className="font-medium">{isArabic ? "عرض سجل الشحن الكامل" : "View full charging history"}</span>
+            </div>
+            {isArabic ? <ChevronLeft className="w-5 h-5 text-muted-foreground" /> : <ChevronRight className="w-5 h-5 text-muted-foreground" />}
+          </div>
+        </Card>
+      </Link>
     </div>
   );
 }
