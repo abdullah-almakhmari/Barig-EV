@@ -242,6 +242,21 @@ export const ownershipVerifications = pgTable("ownership_verifications", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Rental requests - pending requests when renter scans QR code
+export const rentalRequests = pgTable("rental_requests", {
+  id: serial("id").primaryKey(),
+  stationId: integer("station_id").notNull(),
+  renterId: varchar("renter_id").notNull(), // User who wants to rent
+  ownerId: varchar("owner_id").notNull(), // Charger owner
+  status: text("status").default("PENDING"), // PENDING, ACTIVE, COMPLETED, EXPIRED, CANCELLED
+  sessionId: integer("session_id"), // Linked charging session when started
+  pricePerKwh: real("price_per_kwh").notNull(),
+  currency: text("currency").default("OMR"),
+  expiresAt: timestamp("expires_at").notNull(), // Request expires after 15 minutes
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Trust events for idempotent rewards/penalties (persistent tracking)
 // Uses row-level locking + sliding window query for idempotency
 export const trustEvents = pgTable("trust_events", {
@@ -267,6 +282,7 @@ export const insertTeslaConnectorSchema = createInsertSchema(teslaConnectors).om
 export const insertTeslaVitalsLogSchema = createInsertSchema(teslaVitalsLog).omit({ id: true, recordedAt: true });
 export const insertChargerRentalSchema = createInsertSchema(chargerRentals).omit({ id: true, totalEarnings: true, totalSessionsCount: true, totalEnergyKwh: true, createdAt: true, updatedAt: true });
 export const insertOwnershipVerificationSchema = createInsertSchema(ownershipVerifications).omit({ id: true, status: true, rejectionReason: true, reviewedBy: true, reviewedAt: true, expiresAt: true, createdAt: true, updatedAt: true });
+export const insertRentalRequestSchema = createInsertSchema(rentalRequests).omit({ id: true, status: true, sessionId: true, createdAt: true, updatedAt: true });
 
 export type Station = typeof stations.$inferSelect;
 export type InsertStation = z.infer<typeof insertStationSchema>;
@@ -294,6 +310,8 @@ export type ChargerRental = typeof chargerRentals.$inferSelect;
 export type InsertChargerRental = z.infer<typeof insertChargerRentalSchema>;
 export type OwnershipVerification = typeof ownershipVerifications.$inferSelect;
 export type InsertOwnershipVerification = z.infer<typeof insertOwnershipVerificationSchema>;
+export type RentalRequest = typeof rentalRequests.$inferSelect;
+export type InsertRentalRequest = z.infer<typeof insertRentalRequestSchema>;
 
 // Tesla Wall Connector vitals from ESP32
 export type TeslaVitals = {
