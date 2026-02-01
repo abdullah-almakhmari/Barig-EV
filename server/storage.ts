@@ -44,6 +44,7 @@ export interface IStorage {
     avgCurrentA?: number;
     maxPowerKw?: number;
     maxTempC?: number;
+    rentalTotalCost?: number | null;
   }): Promise<ChargingSession | undefined>;
   createCompletedSession(session: {
     stationId: number;
@@ -133,6 +134,7 @@ export interface IStorage {
   createRentalRequest(request: InsertRentalRequest): Promise<RentalRequest>;
   getRentalRequest(id: number): Promise<RentalRequest | undefined>;
   getPendingRentalRequest(stationId: number): Promise<RentalRequest | undefined>;
+  getActiveRentalRequestBySession(sessionId: number): Promise<RentalRequest | undefined>;
   getRenterActiveRequest(stationId: number, renterId: string): Promise<RentalRequest | undefined>;
   updateRentalRequest(id: number, data: Partial<RentalRequest>): Promise<RentalRequest | undefined>;
   expireOldRentalRequests(): Promise<void>;
@@ -402,6 +404,7 @@ export class DatabaseStorage implements IStorage {
     avgCurrentA?: number;
     maxPowerKw?: number;
     maxTempC?: number;
+    rentalTotalCost?: number | null;
   }): Promise<ChargingSession | undefined> {
     const [session] = await db.select().from(chargingSessions).where(eq(chargingSessions.id, sessionId));
     if (!session) return undefined;
@@ -427,6 +430,7 @@ export class DatabaseStorage implements IStorage {
           avgCurrentA: teslaData.avgCurrentA,
           maxPowerKw: teslaData.maxPowerKw,
           maxTempC: teslaData.maxTempC,
+          rentalTotalCost: teslaData.rentalTotalCost,
         }),
       })
       .where(eq(chargingSessions.id, sessionId))
@@ -1236,6 +1240,16 @@ export class DatabaseStorage implements IStorage {
         gte(rentalRequests.expiresAt, new Date())
       ))
       .orderBy(desc(rentalRequests.createdAt));
+    return request;
+  }
+
+  async getActiveRentalRequestBySession(sessionId: number): Promise<RentalRequest | undefined> {
+    const [request] = await db.select()
+      .from(rentalRequests)
+      .where(and(
+        eq(rentalRequests.sessionId, sessionId),
+        eq(rentalRequests.status, "ACTIVE")
+      ));
     return request;
   }
 

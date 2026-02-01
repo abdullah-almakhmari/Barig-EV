@@ -1359,7 +1359,7 @@ export async function registerRoutes(
         );
         
         // Get session to check if it's a rental
-        const session = await storage.getChargingSession(connector.currentSessionId);
+        const session = await storage.getSessionById(connector.currentSessionId);
         let rentalTotalCost = null;
         
         if (session?.isRentalSession && session.rentalPricePerKwh) {
@@ -1372,10 +1372,11 @@ export async function registerRoutes(
             await storage.updateRentalStats(rental.id, energyKwh, rentalTotalCost);
           }
           
-          // Mark rental request as COMPLETED
-          const rentalRequest = await storage.getPendingRentalRequest(connector.stationId);
-          if (rentalRequest && rentalRequest.sessionId === connector.currentSessionId) {
+          // Mark rental request as COMPLETED (look for ACTIVE request by session ID)
+          const rentalRequest = await storage.getActiveRentalRequestBySession(connector.currentSessionId);
+          if (rentalRequest) {
             await storage.updateRentalRequest(rentalRequest.id, { status: "COMPLETED" });
+            console.log("[ESP32] Rental request marked as COMPLETED:", rentalRequest.id);
           }
         }
         
@@ -1850,7 +1851,7 @@ export async function registerRoutes(
       // If request has a session, get session details
       let session = null;
       if (request.sessionId) {
-        session = await storage.getChargingSession(request.sessionId);
+        session = await storage.getSessionById(request.sessionId);
       }
       
       res.json({ request, session });
