@@ -163,7 +163,11 @@ function NearbyStationCard({
                   <StatusIcon className="w-3 h-3 me-1" />
                   {availabilityStatus.label}
                 </Badge>
-                {station.isFree ? (
+                {isRentalStation ? (
+                  <Badge variant="outline" className="text-xs bg-red-500/10 text-red-600 border-red-500">
+                    {t("station.price.paid")}
+                  </Badge>
+                ) : station.isFree ? (
                   <Badge variant="outline" className="text-xs bg-emerald-500/10 text-emerald-600 border-emerald-500">
                     {t("station.price.free")}
                   </Badge>
@@ -334,26 +338,16 @@ export default function NearbyStations() {
       <SEO title={t("nearby.title")} />
       
       {/* Header */}
-      <div className="flex items-center justify-between gap-3 mb-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-            <Navigation className="w-5 h-5 text-primary" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold">{t("nearby.title")}</h1>
-            <p className="text-sm text-muted-foreground">
-              {sortedStations.length} {isArabic ? "محطة" : "stations"}
-            </p>
-          </div>
+      <div className="flex items-center gap-3 mb-4">
+        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+          <Navigation className="w-5 h-5 text-primary" />
         </div>
-        <Button 
-          variant="outline" 
-          size="icon" 
-          onClick={getUserLocation}
-          data-testid="button-refresh-location"
-        >
-          <RefreshCw className="w-4 h-4" />
-        </Button>
+        <div>
+          <h1 className="text-xl font-bold">{t("nearby.title")}</h1>
+          <p className="text-sm text-muted-foreground">
+            {sortedStations.length} {isArabic ? "محطة" : "stations"}
+          </p>
+        </div>
       </div>
 
       {/* Filter Buttons */}

@@ -632,9 +632,15 @@ export default function StationDetails() {
           </div>
           <div className="flex justify-between py-2 border-b border-dashed">
             <span className="text-muted-foreground">{t("station.pricing")}</span>
-            <span className="font-medium text-emerald-600">
-              {station.isFree ? t("station.price.free") : station.priceText || t("station.price.paid")}
-            </span>
+            {rentalInfo?.isAvailableForRent && rentalInfo?.pricePerKwh > 0 ? (
+              <span className="font-medium text-red-600">
+                {t("station.price.paid")}
+              </span>
+            ) : (
+              <span className={`font-medium ${station.isFree ? "text-emerald-600" : "text-red-600"}`}>
+                {station.isFree ? t("station.price.free") : station.priceText || t("station.price.paid")}
+              </span>
+            )}
           </div>
           <div className="flex justify-between py-2 border-b border-dashed">
             <span className="text-muted-foreground">{t("station.statusLabel")}</span>
