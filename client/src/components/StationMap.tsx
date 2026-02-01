@@ -26,7 +26,7 @@ type StationPriority = 'best' | 'good' | 'busy' | 'offline' | 'charging';
 function getStationPriority(station: Station, isCharging: boolean = false): StationPriority {
   if (isCharging) return 'charging';
   if (station.status === "OFFLINE") return 'offline';
-  const available = station.availableChargers ?? 0;
+  const available = Math.max(0, station.availableChargers ?? 0);
   const total = station.chargerCount ?? 1;
   if (available === 0) return 'busy';
   if (available === total) return 'best';
@@ -268,7 +268,7 @@ export function StationMap({ stations }: StationMapProps) {
     if (!userLocation) return null;
     
     const availableStations = stations.filter(
-      s => s.status !== "OFFLINE" && (s.availableChargers ?? 0) > 0
+      s => s.status !== "OFFLINE" && Math.max(0, s.availableChargers ?? 0) > 0
     );
     
     if (availableStations.length === 0) return null;

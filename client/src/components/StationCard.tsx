@@ -117,7 +117,7 @@ export function StationCard({ station, variant = "full", isRentalStation = false
             </Badge>
             <Badge variant="outline" className="bg-muted/50">
               <BatteryCharging className="w-3 h-3 me-1" />
-              {station.availableChargers ?? 0}/{station.chargerCount ?? 1} {t("station.available")}
+              {Math.max(0, station.availableChargers ?? 0)}/{station.chargerCount ?? 1} {t("station.available")}
             </Badge>
           </div>
           <h3 className="font-bold text-lg leading-tight text-foreground">{name}</h3>

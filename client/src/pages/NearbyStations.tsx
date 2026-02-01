@@ -102,8 +102,11 @@ function NearbyStationCard({
     staleTime: 60000,
   });
 
+  const chargerTypes = getChargerTypes(station.chargerType);
+
+  const availableChargers = Math.max(0, station.availableChargers ?? 0);
   const isBusy = station.status === "BUSY" || 
-    (station.status !== "OFFLINE" && (station.availableChargers ?? 0) === 0);
+    (station.status !== "OFFLINE" && availableChargers === 0);
 
   const getAvailabilityStatus = () => {
     if (station.status === "OFFLINE") {
@@ -200,8 +203,8 @@ function NearbyStationCard({
 
             {/* Bottom Row - Charger Info */}
             <div className="flex items-center gap-2 flex-wrap">
-              {/* Charger Types - Show all types */}
-              {getChargerTypes(station.chargerType).map((type) => (
+              {/* Charger Types */}
+              {chargerTypes.map((type) => (
                 <div 
                   key={type}
                   className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium ${
@@ -209,6 +212,7 @@ function NearbyStationCard({
                       ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400' 
                       : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'
                   }`}
+                  data-testid={`charger-type-${station.id}-${type}`}
                 >
                   <Zap className="w-3 h-3 fill-current" />
                   <span>{type}</span>
@@ -216,14 +220,14 @@ function NearbyStationCard({
               ))}
               
               {/* Power */}
-              <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-muted text-xs">
+              <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-muted text-xs" data-testid={`charger-power-${station.id}`}>
                 <span className="font-mono font-medium">{station.powerKw || "?"} kW</span>
               </div>
               
               {/* Available Chargers */}
-              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+              <div className="flex items-center gap-1 text-xs text-muted-foreground" data-testid={`charger-count-${station.id}`}>
                 <BatteryCharging className="w-3.5 h-3.5" />
-                <span>{station.availableChargers ?? 0}/{station.chargerCount ?? 1}</span>
+                <span>{availableChargers}/{station.chargerCount ?? 1}</span>
               </div>
 
               {verificationSummary?.lastVerifiedAt && (

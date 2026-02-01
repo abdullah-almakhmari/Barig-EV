@@ -307,9 +307,9 @@ export default function StationDetails() {
   const statusConfig = getStatusConfig(primaryStatus, isAr);
   const StatusIcon = statusConfig.icon;
 
-  const availableCount = station.availableChargers ?? 0;
+  const availableCount = Math.max(0, station.availableChargers ?? 0);
   const totalCount = station.chargerCount ?? 0;
-  const occupiedCount = totalCount - availableCount;
+  const occupiedCount = Math.max(0, totalCount - availableCount);
 
   const getAvailabilityStatus = () => {
     if (availableCount === 0 && totalCount > 0) {
