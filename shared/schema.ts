@@ -357,6 +357,24 @@ export type RentalSessionWithDetails = ChargingSession & {
   station?: Station;
 };
 
+// Notifications table
+export const notifications = pgTable("notifications", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull(),
+  type: text("type").notNull(), // 'rental_complete', 'rental_income', 'session_complete', etc.
+  title: text("title").notNull(),
+  titleAr: text("title_ar").notNull(),
+  message: text("message").notNull(),
+  messageAr: text("message_ar").notNull(),
+  data: text("data"), // JSON string for additional data (session details, etc.)
+  isRead: boolean("is_read").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertNotificationSchema = createInsertSchema(notifications).omit({ id: true, createdAt: true });
+export type InsertNotification = z.infer<typeof insertNotificationSchema>;
+export type Notification = typeof notifications.$inferSelect;
+
 export type ChargerRentalWithStats = ChargerRental & {
   station?: Station;
   recentSessions?: RentalSessionWithDetails[];
