@@ -997,21 +997,6 @@ export default function Profile() {
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-2 gap-3">
-        <Link href="/history" data-testid="link-history">
-          <Button variant="outline" className="w-full h-14 text-base gap-2">
-            <History className="w-5 h-5" />
-            {isArabic ? "السجل" : "History"}
-          </Button>
-        </Link>
-        <Link href="/stats" data-testid="link-stats">
-          <Button variant="outline" className="w-full h-14 text-base gap-2">
-            <BarChart3 className="w-5 h-5" />
-            {isArabic ? "إحصائيات" : "Statistics"}
-          </Button>
-        </Link>
-      </div>
-
       <AlertDialog open={showLogoutWarning} onOpenChange={setShowLogoutWarning}>
         <AlertDialogContent>
           <AlertDialogHeader>
