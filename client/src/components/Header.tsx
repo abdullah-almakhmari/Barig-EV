@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useLanguage } from "./LanguageContext";
 import { useTranslation } from "react-i18next";
 import { Link, useLocation } from "wouter";
-import { MapPin, Plus, Languages, Zap, Navigation, History, LogIn, LogOut, User, Shield, BarChart3, MessageCircle, AlertTriangle, Loader2 } from "lucide-react";
+import { MapPin, Plus, Languages, Zap, Navigation, History, LogIn, LogOut, User, Shield, BarChart3, MessageCircle, AlertTriangle, Loader2, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -41,6 +41,18 @@ export function Header() {
       return res.json();
     },
     enabled: isAuthenticated,
+  });
+
+  const { data: unreadCount = 0 } = useQuery({
+    queryKey: ["/api/notifications/unread-count"],
+    queryFn: async () => {
+      const res = await fetch("/api/notifications/unread-count", { credentials: "include" });
+      if (!res.ok) return 0;
+      const data = await res.json();
+      return data.count;
+    },
+    enabled: isAuthenticated,
+    refetchInterval: 60000,
   });
 
   const endSessionMutation = useMutation({
@@ -199,6 +211,21 @@ export function Header() {
           {!isLoading && (
             isAuthenticated ? (
               <>
+                <Link href="/notifications" data-testid="link-notifications">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="rounded-full relative"
+                    data-testid="button-notifications"
+                  >
+                    <Bell className="w-5 h-5" />
+                    {unreadCount > 0 && (
+                      <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] rounded-full bg-destructive text-destructive-foreground text-xs font-bold flex items-center justify-center px-1">
+                        {unreadCount > 99 ? "99+" : unreadCount}
+                      </span>
+                    )}
+                  </Button>
+                </Link>
                 <Link href="/profile" data-testid="link-profile">
                   <Avatar className="w-8 h-8 cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all">
                     <AvatarImage src={user?.profileImageUrl || undefined} />
