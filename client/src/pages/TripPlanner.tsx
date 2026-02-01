@@ -19,7 +19,9 @@ import {
   ChevronDown,
   ChevronUp,
   Clock,
-  AlertCircle
+  AlertCircle,
+  Locate,
+  ArrowDown
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -137,27 +139,34 @@ function LocationSearch({
   value,
   onChange,
   onSelect,
+  onUseCurrentLocation,
   placeholder,
   icon: Icon,
   iconColor,
+  showCurrentLocation = false,
+  isArabic = false,
 }: {
   value: string;
   onChange: (value: string) => void;
   onSelect: (result: LocationResult) => void;
+  onUseCurrentLocation?: () => void;
   placeholder: string;
   icon: typeof MapPin;
   iconColor: string;
+  showCurrentLocation?: boolean;
+  isArabic?: boolean;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [results, setResults] = useState<LocationResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const debouncedValue = useDebounce(value, 500);
+  const debouncedValue = useDebounce(value, 400);
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const searchLocation = async () => {
-      if (debouncedValue.length < 3) {
+      if (debouncedValue.length < 2) {
         setResults([]);
+        setIsOpen(false);
         return;
       }
 
@@ -166,7 +175,7 @@ function LocationSearch({
         const response = await fetch(
           `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
             debouncedValue
-          )}&countrycodes=om,ae,sa,qa,bh,kw&limit=5`,
+          )}&countrycodes=om,ae,sa,qa,bh,kw&limit=6`,
           {
             headers: {
               "Accept-Language": "ar,en",
@@ -175,7 +184,9 @@ function LocationSearch({
         );
         const data = await response.json();
         setResults(data);
-        setIsOpen(true);
+        if (data.length > 0) {
+          setIsOpen(true);
+        }
       } catch (error) {
         console.error("Location search error:", error);
       } finally {
@@ -199,38 +210,53 @@ function LocationSearch({
 
   return (
     <div ref={containerRef} className="relative">
-      <div className="relative">
-        <Icon 
-          className="absolute start-3 top-1/2 -translate-y-1/2 w-5 h-5" 
-          style={{ color: iconColor }}
-        />
-        <Input
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={placeholder}
-          className="ps-10 pe-10 h-12 text-base"
-          onFocus={() => results.length > 0 && setIsOpen(true)}
-          data-testid="input-location-search"
-        />
-        {isLoading && (
-          <Loader2 className="absolute end-3 top-1/2 -translate-y-1/2 w-5 h-5 animate-spin text-muted-foreground" />
-        )}
-        {value && !isLoading && (
-          <button
-            onClick={() => {
-              onChange("");
-              setResults([]);
-            }}
-            className="absolute end-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-            data-testid="button-clear-location"
+      <div className="flex gap-2">
+        <div className="relative flex-1">
+          <Icon 
+            className="absolute start-3 top-1/2 -translate-y-1/2 w-5 h-5" 
+            style={{ color: iconColor }}
+          />
+          <Input
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder={placeholder}
+            className="ps-10 pe-10 h-12 text-base rounded-xl bg-muted/30 border-muted"
+            onFocus={() => results.length > 0 && setIsOpen(true)}
+            data-testid="input-location-search"
+          />
+          {isLoading && (
+            <Loader2 className="absolute end-3 top-1/2 -translate-y-1/2 w-5 h-5 animate-spin text-muted-foreground" />
+          )}
+          {value && !isLoading && (
+            <button
+              onClick={() => {
+                onChange("");
+                setResults([]);
+                setIsOpen(false);
+              }}
+              className="absolute end-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+              data-testid="button-clear-location"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          )}
+        </div>
+        {showCurrentLocation && onUseCurrentLocation && (
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            className="h-12 w-12 shrink-0 rounded-xl"
+            onClick={onUseCurrentLocation}
+            data-testid="button-use-current-location"
           >
-            <X className="w-5 h-5" />
-          </button>
+            <Locate className="w-5 h-5" />
+          </Button>
         )}
       </div>
       
       {isOpen && results.length > 0 && (
-        <Card className="absolute z-50 w-full mt-1 max-h-60 overflow-y-auto">
+        <Card className="absolute z-50 w-full mt-2 max-h-64 overflow-y-auto shadow-lg">
           {results.map((result) => (
             <button
               key={result.place_id}
@@ -239,11 +265,16 @@ function LocationSearch({
                 onChange(result.display_name.split(",")[0]);
                 setIsOpen(false);
               }}
-              className="w-full px-4 py-3 text-start flex items-start gap-3 border-b last:border-b-0 hover:bg-muted/50"
+              className="w-full px-4 py-3 text-start flex items-start gap-3 border-b last:border-b-0 hover:bg-muted/50 transition-colors"
               data-testid={`button-location-result-${result.place_id}`}
             >
               <MapPin className="w-5 h-5 text-muted-foreground shrink-0 mt-0.5" />
-              <span className="text-sm line-clamp-2">{result.display_name}</span>
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-sm truncate">{result.display_name.split(",")[0]}</p>
+                <p className="text-xs text-muted-foreground truncate">
+                  {result.display_name.split(",").slice(1, 3).join(",")}
+                </p>
+              </div>
             </button>
           ))}
         </Card>
@@ -300,6 +331,7 @@ export default function TripPlanner() {
   const [isLoadingRoute, setIsLoadingRoute] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [routeDistance, setRouteDistance] = useState(5);
+  const [isGettingLocation, setIsGettingLocation] = useState(false);
   
   const [filters, setFilters] = useState({
     public: true,
@@ -307,6 +339,40 @@ export default function TripPlanner() {
     free: false,
     dcOnly: false,
   });
+
+  const handleUseCurrentLocation = useCallback(() => {
+    if (!navigator.geolocation) {
+      return;
+    }
+    
+    setIsGettingLocation(true);
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        setOrigin({ lat: latitude, lng: longitude });
+        
+        try {
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`,
+            { headers: { "Accept-Language": "ar,en" } }
+          );
+          const data = await response.json();
+          if (data.display_name) {
+            setOriginText(data.display_name.split(",")[0]);
+          } else {
+            setOriginText(isArabic ? "موقعي الحالي" : "My Location");
+          }
+        } catch {
+          setOriginText(isArabic ? "موقعي الحالي" : "My Location");
+        }
+        setIsGettingLocation(false);
+      },
+      () => {
+        setIsGettingLocation(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  }, [isArabic]);
 
   const { data: stations = [] } = useQuery<Station[]>({
     queryKey: ["/api/stations"],
@@ -401,28 +467,48 @@ export default function TripPlanner() {
           </h1>
         </div>
 
-        <Card className="p-4 space-y-4">
-          <LocationSearch
-            value={originText}
-            onChange={setOriginText}
-            onSelect={(result) => {
-              setOrigin({ lat: parseFloat(result.lat), lng: parseFloat(result.lon) });
-            }}
-            placeholder={isArabic ? "من أين؟ (نقطة البداية)" : "From where? (Starting point)"}
-            icon={Navigation}
-            iconColor="#10B981"
-          />
+        <Card className="p-4 space-y-3">
+          <div className="space-y-1">
+            <Label className="text-xs text-muted-foreground font-medium">
+              {isArabic ? "من أين؟" : "From"}
+            </Label>
+            <LocationSearch
+              value={originText}
+              onChange={setOriginText}
+              onSelect={(result) => {
+                setOrigin({ lat: parseFloat(result.lat), lng: parseFloat(result.lon) });
+              }}
+              onUseCurrentLocation={handleUseCurrentLocation}
+              placeholder={isArabic ? "ابحث عن موقع أو استخدم موقعك الحالي" : "Search location or use current"}
+              icon={Navigation}
+              iconColor="#10B981"
+              showCurrentLocation={true}
+              isArabic={isArabic}
+            />
+          </div>
+
+          <div className="flex justify-center">
+            <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+              <ArrowDown className="w-4 h-4 text-muted-foreground" />
+            </div>
+          </div>
           
-          <LocationSearch
-            value={destText}
-            onChange={setDestText}
-            onSelect={(result) => {
-              setDestination({ lat: parseFloat(result.lat), lng: parseFloat(result.lon) });
-            }}
-            placeholder={isArabic ? "إلى أين؟ (الوجهة)" : "Where to? (Destination)"}
-            icon={MapPin}
-            iconColor="#EF4444"
-          />
+          <div className="space-y-1">
+            <Label className="text-xs text-muted-foreground font-medium">
+              {isArabic ? "إلى أين؟" : "To"}
+            </Label>
+            <LocationSearch
+              value={destText}
+              onChange={setDestText}
+              onSelect={(result) => {
+                setDestination({ lat: parseFloat(result.lat), lng: parseFloat(result.lon) });
+              }}
+              placeholder={isArabic ? "ابحث عن وجهتك" : "Search your destination"}
+              icon={MapPin}
+              iconColor="#EF4444"
+              isArabic={isArabic}
+            />
+          </div>
 
           <button
             onClick={() => setShowFilters(!showFilters)}
@@ -549,26 +635,16 @@ export default function TripPlanner() {
           </Card>
         )}
 
-        {!origin && !destination && (
-          <Card className="p-6 text-center">
-            <div className="flex flex-col items-center gap-3 text-muted-foreground">
-              <Search className="w-12 h-12 opacity-50" />
-              <p className="text-sm">
-                {isArabic 
-                  ? "ابحث عن نقطة البداية والوجهة لعرض محطات الشحن على المسار"
-                  : "Search for origin and destination to see charging stations along the route"
-                }
-              </p>
-            </div>
-          </Card>
-        )}
-
-        <div className="rounded-xl overflow-hidden border" style={{ height: "400px" }} data-testid="map-trip-planner">
+        <div className="rounded-xl overflow-hidden border" style={{ height: "350px" }} data-testid="map-trip-planner">
           <MapContainer
             center={[23.5880, 58.3829]}
             zoom={7}
             style={{ height: "100%", width: "100%" }}
             zoomControl={false}
+            dragging={false}
+            touchZoom={false}
+            scrollWheelZoom={false}
+            doubleClickZoom={false}
           >
             <TileLayer
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
