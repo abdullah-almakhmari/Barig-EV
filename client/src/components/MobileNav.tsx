@@ -1,10 +1,10 @@
 import { useLocation, Link } from "wouter";
-import { MapPin, Navigation, Plus, History, BarChart3 } from "lucide-react";
+import { MapPin, Navigation, Plus, History, Route } from "lucide-react";
 import { useLanguage } from "./LanguageContext";
 import { useIsPWA, useIsMobile } from "@/hooks/use-pwa";
 
 const navItemsAr = [
-  { path: "/stats", icon: BarChart3, labelAr: "إحصائيات", labelEn: "Stats" },
+  { path: "/trip-planner", icon: Route, labelAr: "رحلة", labelEn: "Trip" },
   { path: "/history", icon: History, labelAr: "السجل", labelEn: "History" },
   { path: "/admin/add-station", icon: Plus, labelAr: "إضافة", labelEn: "Add", isCenter: true },
   { path: "/nearby", icon: Navigation, labelAr: "قريب", labelEn: "Nearby" },
@@ -16,7 +16,7 @@ const navItemsEn = [
   { path: "/nearby", icon: Navigation, labelAr: "قريب", labelEn: "Nearby" },
   { path: "/admin/add-station", icon: Plus, labelAr: "إضافة", labelEn: "Add", isCenter: true },
   { path: "/history", icon: History, labelAr: "السجل", labelEn: "History" },
-  { path: "/stats", icon: BarChart3, labelAr: "إحصائيات", labelEn: "Stats" },
+  { path: "/trip-planner", icon: Route, labelAr: "رحلة", labelEn: "Trip" },
 ];
 
 const triggerHaptic = () => {
