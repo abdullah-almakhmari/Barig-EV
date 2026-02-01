@@ -2,7 +2,8 @@ import { useState, useMemo, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useLanguage } from "@/components/LanguageContext";
 import { useChargingSessions, useStations, useUserVehicles } from "@/hooks/use-stations";
-import { Loader2, BatteryCharging, Clock, Zap, Battery, Camera, ChevronDown, MapPin, Banknote, Car, Trash2, Upload, FileSpreadsheet, Cpu, Thermometer, Gauge, Activity, Radio, CircuitBoard, Timer, Bolt, TrendingUp, ChevronRight } from "lucide-react";
+import { Loader2, BatteryCharging, Clock, Zap, Battery, Camera, ChevronDown, MapPin, Banknote, Car, Trash2, Upload, FileSpreadsheet, Cpu, Thermometer, Gauge, Activity, Radio, CircuitBoard, Timer, Bolt, TrendingUp, ChevronRight, LayoutGrid, List } from "lucide-react";
+import { UserFriendlySessionCard } from "@/components/UserFriendlySessionCard";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -116,6 +117,14 @@ export default function ChargingHistory() {
   const [sessionToDelete, setSessionToDelete] = useState<ChargingSession | null>(null);
   const [expandedTelemetry, setExpandedTelemetry] = useState<number | null>(null);
   const [showImportDialog, setShowImportDialog] = useState(false);
+  const [viewMode, setViewMode] = useState<"cards" | "compact">(() => {
+    const saved = localStorage.getItem("bariq_history_view");
+    return saved === "compact" ? "compact" : "cards";
+  });
+  
+  useEffect(() => {
+    localStorage.setItem("bariq_history_view", viewMode);
+  }, [viewMode]);
   const [parsedSessions, setParsedSessions] = useState<ParsedSession[]>([]);
   const [importStationId, setImportStationId] = useState<string>("");
   const [importVehicleId, setImportVehicleId] = useState<string>("");
@@ -301,6 +310,26 @@ export default function ChargingHistory() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <div className="flex items-center border rounded-lg p-0.5">
+            <Button 
+              variant={viewMode === "cards" ? "secondary" : "ghost"} 
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => setViewMode("cards")}
+              data-testid="button-view-cards"
+            >
+              <LayoutGrid className="w-4 h-4" />
+            </Button>
+            <Button 
+              variant={viewMode === "compact" ? "secondary" : "ghost"} 
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => setViewMode("compact")}
+              data-testid="button-view-compact"
+            >
+              <List className="w-4 h-4" />
+            </Button>
+          </div>
           {selectedVehicleIsTesla && (
             <Button 
               variant="outline" 
@@ -422,7 +451,7 @@ export default function ChargingHistory() {
                 </div>
               </AccordionTrigger>
               <AccordionContent className="px-4 pb-4">
-                <div className="space-y-3 pt-2">
+                <div className={`pt-2 ${viewMode === "cards" ? "space-y-4" : "space-y-3"}`}>
                   {group.sessions.map((session) => {
                     const sessionData = session as any;
                     const hasDetailedTelemetry = sessionData.isAutoTracked && (
@@ -431,6 +460,20 @@ export default function ChargingHistory() {
                       sessionData.maxPowerKw || sessionData.maxTempC
                     );
                     const isExpanded = expandedTelemetry === session.id;
+                    
+                    if (viewMode === "cards") {
+                      return (
+                        <UserFriendlySessionCard
+                          key={session.id}
+                          session={sessionData}
+                          stationName={group.stationName}
+                          onDelete={!sessionData.isAutoTracked ? () => setSessionToDelete(session) : undefined}
+                          onScreenshot={session.screenshotPath ? () => setSelectedScreenshot(session.screenshotPath!) : undefined}
+                          electricityRate={electricityRate}
+                          currencySymbol={currencySymbol}
+                        />
+                      );
+                    }
                     
                     return (
                       <div key={session.id} className="border rounded-lg bg-muted/30 overflow-hidden">
