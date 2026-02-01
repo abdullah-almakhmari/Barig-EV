@@ -1110,6 +1110,45 @@ export async function registerRoutes(
         currentSessionId: connector.currentSessionId,
       });
       
+      // Store all vitals in log table for data analytics
+      try {
+        await storage.createTeslaVitalsLog({
+          connectorId: connector.id,
+          stationId: connector.stationId,
+          contactorClosed: vitals.contactor_closed,
+          vehicleConnected: vitals.vehicle_connected,
+          sessionS: vitals.session_s,
+          sessionEnergyWh: vitals.session_energy_wh,
+          gridV: vitals.grid_v,
+          gridHz: vitals.grid_hz,
+          vehicleCurrentA: vitals.vehicle_current_a,
+          currentAA: vitals.currentA_a,
+          currentBA: vitals.currentB_a,
+          currentCA: vitals.currentC_a,
+          currentNA: vitals.currentN_a,
+          voltageAV: vitals.voltageA_v,
+          voltageBV: vitals.voltageB_v,
+          voltageCV: vitals.voltageC_v,
+          relayK1V: vitals.relay_k1_v,
+          relayK2V: vitals.relay_k2_v,
+          pcbaTempC: vitals.pcba_temp_c,
+          handleTempC: vitals.handle_temp_c,
+          mcuTempC: vitals.mcu_temp_c,
+          pilotHighV: vitals.pilot_high_v,
+          pilotLowV: vitals.pilot_low_v,
+          proxV: vitals.prox_v,
+          uptimeS: vitals.uptime_s,
+          inputThermopileUv: vitals.input_thermopile_uv,
+          configStatus: vitals.config_status,
+          evseState: vitals.evse_state,
+          currentAlerts: vitals.current_alerts ? JSON.stringify(vitals.current_alerts) : null,
+          evseNotReadyReasons: vitals.evse_not_ready_reasons ? JSON.stringify(vitals.evse_not_ready_reasons) : null,
+        });
+      } catch (logErr) {
+        console.error("[ESP32] Error storing vitals log:", logErr);
+        // Don't fail the request if logging fails
+      }
+      
       // Parse previous vitals to detect state changes
       const prevVitals = connector.lastVitals ? JSON.parse(connector.lastVitals) : null;
       const wasVehicleConnected = prevVitals?.vehicle_connected || false;

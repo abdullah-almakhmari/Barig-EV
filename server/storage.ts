@@ -1,5 +1,5 @@
 import {
-  stations, reports, chargingSessions, evVehicles, userVehicles, users, stationVerifications, contactMessages, teslaConnectors, chargerRentals, ownershipVerifications, stationChargers,
+  stations, reports, chargingSessions, evVehicles, userVehicles, users, stationVerifications, contactMessages, teslaConnectors, chargerRentals, ownershipVerifications, stationChargers, teslaVitalsLog,
   type Station, type InsertStation,
   type Report, type InsertReport,
   type ChargingSession, type InsertChargingSession,
@@ -8,6 +8,7 @@ import {
   type StationVerification, type VerificationSummary,
   type ContactMessage, type InsertContactMessage,
   type TeslaConnector, type InsertTeslaConnector,
+  type TeslaVitalsLog, type InsertTeslaVitalsLog,
   type ChargerRental, type InsertChargerRental, type RentalSessionWithDetails,
   type OwnershipVerification, type InsertOwnershipVerification,
   type StationCharger, type InsertStationCharger
@@ -93,6 +94,10 @@ export interface IStorage {
   getStationTeslaConnectors(stationId: number): Promise<TeslaConnector[]>;
   updateTeslaConnector(id: number, data: Partial<TeslaConnector>): Promise<TeslaConnector | undefined>;
   deleteTeslaConnector(id: number): Promise<void>;
+  // Tesla Vitals Log - for data analytics
+  createTeslaVitalsLog(vitals: InsertTeslaVitalsLog): Promise<TeslaVitalsLog>;
+  getTeslaVitalsLogByConnector(connectorId: number, limit?: number): Promise<TeslaVitalsLog[]>;
+  getTeslaVitalsLogByStation(stationId: number, limit?: number): Promise<TeslaVitalsLog[]>;
   createChargingSession(session: InsertChargingSession): Promise<ChargingSession>;
   getStaleAutoTrackedSessions(staleHours: number): Promise<ChargingSession[]>;
   getConnectorsWithStaleSessions(): Promise<TeslaConnector[]>;
@@ -928,6 +933,25 @@ export class DatabaseStorage implements IStorage {
 
   async deleteTeslaConnector(id: number): Promise<void> {
     await db.delete(teslaConnectors).where(eq(teslaConnectors.id, id));
+  }
+
+  async createTeslaVitalsLog(vitals: InsertTeslaVitalsLog): Promise<TeslaVitalsLog> {
+    const [log] = await db.insert(teslaVitalsLog).values(vitals).returning();
+    return log;
+  }
+
+  async getTeslaVitalsLogByConnector(connectorId: number, limit: number = 100): Promise<TeslaVitalsLog[]> {
+    return await db.select().from(teslaVitalsLog)
+      .where(eq(teslaVitalsLog.connectorId, connectorId))
+      .orderBy(desc(teslaVitalsLog.recordedAt))
+      .limit(limit);
+  }
+
+  async getTeslaVitalsLogByStation(stationId: number, limit: number = 100): Promise<TeslaVitalsLog[]> {
+    return await db.select().from(teslaVitalsLog)
+      .where(eq(teslaVitalsLog.stationId, stationId))
+      .orderBy(desc(teslaVitalsLog.recordedAt))
+      .limit(limit);
   }
 
   async createChargingSession(session: InsertChargingSession): Promise<ChargingSession> {

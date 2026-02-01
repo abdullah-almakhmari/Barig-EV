@@ -160,6 +160,52 @@ export const teslaConnectors = pgTable("tesla_connectors", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Tesla Vitals Log - stores all vitals readings for data analytics
+export const teslaVitalsLog = pgTable("tesla_vitals_log", {
+  id: serial("id").primaryKey(),
+  connectorId: integer("connector_id").notNull(),
+  stationId: integer("station_id").notNull(),
+  // Core status
+  contactorClosed: boolean("contactor_closed"),
+  vehicleConnected: boolean("vehicle_connected"),
+  sessionS: integer("session_s"),
+  sessionEnergyWh: real("session_energy_wh"),
+  // Grid measurements
+  gridV: real("grid_v"),
+  gridHz: real("grid_hz"),
+  // Current measurements (3-phase + neutral)
+  vehicleCurrentA: real("vehicle_current_a"),
+  currentAA: real("current_a_a"),
+  currentBA: real("current_b_a"),
+  currentCA: real("current_c_a"),
+  currentNA: real("current_n_a"),
+  // Voltage measurements (3-phase)
+  voltageAV: real("voltage_a_v"),
+  voltageBV: real("voltage_b_v"),
+  voltageCV: real("voltage_c_v"),
+  // Relay voltages
+  relayK1V: real("relay_k1_v"),
+  relayK2V: real("relay_k2_v"),
+  // Temperature measurements
+  pcbaTempC: real("pcba_temp_c"),
+  handleTempC: real("handle_temp_c"),
+  mcuTempC: real("mcu_temp_c"),
+  // Pilot signal
+  pilotHighV: real("pilot_high_v"),
+  pilotLowV: real("pilot_low_v"),
+  proxV: real("prox_v"),
+  // System status
+  uptimeS: integer("uptime_s"),
+  inputThermopileUv: integer("input_thermopile_uv"),
+  configStatus: integer("config_status"),
+  evseState: integer("evse_state"),
+  // Alerts and reasons (stored as JSON strings)
+  currentAlerts: text("current_alerts"), // JSON array
+  evseNotReadyReasons: text("evse_not_ready_reasons"), // JSON array
+  // Timestamp
+  recordedAt: timestamp("recorded_at").defaultNow(),
+});
+
 // Home charger rental settings - allows users to rent out their home chargers
 export const chargerRentals = pgTable("charger_rentals", {
   id: serial("id").primaryKey(),
@@ -218,6 +264,7 @@ export const insertStationVerificationSchema = createInsertSchema(stationVerific
 export const insertTrustEventSchema = createInsertSchema(trustEvents).omit({ id: true, createdAt: true });
 export const insertContactMessageSchema = createInsertSchema(contactMessages).omit({ id: true, status: true, adminNotes: true, createdAt: true, updatedAt: true });
 export const insertTeslaConnectorSchema = createInsertSchema(teslaConnectors).omit({ id: true, isOnline: true, lastSeen: true, lastVitals: true, currentSessionId: true, createdAt: true, updatedAt: true });
+export const insertTeslaVitalsLogSchema = createInsertSchema(teslaVitalsLog).omit({ id: true, recordedAt: true });
 export const insertChargerRentalSchema = createInsertSchema(chargerRentals).omit({ id: true, totalEarnings: true, totalSessionsCount: true, totalEnergyKwh: true, createdAt: true, updatedAt: true });
 export const insertOwnershipVerificationSchema = createInsertSchema(ownershipVerifications).omit({ id: true, status: true, rejectionReason: true, reviewedBy: true, reviewedAt: true, expiresAt: true, createdAt: true, updatedAt: true });
 
@@ -241,6 +288,8 @@ export type ContactMessage = typeof contactMessages.$inferSelect;
 export type InsertContactMessage = z.infer<typeof insertContactMessageSchema>;
 export type TeslaConnector = typeof teslaConnectors.$inferSelect;
 export type InsertTeslaConnector = z.infer<typeof insertTeslaConnectorSchema>;
+export type TeslaVitalsLog = typeof teslaVitalsLog.$inferSelect;
+export type InsertTeslaVitalsLog = z.infer<typeof insertTeslaVitalsLogSchema>;
 export type ChargerRental = typeof chargerRentals.$inferSelect;
 export type InsertChargerRental = z.infer<typeof insertChargerRentalSchema>;
 export type OwnershipVerification = typeof ownershipVerifications.$inferSelect;

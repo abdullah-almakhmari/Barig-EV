@@ -33,7 +33,7 @@ Preferred communication style: Simple, everyday language.
 ### Data Storage
 
 - **Database**: PostgreSQL with Drizzle ORM for type-safe queries and migrations.
-- **Key Tables**: `stations`, `reports`, `evVehicles`, `userVehicles`, `chargingSessions`, `stationVerifications`, `trust_events`, `users`, `charger_rentals`, `ownershipVerifications`.
+- **Key Tables**: `stations`, `stationChargers`, `reports`, `evVehicles`, `userVehicles`, `chargingSessions`, `stationVerifications`, `trust_events`, `users`, `teslaConnectors`, `teslaVitalsLog`, `charger_rentals`, `ownershipVerifications`.
 
 ### Shared Code
 
@@ -48,6 +48,7 @@ Preferred communication style: Simple, everyday language.
     - **CSV Import**: Users can import charging history from Tesla app CSV files.
     - **ESP32 Tesla Wall Connector Integration**: An ESP32 device can bridge Tesla Wall Connector Gen 3 local API data to Bariq, enabling automatic charging session tracking and station status updates.
     - **Real-time Charging Visualization**: Stations with active ESP32 charging sessions display orange pulsing markers on the map and show "Charging" status on the station details page. Auto-tracked sessions cannot be manually cancelled to preserve data integrity.
+    - **Vitals Data Logging**: All Tesla Wall Connector vitals are stored in `tesla_vitals_log` table for data analytics, including: grid voltage/frequency, 3-phase currents (A/B/C/N), 3-phase voltages, relay voltages, temperatures (PCBA/handle/MCU), pilot signals, EVSE state, alerts, and not-ready reasons.
 - **Home Charger Rental System**:
     - **Ownership Verification**: Hybrid system supporting automatic verification via ESP32 devices OR manual verification through admin review. For manual verification, users receive a unique 6-character code, upload photos showing the code with their charger, and admins approve/reject requests. Only verified owners can set rental pricing.
     - **Owner Dashboard**: Users with verified home chargers can set rental pricing (per kWh), availability, and view earnings via the "My Charger" page accessible from Profile.
