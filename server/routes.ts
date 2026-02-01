@@ -103,6 +103,66 @@ export async function registerRoutes(
       res.status(500).json({ error: "Location search failed" });
     }
   });
+
+  // Reverse geocoding proxy
+  app.get("/api/location-reverse", async (req, res) => {
+    try {
+      const lat = req.query.lat as string;
+      const lng = req.query.lng as string;
+      
+      if (!lat || !lng) {
+        return res.status(400).json({ error: "Missing lat/lng parameters" });
+      }
+      
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`,
+        {
+          headers: {
+            "Accept-Language": "ar,en",
+            "User-Agent": "BariqEVApp/1.0 (https://bariq.replit.app)",
+          },
+        }
+      );
+      
+      if (!response.ok) {
+        throw new Error(`Nominatim API error: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      res.json(data);
+    } catch (error) {
+      console.error("Reverse geocoding error:", error);
+      res.status(500).json({ error: "Reverse geocoding failed" });
+    }
+  });
+
+  // Routing proxy (OSRM)
+  app.get("/api/route", async (req, res) => {
+    try {
+      const originLat = req.query.originLat as string;
+      const originLng = req.query.originLng as string;
+      const destLat = req.query.destLat as string;
+      const destLng = req.query.destLng as string;
+      
+      if (!originLat || !originLng || !destLat || !destLng) {
+        return res.status(400).json({ error: "Missing coordinate parameters" });
+      }
+      
+      const response = await fetch(
+        `https://router.project-osrm.org/route/v1/driving/${originLng},${originLat};${destLng},${destLat}?overview=full&geometries=geojson`
+      );
+      
+      if (!response.ok) {
+        throw new Error(`OSRM API error: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      res.json(data);
+    } catch (error) {
+      console.error("Route calculation error:", error);
+      res.status(500).json({ error: "Route calculation failed" });
+    }
+  });
   
   // Apply CSRF validation to all state-changing API routes
   app.use("/api", validateCsrf);

@@ -46,38 +46,53 @@ interface RouteInfo {
   duration: number;
 }
 
-const createStationIcon = (type: string, status: string) => {
-  const isHome = type === "HOME";
-  const isAvailable = status === "OPERATIONAL";
+type StationPriority = 'best' | 'good' | 'busy' | 'offline';
+
+function getStationPriority(status: string, availableChargers: number, chargerCount: number): StationPriority {
+  if (status === "OFFLINE") return 'offline';
+  const available = Math.max(0, availableChargers);
+  const total = chargerCount || 1;
+  if (available === 0) return 'busy';
+  if (available === total) return 'best';
+  return 'good';
+}
+
+const createStationIcon = (station: Station) => {
+  const priority = getStationPriority(station.status, station.availableChargers ?? 0, station.chargerCount ?? 1);
   
-  const bgColor = isAvailable 
-    ? (isHome ? "#10B981" : "#3B82F6") 
-    : "#EF4444";
+  let color: string;
+  const size = 14;
+  
+  switch (priority) {
+    case 'best':
+      color = '#10b981';
+      break;
+    case 'good':
+      color = '#22c55e';
+      break;
+    case 'busy':
+      color = '#f97316';
+      break;
+    case 'offline':
+    default:
+      color = '#ef4444';
+      break;
+  }
   
   return L.divIcon({
-    className: "custom-marker",
+    className: 'custom-div-icon',
     html: `
       <div style="
-        width: 36px;
-        height: 36px;
-        background: ${bgColor};
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-        border: 3px solid white;
-      ">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5">
-          ${isHome 
-            ? '<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline>'
-            : '<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>'
-          }
-        </svg>
-      </div>
+        background-color: ${color}; 
+        width: ${size}px; 
+        height: ${size}px; 
+        border-radius: 50%; 
+        border: 3px solid white; 
+        box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+      "></div>
     `,
-    iconSize: [36, 36],
-    iconAnchor: [18, 18],
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
   });
 };
 
@@ -365,8 +380,7 @@ export default function TripPlanner() {
         
         try {
           const response = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`,
-            { headers: { "Accept-Language": "ar,en" } }
+            `/api/location-reverse?lat=${latitude}&lng=${longitude}`
           );
           const data = await response.json();
           if (data.display_name) {
@@ -396,7 +410,7 @@ export default function TripPlanner() {
     setIsLoadingRoute(true);
     try {
       const response = await fetch(
-        `https://router.project-osrm.org/route/v1/driving/${origin.lng},${origin.lat};${destination.lng},${destination.lat}?overview=full&geometries=geojson`
+        `/api/route?originLat=${origin.lat}&originLng=${origin.lng}&destLat=${destination.lat}&destLng=${destination.lng}`
       );
       const data = await response.json();
       
