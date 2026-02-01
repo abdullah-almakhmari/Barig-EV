@@ -1937,6 +1937,65 @@ export async function registerRoutes(
     }
   });
 
+  // ==================== NOTIFICATIONS ====================
+  
+  // Get user notifications
+  app.get("/api/notifications", isAuthenticated, async (req: any, res) => {
+    try {
+      const notifications = await storage.getUserNotifications(req.user.id);
+      res.json(notifications);
+    } catch (err) {
+      console.error("[Notifications] Error fetching:", err);
+      res.status(500).json({ message: "Failed to fetch notifications" });
+    }
+  });
+  
+  // Get unread count
+  app.get("/api/notifications/unread-count", isAuthenticated, async (req: any, res) => {
+    try {
+      const count = await storage.getUnreadNotificationCount(req.user.id);
+      res.json({ count });
+    } catch (err) {
+      console.error("[Notifications] Error fetching unread count:", err);
+      res.status(500).json({ message: "Failed to fetch unread count" });
+    }
+  });
+  
+  // Mark notification as read
+  app.patch("/api/notifications/:id/read", isAuthenticated, async (req: any, res) => {
+    try {
+      const notificationId = parseInt(req.params.id);
+      const notification = await storage.markNotificationAsRead(notificationId);
+      res.json(notification);
+    } catch (err) {
+      console.error("[Notifications] Error marking as read:", err);
+      res.status(500).json({ message: "Failed to mark as read" });
+    }
+  });
+  
+  // Mark all notifications as read
+  app.post("/api/notifications/mark-all-read", isAuthenticated, async (req: any, res) => {
+    try {
+      await storage.markAllNotificationsAsRead(req.user.id);
+      res.json({ success: true });
+    } catch (err) {
+      console.error("[Notifications] Error marking all as read:", err);
+      res.status(500).json({ message: "Failed to mark all as read" });
+    }
+  });
+  
+  // Delete notification
+  app.delete("/api/notifications/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const notificationId = parseInt(req.params.id);
+      await storage.deleteNotification(notificationId);
+      res.json({ success: true });
+    } catch (err) {
+      console.error("[Notifications] Error deleting:", err);
+      res.status(500).json({ message: "Failed to delete notification" });
+    }
+  });
+
   // ==================== OWNERSHIP VERIFICATION ====================
   
   // Generate verification code helper

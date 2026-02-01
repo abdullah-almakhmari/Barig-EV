@@ -1,5 +1,5 @@
 import {
-  stations, reports, chargingSessions, evVehicles, userVehicles, users, stationVerifications, contactMessages, teslaConnectors, chargerRentals, ownershipVerifications, stationChargers, teslaVitalsLog, rentalRequests,
+  stations, reports, chargingSessions, evVehicles, userVehicles, users, stationVerifications, contactMessages, teslaConnectors, chargerRentals, ownershipVerifications, stationChargers, teslaVitalsLog, rentalRequests, notifications,
   type Station, type InsertStation,
   type Report, type InsertReport,
   type ChargingSession, type InsertChargingSession,
@@ -12,7 +12,8 @@ import {
   type ChargerRental, type InsertChargerRental, type RentalSessionWithDetails,
   type OwnershipVerification, type InsertOwnershipVerification,
   type StationCharger, type InsertStationCharger,
-  type RentalRequest, type InsertRentalRequest
+  type RentalRequest, type InsertRentalRequest,
+  type Notification, type InsertNotification
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, ilike, or, ne, gte, sql, isNotNull } from "drizzle-orm";
@@ -138,6 +139,13 @@ export interface IStorage {
   getRenterActiveRequest(stationId: number, renterId: string): Promise<RentalRequest | undefined>;
   updateRentalRequest(id: number, data: Partial<RentalRequest>): Promise<RentalRequest | undefined>;
   expireOldRentalRequests(): Promise<void>;
+  // Notifications
+  createNotification(notification: InsertNotification): Promise<Notification>;
+  getUserNotifications(userId: string): Promise<Notification[]>;
+  getUnreadNotificationCount(userId: string): Promise<number>;
+  markNotificationAsRead(id: number): Promise<Notification | undefined>;
+  markAllNotificationsAsRead(userId: string): Promise<void>;
+  deleteNotification(id: number): Promise<void>;
   seed(): Promise<void>;
 }
 
@@ -1281,6 +1289,46 @@ export class DatabaseStorage implements IStorage {
         eq(rentalRequests.status, "PENDING"),
         sql`${rentalRequests.expiresAt} < NOW()`
       ));
+  }
+
+  async createNotification(notification: InsertNotification): Promise<Notification> {
+    const [created] = await db.insert(notifications).values(notification).returning();
+    return created;
+  }
+
+  async getUserNotifications(userId: string): Promise<Notification[]> {
+    return await db.select()
+      .from(notifications)
+      .where(eq(notifications.userId, userId))
+      .orderBy(desc(notifications.createdAt));
+  }
+
+  async getUnreadNotificationCount(userId: string): Promise<number> {
+    const [result] = await db.select({ count: sql<number>`count(*)::int` })
+      .from(notifications)
+      .where(and(
+        eq(notifications.userId, userId),
+        eq(notifications.isRead, false)
+      ));
+    return result?.count ?? 0;
+  }
+
+  async markNotificationAsRead(id: number): Promise<Notification | undefined> {
+    const [updated] = await db.update(notifications)
+      .set({ isRead: true })
+      .where(eq(notifications.id, id))
+      .returning();
+    return updated;
+  }
+
+  async markAllNotificationsAsRead(userId: string): Promise<void> {
+    await db.update(notifications)
+      .set({ isRead: true })
+      .where(eq(notifications.userId, userId));
+  }
+
+  async deleteNotification(id: number): Promise<void> {
+    await db.delete(notifications).where(eq(notifications.id, id));
   }
 }
 
