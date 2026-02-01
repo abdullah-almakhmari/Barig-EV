@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Loader2, Home, Zap, Users, Wallet, Clock, Plus, Settings, Trash2, MapPin, BatteryCharging, Wifi, WifiOff, Cable, ShieldCheck, ShieldAlert, Camera, Upload, CheckCircle2, XCircle, Copy } from "lucide-react";
+import { Loader2, Home, Zap, Users, Wallet, Clock, Plus, Settings, Trash2, MapPin, BatteryCharging, Wifi, WifiOff, Cable, ShieldCheck, ShieldAlert, Camera, Upload, CheckCircle2, XCircle, Copy, QrCode, Share2, ExternalLink } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Redirect, Link } from "wouter";
 import { SEO } from "@/components/SEO";
@@ -57,6 +57,8 @@ export default function MyCharger() {
   const [uploadingPhotos, setUploadingPhotos] = useState(false);
   const [uploadedPhotos, setUploadedPhotos] = useState<string[]>([]);
   const [currentVerification, setCurrentVerification] = useState<OwnershipVerification | null>(null);
+  const [showQrDialog, setShowQrDialog] = useState(false);
+  const [qrCharger, setQrCharger] = useState<ChargerRentalWithStation | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const { data: dashboard, isLoading: dashboardLoading } = useQuery<DashboardData>({
@@ -257,6 +259,50 @@ export default function MyCharger() {
         description: isArabic ? "تم نسخ رمز التحقق" : "Verification code copied",
       });
     }
+  };
+
+  const getRentalLink = (stationId: number) => {
+    const baseUrl = window.location.origin;
+    return `${baseUrl}/rent/${stationId}`;
+  };
+
+  const getQrCodeUrl = (stationId: number) => {
+    const rentalLink = encodeURIComponent(getRentalLink(stationId));
+    return `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${rentalLink}`;
+  };
+
+  const copyRentalLink = (stationId: number) => {
+    navigator.clipboard.writeText(getRentalLink(stationId));
+    toast({
+      title: isArabic ? "تم النسخ" : "Copied",
+      description: isArabic ? "تم نسخ رابط التأجير" : "Rental link copied",
+    });
+  };
+
+  const shareRentalLink = async (charger: ChargerRentalWithStation) => {
+    const rentalLink = getRentalLink(charger.stationId);
+    const stationName = isArabic ? charger.station?.nameAr : charger.station?.name;
+    
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: isArabic ? `شاحن للتأجير - ${stationName}` : `Charger for Rent - ${stationName}`,
+          text: isArabic 
+            ? `اشحن سيارتك الكهربائية بسعر ${charger.pricePerKwh} ${charger.currency}/kWh`
+            : `Charge your EV at ${charger.pricePerKwh} ${charger.currency}/kWh`,
+          url: rentalLink,
+        });
+      } catch (err) {
+        copyRentalLink(charger.stationId);
+      }
+    } else {
+      copyRentalLink(charger.stationId);
+    }
+  };
+
+  const openQrDialog = (charger: ChargerRentalWithStation) => {
+    setQrCharger(charger);
+    setShowQrDialog(true);
   };
   
   const formatDuration = (minutes: number | null) => {
@@ -542,6 +588,76 @@ export default function MyCharger() {
             </DialogContent>
           </Dialog>
           
+          <Dialog open={showQrDialog} onOpenChange={(open) => {
+            setShowQrDialog(open);
+            if (!open) setQrCharger(null);
+          }}>
+            <DialogContent className="max-w-sm">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <QrCode className="w-5 h-5" />
+                  {isArabic ? "رمز QR للتأجير" : "Rental QR Code"}
+                </DialogTitle>
+                <DialogDescription>
+                  {isArabic 
+                    ? "اطبع هذا الرمز وضعه بجانب الشاحن ليتمكن المستأجرون من المسح والشحن"
+                    : "Print this QR code and place it near your charger so renters can scan and charge"
+                  }
+                </DialogDescription>
+              </DialogHeader>
+              
+              {qrCharger && (
+                <div className="space-y-4 py-4">
+                  <div className="flex justify-center">
+                    <div className="p-4 bg-white rounded-lg">
+                      <img 
+                        src={getQrCodeUrl(qrCharger.stationId)} 
+                        alt="QR Code"
+                        className="w-48 h-48"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="text-center space-y-1">
+                    <p className="font-medium">{isArabic ? qrCharger.station?.nameAr : qrCharger.station?.name}</p>
+                    <p className="text-lg font-bold text-primary">{qrCharger.pricePerKwh} {qrCharger.currency}/kWh</p>
+                  </div>
+                  
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      className="flex-1"
+                      onClick={() => copyRentalLink(qrCharger.stationId)}
+                      data-testid="btn-copy-rental-link"
+                    >
+                      <Copy className="w-4 h-4 me-1" />
+                      {isArabic ? "نسخ الرابط" : "Copy Link"}
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      className="flex-1"
+                      onClick={() => shareRentalLink(qrCharger)}
+                      data-testid="btn-share-rental"
+                    >
+                      <Share2 className="w-4 h-4 me-1" />
+                      {isArabic ? "مشاركة" : "Share"}
+                    </Button>
+                  </div>
+                  
+                  <Button 
+                    className="w-full"
+                    variant="outline"
+                    onClick={() => window.open(getQrCodeUrl(qrCharger.stationId), '_blank')}
+                    data-testid="btn-download-qr"
+                  >
+                    <ExternalLink className="w-4 h-4 me-1" />
+                    {isArabic ? "تحميل رمز QR" : "Download QR Code"}
+                  </Button>
+                </div>
+              )}
+            </DialogContent>
+          </Dialog>
+          
           <Dialog open={showSetupDialog} onOpenChange={(open) => {
             setShowSetupDialog(open);
             if (!open) {
@@ -787,7 +903,16 @@ export default function MyCharger() {
                               </div>
                             )}
                             
-                            <div className="flex gap-2 pt-2">
+                            <div className="flex flex-wrap gap-2 pt-2">
+                              <Button 
+                                variant="default" 
+                                size="sm" 
+                                onClick={() => openQrDialog(charger)}
+                                data-testid={`btn-qr-rental-${charger.id}`}
+                              >
+                                <QrCode className="w-4 h-4 me-1" />
+                                {isArabic ? "رمز QR" : "QR Code"}
+                              </Button>
                               <Button 
                                 variant="outline" 
                                 size="sm" 

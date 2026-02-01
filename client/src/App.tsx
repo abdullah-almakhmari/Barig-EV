@@ -29,6 +29,7 @@ import AdminPanel from "@/pages/AdminPanel";
 import Contact from "@/pages/Contact";
 import Profile from "@/pages/Profile";
 import MyCharger from "@/pages/MyCharger";
+import Rent from "@/pages/Rent";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -46,6 +47,7 @@ function Router() {
       <Route path="/contact" component={Contact} />
       <Route path="/station/:id" component={StationDetails} />
       <Route path="/station/:id/edit" component={EditStation} />
+      <Route path="/rent/:stationId" component={Rent} />
       <Route component={NotFound} />
     </Switch>
   );
