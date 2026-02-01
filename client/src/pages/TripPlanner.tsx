@@ -20,8 +20,7 @@ import {
   ChevronUp,
   Clock,
   AlertCircle,
-  Locate,
-  ArrowDown
+  Locate
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -413,22 +412,26 @@ export default function TripPlanner() {
     }
   }, [origin, destination, calculateRoute]);
 
-  const stationsAlongRoute = route
-    ? stations.filter((station) => {
-        if (station.isHidden || station.approvalStatus !== "APPROVED") return false;
-        
-        if (!filters.public && station.stationType === "PUBLIC") return false;
-        if (!filters.home && station.stationType === "HOME") return false;
-        if (filters.free && !station.isFree) return false;
-        if (filters.dcOnly && station.chargerType !== "DC") return false;
-        
-        const distance = getDistanceFromRoute(
-          [station.lat, station.lng],
-          route.coordinates
-        );
-        return distance <= routeDistance;
-      })
-    : [];
+  const visibleStations = stations.filter((station) => {
+    if (station.isHidden || station.approvalStatus !== "APPROVED") return false;
+    
+    if (!filters.public && station.stationType === "PUBLIC") return false;
+    if (!filters.home && station.stationType === "HOME") return false;
+    if (filters.free && !station.isFree) return false;
+    if (filters.dcOnly && station.chargerType !== "DC") return false;
+    
+    if (route) {
+      const distance = getDistanceFromRoute(
+        [station.lat, station.lng],
+        route.coordinates
+      );
+      return distance <= routeDistance;
+    }
+    
+    return true;
+  });
+
+  const stationsAlongRoute = route ? visibleStations : [];
 
   const mapBounds = route
     ? L.latLngBounds(route.coordinates)
@@ -485,12 +488,6 @@ export default function TripPlanner() {
               showCurrentLocation={true}
               isArabic={isArabic}
             />
-          </div>
-
-          <div className="flex justify-center">
-            <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
-              <ArrowDown className="w-4 h-4 text-muted-foreground" />
-            </div>
           </div>
           
           <div className="space-y-1">
@@ -680,7 +677,7 @@ export default function TripPlanner() {
               </Marker>
             )}
             
-            {stationsAlongRoute.map((station) => (
+            {visibleStations.map((station) => (
               <Marker
                 key={station.id}
                 position={[station.lat, station.lng]}
