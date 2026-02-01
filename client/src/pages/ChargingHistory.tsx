@@ -386,106 +386,96 @@ export default function ChargingHistory() {
                             <ChevronRight className={`w-3.5 h-3.5 transition-transform ${isExpanded ? "rotate-90" : ""}`} />
                           </button>
                           
-                          {isExpanded && (
-                            <div className="px-4 pb-4 pt-3 border-t bg-gradient-to-b from-primary/5 to-transparent">
-                              <div className="grid grid-cols-2 gap-2">
-                                {sessionData.gridVoltage && (
-                                  <div className="bg-card rounded-lg p-3 border">
-                                    <div className="flex items-center gap-2 mb-1">
-                                      <Bolt className="w-4 h-4 text-blue-500" />
-                                      <span className="text-[10px] text-muted-foreground">
-                                        {isArabic ? "قوة الكهرباء" : "Power"}
-                                      </span>
-                                    </div>
-                                    <p className="text-lg font-bold text-blue-600">
-                                      {sessionData.gridVoltage.toFixed(0)}V
-                                    </p>
-                                  </div>
-                                )}
+                          {isExpanded && (() => {
+                            const getTempStatus = (temp: number) => {
+                              if (temp <= 40) return { status: isArabic ? "آمنة" : "Safe", color: "text-green-600", bg: "bg-green-50 dark:bg-green-950/30" };
+                              if (temp <= 55) return { status: isArabic ? "طبيعية" : "Normal", color: "text-amber-600", bg: "bg-amber-50 dark:bg-amber-950/30" };
+                              return { status: isArabic ? "مرتفعة" : "High", color: "text-red-600", bg: "bg-red-50 dark:bg-red-950/30" };
+                            };
+                            const getFreqStatus = (freq: number) => {
+                              if (freq >= 49.5 && freq <= 50.5) return { status: isArabic ? "مستقر" : "Stable", color: "text-green-600", bg: "bg-green-50 dark:bg-green-950/30" };
+                              return { status: isArabic ? "متذبذب" : "Fluctuating", color: "text-amber-600", bg: "bg-amber-50 dark:bg-amber-950/30" };
+                            };
+                            const getVoltageStatus = (voltage: number) => {
+                              if (voltage >= 220 && voltage <= 250) return { status: isArabic ? "طبيعي" : "Normal", color: "text-green-600", bg: "bg-green-50 dark:bg-green-950/30" };
+                              if (voltage < 220) return { status: isArabic ? "منخفض" : "Low", color: "text-amber-600", bg: "bg-amber-50 dark:bg-amber-950/30" };
+                              return { status: isArabic ? "مرتفع" : "High", color: "text-red-600", bg: "bg-red-50 dark:bg-red-950/30" };
+                            };
+                            const getPowerStatus = (power: number) => {
+                              if (power <= 7) return { status: isArabic ? "شحن عادي" : "Standard", color: "text-blue-600", bg: "bg-blue-50 dark:bg-blue-950/30" };
+                              if (power <= 22) return { status: isArabic ? "شحن سريع" : "Fast", color: "text-purple-600", bg: "bg-purple-50 dark:bg-purple-950/30" };
+                              return { status: isArabic ? "شحن فائق" : "Ultra Fast", color: "text-green-600", bg: "bg-green-50 dark:bg-green-950/30" };
+                            };
+
+                            return (
+                              <div className="px-4 pb-4 pt-3 border-t bg-gradient-to-b from-primary/5 to-transparent">
+                                <div className="space-y-2">
+                                  {sessionData.maxTempC && (() => {
+                                    const tempStatus = getTempStatus(sessionData.maxTempC);
+                                    return (
+                                      <div className={`flex items-center justify-between p-3 rounded-lg ${tempStatus.bg}`}>
+                                        <div className="flex items-center gap-2">
+                                          <Thermometer className={`w-4 h-4 ${tempStatus.color}`} />
+                                          <span className="text-sm font-medium">{isArabic ? "درجة حرارة الشاحن" : "Charger Temperature"}</span>
+                                        </div>
+                                        <span className={`text-sm font-bold ${tempStatus.color}`}>{tempStatus.status}</span>
+                                      </div>
+                                    );
+                                  })()}
+                                  
+                                  {sessionData.gridFrequency && (() => {
+                                    const freqStatus = getFreqStatus(sessionData.gridFrequency);
+                                    return (
+                                      <div className={`flex items-center justify-between p-3 rounded-lg ${freqStatus.bg}`}>
+                                        <div className="flex items-center gap-2">
+                                          <Radio className={`w-4 h-4 ${freqStatus.color}`} />
+                                          <span className="text-sm font-medium">{isArabic ? "استقرار الكهرباء" : "Power Stability"}</span>
+                                        </div>
+                                        <span className={`text-sm font-bold ${freqStatus.color}`}>{freqStatus.status}</span>
+                                      </div>
+                                    );
+                                  })()}
+                                  
+                                  {sessionData.gridVoltage && (() => {
+                                    const voltStatus = getVoltageStatus(sessionData.gridVoltage);
+                                    return (
+                                      <div className={`flex items-center justify-between p-3 rounded-lg ${voltStatus.bg}`}>
+                                        <div className="flex items-center gap-2">
+                                          <Bolt className={`w-4 h-4 ${voltStatus.color}`} />
+                                          <span className="text-sm font-medium">{isArabic ? "جهد الكهرباء" : "Voltage Level"}</span>
+                                        </div>
+                                        <span className={`text-sm font-bold ${voltStatus.color}`}>{voltStatus.status}</span>
+                                      </div>
+                                    );
+                                  })()}
+                                  
+                                  {sessionData.maxPowerKw && (() => {
+                                    const powerStatus = getPowerStatus(sessionData.maxPowerKw);
+                                    return (
+                                      <div className={`flex items-center justify-between p-3 rounded-lg ${powerStatus.bg}`}>
+                                        <div className="flex items-center gap-2">
+                                          <Gauge className={`w-4 h-4 ${powerStatus.color}`} />
+                                          <span className="text-sm font-medium">{isArabic ? "سرعة الشحن" : "Charging Speed"}</span>
+                                        </div>
+                                        <span className={`text-sm font-bold ${powerStatus.color}`}>{powerStatus.status}</span>
+                                      </div>
+                                    );
+                                  })()}
+                                </div>
                                 
-                                {sessionData.gridFrequency && (
-                                  <div className="bg-card rounded-lg p-3 border">
-                                    <div className="flex items-center gap-2 mb-1">
-                                      <Radio className="w-4 h-4 text-indigo-500" />
-                                      <span className="text-[10px] text-muted-foreground">
-                                        {isArabic ? "استقرار الكهرباء" : "Stability"}
-                                      </span>
-                                    </div>
-                                    <p className="text-lg font-bold text-indigo-600">
-                                      {sessionData.gridFrequency.toFixed(1)}Hz
-                                    </p>
+                                <div className="mt-3 p-2 rounded-lg bg-primary/5 border border-primary/10">
+                                  <div className="flex items-center gap-2 text-xs text-primary">
+                                    <Cpu className="w-3 h-3" />
+                                    <span>
+                                      {isArabic 
+                                        ? "تم التسجيل تلقائياً" 
+                                        : "Auto-recorded"}
+                                    </span>
                                   </div>
-                                )}
-                                
-                                {sessionData.maxCurrentA && (
-                                  <div className="bg-card rounded-lg p-3 border">
-                                    <div className="flex items-center gap-2 mb-1">
-                                      <TrendingUp className="w-4 h-4 text-amber-500" />
-                                      <span className="text-[10px] text-muted-foreground">
-                                        {isArabic ? "أعلى سحب" : "Peak Draw"}
-                                      </span>
-                                    </div>
-                                    <p className="text-lg font-bold text-amber-600">
-                                      {sessionData.maxCurrentA.toFixed(1)}A
-                                    </p>
-                                  </div>
-                                )}
-                                
-                                {sessionData.maxPowerKw && (
-                                  <div className="bg-card rounded-lg p-3 border">
-                                    <div className="flex items-center gap-2 mb-1">
-                                      <Gauge className="w-4 h-4 text-purple-500" />
-                                      <span className="text-[10px] text-muted-foreground">
-                                        {isArabic ? "أعلى شحن" : "Peak Charge"}
-                                      </span>
-                                    </div>
-                                    <p className="text-lg font-bold text-purple-600">
-                                      {sessionData.maxPowerKw.toFixed(1)}kW
-                                    </p>
-                                  </div>
-                                )}
-                                
-                                {sessionData.maxTempC && (
-                                  <div className="bg-card rounded-lg p-3 border">
-                                    <div className="flex items-center gap-2 mb-1">
-                                      <Thermometer className="w-4 h-4 text-orange-500" />
-                                      <span className="text-[10px] text-muted-foreground">
-                                        {isArabic ? "حرارة الشاحن" : "Charger Heat"}
-                                      </span>
-                                    </div>
-                                    <p className="text-lg font-bold text-orange-600">
-                                      {sessionData.maxTempC.toFixed(0)}°C
-                                    </p>
-                                  </div>
-                                )}
-                                
-                                {sessionData.avgCurrentA && (
-                                  <div className="bg-card rounded-lg p-3 border">
-                                    <div className="flex items-center gap-2 mb-1">
-                                      <Activity className="w-4 h-4 text-cyan-500" />
-                                      <span className="text-[10px] text-muted-foreground">
-                                        {isArabic ? "متوسط السحب" : "Avg Draw"}
-                                      </span>
-                                    </div>
-                                    <p className="text-lg font-bold text-cyan-600">
-                                      {sessionData.avgCurrentA.toFixed(1)}A
-                                    </p>
-                                  </div>
-                                )}
-                              </div>
-                              
-                              <div className="mt-3 p-2 rounded-lg bg-primary/5 border border-primary/10">
-                                <div className="flex items-center gap-2 text-xs text-primary">
-                                  <Cpu className="w-3 h-3" />
-                                  <span>
-                                    {isArabic 
-                                      ? "تم التسجيل تلقائياً" 
-                                      : "Auto-recorded"}
-                                  </span>
                                 </div>
                               </div>
-                            </div>
-                          )}
+                            );
+                          })()}
                         </>
                       )}
                     </Card>
