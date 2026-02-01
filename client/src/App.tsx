@@ -31,7 +31,6 @@ import Profile from "@/pages/Profile";
 import MyCharger from "@/pages/MyCharger";
 import Rent from "@/pages/Rent";
 import Notifications from "@/pages/Notifications";
-import TripPlanner from "@/pages/TripPlanner";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -51,7 +50,6 @@ function Router() {
       <Route path="/station/:id" component={StationDetails} />
       <Route path="/station/:id/edit" component={EditStation} />
       <Route path="/rent/:stationId" component={Rent} />
-      <Route path="/trip-planner" component={TripPlanner} />
       <Route component={NotFound} />
     </Switch>
   );
