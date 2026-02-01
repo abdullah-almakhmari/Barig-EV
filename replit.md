@@ -33,7 +33,7 @@ Preferred communication style: Simple, everyday language.
 ### Data Storage
 
 - **Database**: PostgreSQL with Drizzle ORM for type-safe queries and migrations.
-- **Key Tables**: `stations`, `stationChargers`, `reports`, `evVehicles`, `userVehicles`, `chargingSessions`, `stationVerifications`, `trust_events`, `users`, `teslaConnectors`, `teslaVitalsLog`, `charger_rentals`, `ownershipVerifications`.
+- **Key Tables**: `stations`, `stationChargers`, `reports`, `evVehicles`, `userVehicles`, `chargingSessions`, `stationVerifications`, `trust_events`, `users`, `teslaConnectors`, `teslaVitalsLog`, `charger_rentals`, `ownershipVerifications`, `rental_requests`.
 
 ### Shared Code
 
@@ -52,6 +52,8 @@ Preferred communication style: Simple, everyday language.
 - **Home Charger Rental System**:
     - **Ownership Verification**: Hybrid system supporting automatic verification via ESP32 devices OR manual verification through admin review. For manual verification, users receive a unique 6-character code, upload photos showing the code with their charger, and admins approve/reject requests. Only verified owners can set rental pricing.
     - **Owner Dashboard**: Users with verified home chargers can set rental pricing (per kWh), availability, and view earnings via the "My Charger" page accessible from Profile.
+    - **QR Code Sharing**: Owners can generate and share QR codes for their chargers. Renters scan the QR, navigate to `/rent/:stationId`, and can start a rental request.
+    - **Automated Rental Flow**: Renters create a PENDING rental request (15-minute expiry). When charging starts, ESP32 auto-links the session to the renter via `rental_requests` table. Sessions are assigned to renter's history with rental pricing applied.
     - **Rental Pricing Display**: Station details show rental pricing badge for home chargers available for rent.
     - **Session Cost Tracking**: Charging sessions at rental chargers track and display rental costs with "Rental" badge in charging history.
     - **Earnings Analytics**: Owners see total earnings, session counts, and energy delivered in their dashboard.
