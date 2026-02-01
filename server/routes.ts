@@ -1328,9 +1328,13 @@ export async function registerRoutes(
           console.log("[ESP32] Rental request updated to ACTIVE, sessionId:", session.id);
         }
         
-        // Update station status to BUSY (orange)
+        // Update station status to BUSY and decrement available chargers
         await storage.updateStationStatus(connector.stationId, "BUSY");
-        console.log("[ESP32] Station status updated to BUSY");
+        const station = await storage.getStation(connector.stationId);
+        if (station && (station.availableChargers ?? 0) > 0) {
+          await storage.updateStationAvailability(connector.stationId, (station.availableChargers ?? 1) - 1);
+        }
+        console.log("[ESP32] Station status updated to BUSY, available chargers decremented");
       }
       
       // Charging just stopped
@@ -1392,8 +1396,14 @@ export async function registerRoutes(
         newSessionId = null;
         action = "session_ended";
         
-        // Update station status back to OPERATIONAL (green)
+        // Update station status back to OPERATIONAL and increment available chargers
         await storage.updateStationStatus(connector.stationId, "OPERATIONAL");
+        const stationAfter = await storage.getStation(connector.stationId);
+        if (stationAfter) {
+          const newAvailable = Math.min((stationAfter.availableChargers ?? 0) + 1, stationAfter.chargerCount ?? 1);
+          await storage.updateStationAvailability(connector.stationId, newAvailable);
+        }
+        console.log("[ESP32] Station status updated to OPERATIONAL, available chargers incremented");
       }
       
       // Update connector with latest vitals
