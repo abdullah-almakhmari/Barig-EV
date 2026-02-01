@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Loader2, Home, Zap, Users, Wallet, Clock, Plus, Settings, Trash2, MapPin, BatteryCharging, Wifi, WifiOff, Cable, ShieldCheck, ShieldAlert, Camera, Upload, CheckCircle2, XCircle, Copy, QrCode, Share2, ExternalLink } from "lucide-react";
+import { Loader2, Home, Zap, Users, Wallet, Clock, Plus, Settings, Trash2, MapPin, BatteryCharging, Wifi, WifiOff, Cable, ShieldCheck, ShieldAlert, Camera, Upload, CheckCircle2, XCircle, Copy, QrCode, Share2, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Redirect, Link } from "wouter";
 import { SEO } from "@/components/SEO";
@@ -18,6 +18,7 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
+import { QRCodeSVG } from "qrcode.react";
 import type { Station, ChargerRental, RentalSessionWithDetails, OwnershipVerification } from "@shared/schema";
 
 type ChargerRentalWithStation = ChargerRental & { station?: Station };
@@ -266,9 +267,28 @@ export default function MyCharger() {
     return `${baseUrl}/rent/${stationId}`;
   };
 
-  const getQrCodeUrl = (stationId: number) => {
-    const rentalLink = encodeURIComponent(getRentalLink(stationId));
-    return `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${rentalLink}`;
+  const downloadQrCode = (stationId: number, stationName: string) => {
+    const svg = document.getElementById(`qr-code-${stationId}`);
+    if (!svg) return;
+    
+    const svgData = new XMLSerializer().serializeToString(svg);
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    const img = new Image();
+    
+    img.onload = () => {
+      canvas.width = img.width;
+      canvas.height = img.height;
+      ctx?.drawImage(img, 0, 0);
+      const pngFile = canvas.toDataURL("image/png");
+      
+      const downloadLink = document.createElement("a");
+      downloadLink.download = `qr-${stationName || stationId}.png`;
+      downloadLink.href = pngFile;
+      downloadLink.click();
+    };
+    
+    img.src = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svgData)));
   };
 
   const copyRentalLink = (stationId: number) => {
@@ -610,10 +630,12 @@ export default function MyCharger() {
                 <div className="space-y-4 py-4">
                   <div className="flex justify-center">
                     <div className="p-4 bg-white rounded-lg">
-                      <img 
-                        src={getQrCodeUrl(qrCharger.stationId)} 
-                        alt="QR Code"
-                        className="w-48 h-48"
+                      <QRCodeSVG 
+                        id={`qr-code-${qrCharger.stationId}`}
+                        value={getRentalLink(qrCharger.stationId)}
+                        size={192}
+                        level="H"
+                        includeMargin={true}
                       />
                     </div>
                   </div>
@@ -647,10 +669,10 @@ export default function MyCharger() {
                   <Button 
                     className="w-full"
                     variant="outline"
-                    onClick={() => window.open(getQrCodeUrl(qrCharger.stationId), '_blank')}
+                    onClick={() => downloadQrCode(qrCharger.stationId, qrCharger.station?.name || '')}
                     data-testid="btn-download-qr"
                   >
-                    <ExternalLink className="w-4 h-4 me-1" />
+                    <Download className="w-4 h-4 me-1" />
                     {isArabic ? "تحميل رمز QR" : "Download QR Code"}
                   </Button>
                 </div>
