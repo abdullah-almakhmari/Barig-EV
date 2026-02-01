@@ -79,7 +79,7 @@ export default function Notifications() {
 
   if (isLoading) {
     return (
-      <div className="container mx-auto px-4 py-6 max-w-2xl">
+      <div className="container mx-auto px-4 py-6 max-w-2xl" dir={isArabic ? "rtl" : "ltr"}>
         <div className="flex items-center justify-between mb-6">
           <Skeleton className="h-8 w-32" />
           <Skeleton className="h-9 w-24" />
@@ -92,7 +92,7 @@ export default function Notifications() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-6 max-w-2xl">
+    <div className="container mx-auto px-4 py-6 max-w-2xl" dir={isArabic ? "rtl" : "ltr"}>
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">

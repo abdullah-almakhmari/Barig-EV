@@ -33,7 +33,7 @@ Preferred communication style: Simple, everyday language.
 ### Data Storage
 
 - **Database**: PostgreSQL with Drizzle ORM for type-safe queries and migrations.
-- **Key Tables**: `stations`, `stationChargers`, `reports`, `evVehicles`, `userVehicles`, `chargingSessions`, `stationVerifications`, `trust_events`, `users`, `teslaConnectors`, `teslaVitalsLog`, `charger_rentals`, `ownershipVerifications`, `rental_requests`.
+- **Key Tables**: `stations`, `stationChargers`, `reports`, `evVehicles`, `userVehicles`, `chargingSessions`, `stationVerifications`, `trust_events`, `users`, `teslaConnectors`, `teslaVitalsLog`, `charger_rentals`, `ownershipVerifications`, `rental_requests`, `notifications`.
 
 ### Shared Code
 
@@ -57,6 +57,12 @@ Preferred communication style: Simple, everyday language.
     - **Rental Pricing Display**: Station details show rental pricing badge for home chargers available for rent.
     - **Session Cost Tracking**: Charging sessions at rental chargers track and display rental costs with "Rental" badge in charging history.
     - **Earnings Analytics**: Owners see total earnings, session counts, and energy delivered in their dashboard.
+    - **Automated Notifications**: When a rental session ends, both the renter and owner receive in-app notifications with session details (duration, energy, cost). Notifications are bilingual (Arabic/English) and stored in the database.
+- **Notification System**:
+    - **In-App Notifications**: Bell icon in header with unread count badge.
+    - **Notifications Page**: `/notifications` route showing all user notifications with mark as read and delete functionality.
+    - **Notification Types**: `rental_complete` (for renters), `rental_income` (for owners), `session_complete` (for regular sessions).
+    - **Bilingual Support**: All notifications have both English and Arabic titles/messages.
 
 ## External Dependencies
 

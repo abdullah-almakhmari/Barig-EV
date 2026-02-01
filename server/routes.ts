@@ -1382,6 +1382,58 @@ export async function registerRoutes(
             await storage.updateRentalRequest(rentalRequest.id, { status: "COMPLETED" });
             console.log("[ESP32] Rental request marked as COMPLETED:", rentalRequest.id);
           }
+          
+          // Calculate duration
+          const startTime = new Date(session.startTime!);
+          const endTime = new Date();
+          const durationMinutes = Math.round((endTime.getTime() - startTime.getTime()) / 60000);
+          
+          // Get station name for notifications
+          const stationInfo = await storage.getStation(connector.stationId);
+          const stationName = stationInfo?.name || "Unknown";
+          const stationNameAr = stationInfo?.nameAr || "غير معروف";
+          
+          // Send notification to RENTER (the one who charged)
+          if (session.userId) {
+            await storage.createNotification({
+              userId: session.userId,
+              type: "rental_complete",
+              title: "Charging Session Complete",
+              titleAr: "اكتملت جلسة الشحن",
+              message: `Your charging session at ${stationName} has ended. Duration: ${durationMinutes} min, Energy: ${energyKwh.toFixed(2)} kWh, Cost: ${rentalTotalCost.toFixed(3)} OMR`,
+              messageAr: `انتهت جلسة الشحن في ${stationNameAr}. المدة: ${durationMinutes} دقيقة، الطاقة: ${energyKwh.toFixed(2)} كيلوواط، التكلفة: ${rentalTotalCost.toFixed(3)} ر.ع`,
+              data: JSON.stringify({
+                sessionId: session.id,
+                stationId: connector.stationId,
+                duration: durationMinutes,
+                energy: parseFloat(energyKwh.toFixed(2)),
+                cost: parseFloat(rentalTotalCost.toFixed(3)),
+              }),
+              isRead: false,
+            });
+            console.log("[ESP32] Notification sent to renter:", session.userId);
+          }
+          
+          // Send notification to OWNER (the charger owner)
+          if (rental?.ownerId) {
+            await storage.createNotification({
+              userId: rental.ownerId,
+              type: "rental_income",
+              title: "New Rental Income",
+              titleAr: "دخل جديد من التأجير",
+              message: `You earned ${rentalTotalCost.toFixed(3)} OMR from a rental at ${stationName}. Energy delivered: ${energyKwh.toFixed(2)} kWh`,
+              messageAr: `كسبت ${rentalTotalCost.toFixed(3)} ر.ع من تأجير في ${stationNameAr}. الطاقة المقدمة: ${energyKwh.toFixed(2)} كيلوواط`,
+              data: JSON.stringify({
+                sessionId: session.id,
+                stationId: connector.stationId,
+                duration: durationMinutes,
+                energy: parseFloat(energyKwh.toFixed(2)),
+                cost: parseFloat(rentalTotalCost.toFixed(3)),
+              }),
+              isRead: false,
+            });
+            console.log("[ESP32] Notification sent to owner:", rental.ownerId);
+          }
         }
         
         await storage.endChargingSession(connector.currentSessionId, undefined, energyKwh, undefined, {
