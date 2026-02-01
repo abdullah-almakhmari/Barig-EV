@@ -382,7 +382,7 @@ export default function ChargingHistory() {
                             data-testid={`telemetry-toggle-${session.id}`}
                           >
                             <CircuitBoard className="w-3.5 h-3.5" />
-                            <span>{isArabic ? "بيانات الشاحن التفصيلية" : "Charger Telemetry"}</span>
+                            <span>{isArabic ? "تفاصيل الشحن" : "Charging Details"}</span>
                             <ChevronRight className={`w-3.5 h-3.5 transition-transform ${isExpanded ? "rotate-90" : ""}`} />
                           </button>
                           
@@ -394,7 +394,7 @@ export default function ChargingHistory() {
                                     <div className="flex items-center gap-2 mb-1">
                                       <Bolt className="w-4 h-4 text-blue-500" />
                                       <span className="text-[10px] text-muted-foreground">
-                                        {isArabic ? "جهد الشبكة" : "Grid V"}
+                                        {isArabic ? "قوة الكهرباء" : "Power"}
                                       </span>
                                     </div>
                                     <p className="text-lg font-bold text-blue-600">
@@ -408,7 +408,7 @@ export default function ChargingHistory() {
                                     <div className="flex items-center gap-2 mb-1">
                                       <Radio className="w-4 h-4 text-indigo-500" />
                                       <span className="text-[10px] text-muted-foreground">
-                                        {isArabic ? "التردد" : "Freq"}
+                                        {isArabic ? "استقرار الكهرباء" : "Stability"}
                                       </span>
                                     </div>
                                     <p className="text-lg font-bold text-indigo-600">
@@ -422,7 +422,7 @@ export default function ChargingHistory() {
                                     <div className="flex items-center gap-2 mb-1">
                                       <TrendingUp className="w-4 h-4 text-amber-500" />
                                       <span className="text-[10px] text-muted-foreground">
-                                        {isArabic ? "أقصى تيار" : "Max A"}
+                                        {isArabic ? "أعلى سحب" : "Peak Draw"}
                                       </span>
                                     </div>
                                     <p className="text-lg font-bold text-amber-600">
@@ -436,7 +436,7 @@ export default function ChargingHistory() {
                                     <div className="flex items-center gap-2 mb-1">
                                       <Gauge className="w-4 h-4 text-purple-500" />
                                       <span className="text-[10px] text-muted-foreground">
-                                        {isArabic ? "أقصى قدرة" : "Max kW"}
+                                        {isArabic ? "أعلى شحن" : "Peak Charge"}
                                       </span>
                                     </div>
                                     <p className="text-lg font-bold text-purple-600">
@@ -450,7 +450,7 @@ export default function ChargingHistory() {
                                     <div className="flex items-center gap-2 mb-1">
                                       <Thermometer className="w-4 h-4 text-orange-500" />
                                       <span className="text-[10px] text-muted-foreground">
-                                        {isArabic ? "الحرارة" : "Temp"}
+                                        {isArabic ? "حرارة الشاحن" : "Charger Heat"}
                                       </span>
                                     </div>
                                     <p className="text-lg font-bold text-orange-600">
@@ -464,7 +464,7 @@ export default function ChargingHistory() {
                                     <div className="flex items-center gap-2 mb-1">
                                       <Activity className="w-4 h-4 text-cyan-500" />
                                       <span className="text-[10px] text-muted-foreground">
-                                        {isArabic ? "متوسط التيار" : "Avg A"}
+                                        {isArabic ? "متوسط السحب" : "Avg Draw"}
                                       </span>
                                     </div>
                                     <p className="text-lg font-bold text-cyan-600">
@@ -479,8 +479,8 @@ export default function ChargingHistory() {
                                   <Cpu className="w-3 h-3" />
                                   <span>
                                     {isArabic 
-                                      ? "تم تسجيل البيانات تلقائياً" 
-                                      : "Auto-recorded via ESP32"}
+                                      ? "تم التسجيل تلقائياً" 
+                                      : "Auto-recorded"}
                                   </span>
                                 </div>
                               </div>
