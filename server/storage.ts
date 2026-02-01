@@ -1,5 +1,5 @@
 import {
-  stations, reports, chargingSessions, evVehicles, userVehicles, users, stationVerifications, contactMessages, teslaConnectors, chargerRentals, ownershipVerifications, stationChargers, teslaVitalsLog,
+  stations, reports, chargingSessions, evVehicles, userVehicles, users, stationVerifications, contactMessages, teslaConnectors, chargerRentals, ownershipVerifications, stationChargers, teslaVitalsLog, rentalRequests,
   type Station, type InsertStation,
   type Report, type InsertReport,
   type ChargingSession, type InsertChargingSession,
@@ -11,7 +11,8 @@ import {
   type TeslaVitalsLog, type InsertTeslaVitalsLog,
   type ChargerRental, type InsertChargerRental, type RentalSessionWithDetails,
   type OwnershipVerification, type InsertOwnershipVerification,
-  type StationCharger, type InsertStationCharger
+  type StationCharger, type InsertStationCharger,
+  type RentalRequest, type InsertRentalRequest
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, ilike, or, ne, gte, sql, isNotNull } from "drizzle-orm";
@@ -128,6 +129,13 @@ export interface IStorage {
   updateStationCharger(id: number, data: Partial<InsertStationCharger>): Promise<StationCharger | undefined>;
   deleteStationCharger(id: number): Promise<void>;
   deleteStationChargers(stationId: number): Promise<void>;
+  // Rental Requests (for renter-initiated sessions)
+  createRentalRequest(request: InsertRentalRequest): Promise<RentalRequest>;
+  getRentalRequest(id: number): Promise<RentalRequest | undefined>;
+  getPendingRentalRequest(stationId: number): Promise<RentalRequest | undefined>;
+  getRenterActiveRequest(stationId: number, renterId: string): Promise<RentalRequest | undefined>;
+  updateRentalRequest(id: number, data: Partial<RentalRequest>): Promise<RentalRequest | undefined>;
+  expireOldRentalRequests(): Promise<void>;
   seed(): Promise<void>;
 }
 
@@ -1206,6 +1214,59 @@ export class DatabaseStorage implements IStorage {
 
   async deleteStationChargers(stationId: number): Promise<void> {
     await db.delete(stationChargers).where(eq(stationChargers.stationId, stationId));
+  }
+
+  // Rental Requests (for renter-initiated sessions)
+  async createRentalRequest(request: InsertRentalRequest): Promise<RentalRequest> {
+    const [created] = await db.insert(rentalRequests).values(request).returning();
+    return created;
+  }
+
+  async getRentalRequest(id: number): Promise<RentalRequest | undefined> {
+    const [request] = await db.select().from(rentalRequests).where(eq(rentalRequests.id, id));
+    return request;
+  }
+
+  async getPendingRentalRequest(stationId: number): Promise<RentalRequest | undefined> {
+    const [request] = await db.select()
+      .from(rentalRequests)
+      .where(and(
+        eq(rentalRequests.stationId, stationId),
+        eq(rentalRequests.status, "PENDING"),
+        gte(rentalRequests.expiresAt, new Date())
+      ))
+      .orderBy(desc(rentalRequests.createdAt));
+    return request;
+  }
+
+  async getRenterActiveRequest(stationId: number, renterId: string): Promise<RentalRequest | undefined> {
+    const [request] = await db.select()
+      .from(rentalRequests)
+      .where(and(
+        eq(rentalRequests.stationId, stationId),
+        eq(rentalRequests.renterId, renterId),
+        or(eq(rentalRequests.status, "PENDING"), eq(rentalRequests.status, "ACTIVE")),
+        gte(rentalRequests.expiresAt, new Date())
+      ))
+      .orderBy(desc(rentalRequests.createdAt));
+    return request;
+  }
+
+  async updateRentalRequest(id: number, data: Partial<RentalRequest>): Promise<RentalRequest | undefined> {
+    const [updated] = await db.update(rentalRequests)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(rentalRequests.id, id))
+      .returning();
+    return updated;
+  }
+
+  async expireOldRentalRequests(): Promise<void> {
+    await db.update(rentalRequests)
+      .set({ status: "EXPIRED", updatedAt: new Date() })
+      .where(and(
+        eq(rentalRequests.status, "PENDING"),
+        sql`${rentalRequests.expiresAt} < NOW()`
+      ));
   }
 }
 

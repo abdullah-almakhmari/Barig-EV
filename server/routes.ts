@@ -1283,20 +1283,50 @@ export async function registerRoutes(
       // Vehicle just connected and started charging
       if (!wasCharging && isCharging && isVehicleConnected) {
         console.log("[ESP32] Starting new charging session...");
+        
+        // Check for pending rental request
+        const pendingRental = await storage.getPendingRentalRequest(connector.stationId);
+        let sessionUserId = connector.userId;
+        let isRentalSession = false;
+        let rentalPricePerKwh = null;
+        let rentalOwnerId = null;
+        let rentalRequestId = null;
+        
+        if (pendingRental) {
+          console.log("[ESP32] Found pending rental request:", pendingRental.id, "from renter:", pendingRental.renterId);
+          sessionUserId = pendingRental.renterId;
+          isRentalSession = true;
+          rentalPricePerKwh = pendingRental.pricePerKwh;
+          rentalOwnerId = pendingRental.ownerId;
+          rentalRequestId = pendingRental.id;
+        }
+        
         // Start a new charging session with Tesla connector data
         const session = await storage.createChargingSession({
           stationId: connector.stationId,
-          userId: connector.userId,
-          userVehicleId: connector.userVehicleId,
+          userId: sessionUserId,
+          userVehicleId: pendingRental ? null : connector.userVehicleId, // Don't link owner's vehicle to rental
           isActive: true,
           isAutoTracked: true,
           teslaConnectorId: connector.id,
           gridVoltage: vitals.grid_v,
           gridFrequency: vitals.grid_hz,
+          isRentalSession,
+          rentalPricePerKwh,
+          rentalOwnerId,
         });
         newSessionId = session.id;
         action = "session_started";
-        console.log("[ESP32] Session started:", session.id, "for station:", connector.stationId);
+        console.log("[ESP32] Session started:", session.id, "for station:", connector.stationId, isRentalSession ? "(RENTAL)" : "");
+        
+        // If rental, update the rental request with session ID and mark as ACTIVE
+        if (pendingRental && rentalRequestId) {
+          await storage.updateRentalRequest(rentalRequestId, {
+            status: "ACTIVE",
+            sessionId: session.id,
+          });
+          console.log("[ESP32] Rental request updated to ACTIVE, sessionId:", session.id);
+        }
         
         // Update station status to BUSY (orange)
         await storage.updateStationStatus(connector.stationId, "BUSY");
@@ -1328,6 +1358,27 @@ export async function registerRoutes(
           vitals.handle_temp_c || 0
         );
         
+        // Get session to check if it's a rental
+        const session = await storage.getChargingSession(connector.currentSessionId);
+        let rentalTotalCost = null;
+        
+        if (session?.isRentalSession && session.rentalPricePerKwh) {
+          rentalTotalCost = energyKwh * session.rentalPricePerKwh;
+          console.log("[ESP32] Rental session ended, cost:", rentalTotalCost);
+          
+          // Update rental stats for the owner
+          const rental = await storage.getChargerRentalByStation(connector.stationId);
+          if (rental) {
+            await storage.updateRentalStats(rental.id, energyKwh, rentalTotalCost);
+          }
+          
+          // Mark rental request as COMPLETED
+          const rentalRequest = await storage.getPendingRentalRequest(connector.stationId);
+          if (rentalRequest && rentalRequest.sessionId === connector.currentSessionId) {
+            await storage.updateRentalRequest(rentalRequest.id, { status: "COMPLETED" });
+          }
+        }
+        
         await storage.endChargingSession(connector.currentSessionId, undefined, energyKwh, undefined, {
           gridVoltage: vitals.grid_v,
           gridFrequency: vitals.grid_hz,
@@ -1335,6 +1386,7 @@ export async function registerRoutes(
           avgCurrentA: vitals.vehicle_current_a,
           maxPowerKw: Math.round(maxPowerKw * 100) / 100,
           maxTempC: maxTemp,
+          rentalTotalCost,
         });
         newSessionId = null;
         action = "session_ended";
@@ -1724,6 +1776,153 @@ export async function registerRoutes(
     } catch (err) {
       console.error("[Charger Rental] Error deleting rental:", err);
       res.status(500).json({ message: "Failed to delete rental" });
+    }
+  });
+
+  // ==================== RENTAL REQUESTS (Renter-initiated sessions) ====================
+  
+  // Create a rental request (renter scans QR and starts waiting)
+  app.post("/api/rental-requests", isAuthenticated, async (req: any, res) => {
+    try {
+      const { stationId } = req.body;
+      const renterId = req.user.id;
+      
+      if (!stationId) {
+        return res.status(400).json({ message: "Station ID required" });
+      }
+      
+      // Check if station exists and is available for rent
+      const station = await storage.getStation(stationId);
+      if (!station) {
+        return res.status(404).json({ message: "Station not found" });
+      }
+      
+      // Get rental settings
+      const rental = await storage.getChargerRentalByStation(stationId);
+      if (!rental || !rental.isAvailableForRent) {
+        return res.status(400).json({ message: "Station not available for rent" });
+      }
+      
+      // Check if renter is trying to rent their own charger
+      if (rental.ownerId === renterId) {
+        return res.status(400).json({ message: "Cannot rent your own charger" });
+      }
+      
+      // Check if renter already has an active request for this station
+      const existingRequest = await storage.getRenterActiveRequest(stationId, renterId);
+      if (existingRequest) {
+        return res.json(existingRequest);
+      }
+      
+      // Expire old requests first
+      await storage.expireOldRentalRequests();
+      
+      // Create new rental request (expires in 15 minutes)
+      const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
+      const request = await storage.createRentalRequest({
+        stationId,
+        renterId,
+        ownerId: rental.ownerId,
+        pricePerKwh: rental.pricePerKwh,
+        currency: rental.currency || "OMR",
+        expiresAt,
+      });
+      
+      console.log("[Rental Request] Created:", { requestId: request.id, stationId, renterId });
+      res.json(request);
+    } catch (err) {
+      console.error("[Rental Request] Error creating:", err);
+      res.status(500).json({ message: "Failed to create rental request" });
+    }
+  });
+  
+  // Get renter's active request for a station
+  app.get("/api/rental-requests/my-request/:stationId", isAuthenticated, async (req: any, res) => {
+    try {
+      const stationId = parseInt(req.params.stationId);
+      const renterId = req.user.id;
+      
+      const request = await storage.getRenterActiveRequest(stationId, renterId);
+      if (!request) {
+        return res.status(404).json({ message: "No active request" });
+      }
+      
+      // If request has a session, get session details
+      let session = null;
+      if (request.sessionId) {
+        session = await storage.getChargingSession(request.sessionId);
+      }
+      
+      res.json({ request, session });
+    } catch (err) {
+      console.error("[Rental Request] Error fetching:", err);
+      res.status(500).json({ message: "Failed to fetch rental request" });
+    }
+  });
+  
+  // Cancel a rental request
+  app.delete("/api/rental-requests/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const requestId = parseInt(req.params.id);
+      const userId = req.user.id;
+      
+      const request = await storage.getRentalRequest(requestId);
+      if (!request) {
+        return res.status(404).json({ message: "Request not found" });
+      }
+      
+      // Only the renter can cancel
+      if (request.renterId !== userId) {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+      
+      // Can only cancel PENDING requests
+      if (request.status !== "PENDING") {
+        return res.status(400).json({ message: "Cannot cancel active or completed request" });
+      }
+      
+      await storage.updateRentalRequest(requestId, { status: "CANCELLED" });
+      res.json({ success: true });
+    } catch (err) {
+      console.error("[Rental Request] Error cancelling:", err);
+      res.status(500).json({ message: "Failed to cancel rental request" });
+    }
+  });
+  
+  // Get station rental info (for QR code landing page)
+  app.get("/api/rental-requests/station-info/:stationId", async (req, res) => {
+    try {
+      const stationId = parseInt(req.params.stationId);
+      
+      const station = await storage.getStation(stationId);
+      if (!station) {
+        return res.status(404).json({ message: "Station not found" });
+      }
+      
+      const rental = await storage.getChargerRentalByStation(stationId);
+      if (!rental || !rental.isAvailableForRent) {
+        return res.status(400).json({ message: "Station not available for rent" });
+      }
+      
+      res.json({
+        station: {
+          id: station.id,
+          name: station.name,
+          nameAr: station.nameAr,
+          city: station.city,
+          cityAr: station.cityAr,
+          address: station.address,
+        },
+        rental: {
+          pricePerKwh: rental.pricePerKwh,
+          currency: rental.currency,
+          description: rental.description,
+          descriptionAr: rental.descriptionAr,
+        },
+      });
+    } catch (err) {
+      console.error("[Rental Request] Error fetching station info:", err);
+      res.status(500).json({ message: "Failed to fetch station info" });
     }
   });
 
