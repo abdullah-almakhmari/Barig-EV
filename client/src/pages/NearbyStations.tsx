@@ -32,6 +32,16 @@ function formatDistance(distance: number, isArabic: boolean): string {
   return isArabic ? `${distance.toFixed(1)} كم` : `${distance.toFixed(1)} km`;
 }
 
+function getChargerTypes(chargerType: string | null | undefined): string[] {
+  if (!chargerType) return ['AC'];
+  const type = chargerType.toUpperCase();
+  if (type === 'BOTH' || type.includes('AC') && type.includes('DC')) {
+    return ['AC', 'DC'];
+  }
+  if (type.includes('DC')) return ['DC'];
+  return ['AC'];
+}
+
 interface VerificationSummary {
   working: number;
   notWorking: number;
@@ -153,16 +163,12 @@ function NearbyStationCard({
                   <StatusIcon className="w-3 h-3 me-1" />
                   {availabilityStatus.label}
                 </Badge>
-                {isRentalStation ? (
-                  <Badge className="bg-violet-500 text-white border-0 text-xs">
-                    {t("station.price.paid")}
-                  </Badge>
-                ) : station.isFree ? (
-                  <Badge className="bg-emerald-500 text-white border-0 text-xs">
+                {station.isFree ? (
+                  <Badge variant="outline" className="text-xs bg-emerald-500/10 text-emerald-600 border-emerald-500">
                     {t("station.price.free")}
                   </Badge>
                 ) : (
-                  <Badge className="bg-amber-500 text-white border-0 text-xs">
+                  <Badge variant="outline" className="text-xs bg-red-500/10 text-red-600 border-red-500">
                     {t("station.price.paid")}
                   </Badge>
                 )}
@@ -182,21 +188,29 @@ function NearbyStationCard({
             </p>
 
             {/* Bottom Row - Charger Info */}
-            <div className="flex items-center gap-3 flex-wrap">
-              <div className="flex items-center gap-1.5 text-sm">
-                <div className={`w-6 h-6 rounded flex items-center justify-center ${
-                  station.chargerType?.includes('DC') 
-                    ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-600' 
-                    : 'bg-blue-100 dark:bg-blue-900/30 text-blue-600'
-                }`}>
-                  <Zap className="w-3.5 h-3.5 fill-current" />
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Charger Types - Show all types */}
+              {getChargerTypes(station.chargerType).map((type) => (
+                <div 
+                  key={type}
+                  className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium ${
+                    type === 'DC' 
+                      ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400' 
+                      : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'
+                  }`}
+                >
+                  <Zap className="w-3 h-3 fill-current" />
+                  <span>{type}</span>
                 </div>
-                <span className="font-medium">{station.chargerType || "AC"}</span>
-                <span className="text-muted-foreground">•</span>
-                <span className="font-mono text-muted-foreground">{station.powerKw || "?"} kW</span>
+              ))}
+              
+              {/* Power */}
+              <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-muted text-xs">
+                <span className="font-mono font-medium">{station.powerKw || "?"} kW</span>
               </div>
               
-              <div className="flex items-center gap-1 text-sm text-muted-foreground">
+              {/* Available Chargers */}
+              <div className="flex items-center gap-1 text-xs text-muted-foreground">
                 <BatteryCharging className="w-3.5 h-3.5" />
                 <span>{station.availableChargers ?? 0}/{station.chargerCount ?? 1}</span>
               </div>
