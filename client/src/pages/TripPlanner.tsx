@@ -217,10 +217,19 @@ function LocationSearch({
           />
           <Input
             value={value}
-            onChange={(e) => onChange(e.target.value)}
+            onChange={(e) => {
+              onChange(e.target.value);
+              if (e.target.value.length >= 2) {
+                setIsOpen(true);
+              }
+            }}
             placeholder={placeholder}
             className="ps-10 pe-10 h-12 text-base rounded-xl bg-muted/30 border-muted"
-            onFocus={() => results.length > 0 && setIsOpen(true)}
+            onFocus={() => {
+              if (value.length >= 2 || results.length > 0) {
+                setIsOpen(true);
+              }
+            }}
             data-testid="input-location-search"
           />
           {isLoading && (
@@ -254,8 +263,19 @@ function LocationSearch({
         )}
       </div>
       
-      {isOpen && results.length > 0 && (
-        <Card className="absolute z-50 w-full mt-2 max-h-64 overflow-y-auto shadow-lg">
+      {isOpen && (
+        <Card className="absolute z-[9999] w-full mt-2 max-h-64 overflow-y-auto shadow-lg">
+          {isLoading && (
+            <div className="px-4 py-3 text-center text-muted-foreground text-sm">
+              <Loader2 className="w-4 h-4 animate-spin inline me-2" />
+              {isArabic ? "جاري البحث..." : "Searching..."}
+            </div>
+          )}
+          {!isLoading && results.length === 0 && value.length >= 2 && (
+            <div className="px-4 py-3 text-center text-muted-foreground text-sm">
+              {isArabic ? "لا توجد نتائج" : "No results found"}
+            </div>
+          )}
           {results.map((result) => (
             <button
               key={result.place_id}
@@ -634,6 +654,7 @@ export default function TripPlanner() {
 
         <div className="rounded-xl overflow-hidden border" style={{ height: "350px" }} data-testid="map-trip-planner">
           <MapContainer
+            key={`map-${visibleStations.length}`}
             center={[23.5880, 58.3829]}
             zoom={7}
             style={{ height: "100%", width: "100%" }}
@@ -715,6 +736,14 @@ export default function TripPlanner() {
             ))}
           </MapContainer>
         </div>
+
+        {!route && visibleStations.length > 0 && (
+          <p className="text-sm text-muted-foreground text-center">
+            {isArabic 
+              ? `${visibleStations.length} محطة متاحة على الخريطة` 
+              : `${visibleStations.length} stations available on map`}
+          </p>
+        )}
 
         {route && stationsAlongRoute.length > 0 && (
           <div className="space-y-2">
