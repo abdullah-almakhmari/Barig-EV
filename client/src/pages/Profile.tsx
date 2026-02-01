@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { User, Car, Star, Trash2, Plus, Loader2, Check, Zap, Camera, Cpu, Link2, Settings2, Copy, LogOut, AlertTriangle } from "lucide-react";
+import { User, Car, Star, Trash2, Plus, Loader2, Check, Zap, Camera, Cpu, Link2, Settings2, Copy, LogOut, AlertTriangle, BarChart3 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Redirect, Link } from "wouter";
 import { SEO } from "@/components/SEO";
@@ -992,6 +992,31 @@ export default function Profile() {
                 </div>
               </div>
               <Settings2 className="w-5 h-5 text-muted-foreground" />
+            </div>
+          </Link>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent className="p-6">
+          <Link href="/stats" data-testid="link-stats">
+            <div className="flex items-center justify-between hover-elevate rounded-lg cursor-pointer">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
+                  <BarChart3 className="w-6 h-6 text-muted-foreground" />
+                </div>
+                <div>
+                  <h3 className="font-medium text-lg">
+                    {isArabic ? "إحصائيات" : "Statistics"}
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    {isArabic 
+                      ? "عرض إحصائيات الشحن والاستخدام"
+                      : "View charging stats and usage"}
+                  </p>
+                </div>
+              </div>
+              <BarChart3 className="w-5 h-5 text-muted-foreground" />
             </div>
           </Link>
         </CardContent>
