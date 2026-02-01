@@ -1,0 +1,82 @@
+#include <WiFi.h>
+#include <HTTPClient.h>
+#include <WiFiClientSecure.h>
+
+const char* WIFI_SSID = "Camera";
+const char* WIFI_PASS = "37570000";
+const char* DEVICE_TOKEN = "KDykYf4GqjxzIV1UWjUYNz1bPDAAOEPi";
+const char* CHARGER_IP = "192.168.0.160";
+const char* BARIQ_URL = "https://bariq-ev.replit.app/api/tesla-connector/vitals";
+
+WiFiClientSecure client;
+
+void setup() {
+  Serial.begin(115200);
+  delay(1000);
+  
+  Serial.println("================================");
+  Serial.println("    Bariq - Tesla Charger");
+  Serial.println("================================");
+  Serial.println("Connecting to WiFi...");
+  
+  WiFi.begin(WIFI_SSID, WIFI_PASS);
+  
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  
+  Serial.println("");
+  Serial.println("WiFi Connected!");
+  Serial.print("IP: ");
+  Serial.println(WiFi.localIP());
+  
+  client.setInsecure();
+}
+
+void loop() {
+  if (WiFi.status() != WL_CONNECTED) {
+    WiFi.reconnect();
+    delay(5000);
+    return;
+  }
+  
+  HTTPClient http;
+  String chargerUrl = "http://" + String(CHARGER_IP) + "/api/1/vitals";
+  
+  http.begin(chargerUrl);
+  http.setTimeout(10000);
+  int httpCode = http.GET();
+  
+  if (httpCode == 200) {
+    String vitals = http.getString();
+    Serial.println("Charger OK");
+    http.end();
+    
+    http.begin(client, BARIQ_URL);
+    http.addHeader("Content-Type", "application/json");
+    
+    String payload = "{\"deviceToken\":\"";
+    payload += DEVICE_TOKEN;
+    payload += "\",\"vitals\":";
+    payload += vitals;
+    payload += "}";
+    
+    int postCode = http.POST(payload);
+    
+    if (postCode == 200) {
+      Serial.println("Sent to Bariq OK!");
+      Serial.println(http.getString());
+    } else {
+      Serial.print("Bariq error: ");
+      Serial.println(postCode);
+    }
+  } else {
+    Serial.print("Charger error: ");
+    Serial.println(httpCode);
+  }
+  
+  http.end();
+  Serial.println("Wait 30s...");
+  delay(30000);
+}
