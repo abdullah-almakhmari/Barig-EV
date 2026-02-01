@@ -74,6 +74,36 @@ export async function registerRoutes(
   // CSRF token endpoint - must be before CSRF validation middleware
   app.get("/api/csrf-token", csrfTokenEndpoint);
   
+  // Location search proxy (before CSRF validation as it's a GET request)
+  app.get("/api/location-search", async (req, res) => {
+    try {
+      const query = req.query.q as string;
+      if (!query || query.length < 2) {
+        return res.json([]);
+      }
+      
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=om,ae,sa,qa,bh,kw&limit=6`,
+        {
+          headers: {
+            "Accept-Language": "ar,en",
+            "User-Agent": "BariqEVApp/1.0 (https://bariq.replit.app)",
+          },
+        }
+      );
+      
+      if (!response.ok) {
+        throw new Error(`Nominatim API error: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      res.json(data);
+    } catch (error) {
+      console.error("Location search error:", error);
+      res.status(500).json({ error: "Location search failed" });
+    }
+  });
+  
   // Apply CSRF validation to all state-changing API routes
   app.use("/api", validateCsrf);
   

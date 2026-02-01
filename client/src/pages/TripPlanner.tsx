@@ -170,24 +170,17 @@ function LocationSearch({
       }
 
       setIsLoading(true);
+      setIsOpen(true);
       try {
-        const response = await fetch(
-          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
-            debouncedValue
-          )}&countrycodes=om,ae,sa,qa,bh,kw&limit=6`,
-          {
-            headers: {
-              "Accept-Language": "ar,en",
-            },
-          }
-        );
+        const response = await fetch(`/api/location-search?q=${encodeURIComponent(debouncedValue)}`);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
         const data = await response.json();
         setResults(data);
-        if (data.length > 0) {
-          setIsOpen(true);
-        }
       } catch (error) {
         console.error("Location search error:", error);
+        setResults([]);
       } finally {
         setIsLoading(false);
       }
