@@ -1,4 +1,4 @@
-const CACHE_VERSION = "v61";
+const CACHE_VERSION = "v62";
 const STATIC_CACHE = `bariq-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `bariq-dynamic-${CACHE_VERSION}`;
 const TILES_CACHE = `bariq-tiles-${CACHE_VERSION}`;

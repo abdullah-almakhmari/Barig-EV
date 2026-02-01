@@ -388,9 +388,9 @@ export default function ChargingHistory() {
                           
                           {isExpanded && (() => {
                             const getTempStatus = (temp: number) => {
-                              if (temp <= 40) return { status: isArabic ? "آمنة" : "Safe", color: "text-green-600", bg: "bg-green-50 dark:bg-green-950/30" };
-                              if (temp <= 55) return { status: isArabic ? "طبيعية" : "Normal", color: "text-amber-600", bg: "bg-amber-50 dark:bg-amber-950/30" };
-                              return { status: isArabic ? "مرتفعة" : "High", color: "text-red-600", bg: "bg-red-50 dark:bg-red-950/30" };
+                              if (temp <= 40) return { status: isArabic ? "آمنة" : "Safe", color: "text-green-600", bg: "bg-green-50 dark:bg-green-950/30", icon: "shield" };
+                              if (temp <= 55) return { status: isArabic ? "طبيعية" : "Normal", color: "text-amber-600", bg: "bg-amber-50 dark:bg-amber-950/30", icon: "check" };
+                              return { status: isArabic ? "مرتفعة" : "High", color: "text-red-600", bg: "bg-red-50 dark:bg-red-950/30", icon: "warning" };
                             };
                             const getFreqStatus = (freq: number) => {
                               if (freq >= 49.5 && freq <= 50.5) return { status: isArabic ? "مستقر" : "Stable", color: "text-green-600", bg: "bg-green-50 dark:bg-green-950/30" };
@@ -413,25 +413,63 @@ export default function ChargingHistory() {
                                   {sessionData.maxTempC && (() => {
                                     const tempStatus = getTempStatus(sessionData.maxTempC);
                                     return (
-                                      <div className={`flex items-center justify-between p-3 rounded-lg ${tempStatus.bg}`}>
+                                      <div className={`flex items-center justify-between p-3 rounded-lg ${tempStatus.bg}`} data-testid="telemetry-temperature">
                                         <div className="flex items-center gap-2">
                                           <Thermometer className={`w-4 h-4 ${tempStatus.color}`} />
-                                          <span className="text-sm font-medium">{isArabic ? "درجة حرارة الشاحن" : "Charger Temperature"}</span>
+                                          <div>
+                                            <span className="text-sm font-medium">{isArabic ? "درجة حرارة الشاحن" : "Charger Temperature"}</span>
+                                            <p className="text-xs text-muted-foreground">
+                                              {isArabic ? "أقصى درجة خلال الشحن" : "Max during charging"}
+                                            </p>
+                                          </div>
                                         </div>
-                                        <span className={`text-sm font-bold ${tempStatus.color}`}>{tempStatus.status}</span>
+                                        <div className="text-end">
+                                          <span className={`text-lg font-bold ${tempStatus.color}`}>{sessionData.maxTempC.toFixed(0)}°C</span>
+                                          <p className={`text-xs ${tempStatus.color}`}>{tempStatus.status}</p>
+                                        </div>
                                       </div>
                                     );
                                   })()}
-                                  
-                                  {sessionData.gridFrequency && (() => {
-                                    const freqStatus = getFreqStatus(sessionData.gridFrequency);
-                                    return (
-                                      <div className={`flex items-center justify-between p-3 rounded-lg ${freqStatus.bg}`}>
-                                        <div className="flex items-center gap-2">
-                                          <Radio className={`w-4 h-4 ${freqStatus.color}`} />
-                                          <span className="text-sm font-medium">{isArabic ? "استقرار الكهرباء" : "Power Stability"}</span>
+
+                                  {sessionData.maxCurrentA && (
+                                    <div className="flex items-center justify-between p-3 rounded-lg bg-purple-50 dark:bg-purple-950/30" data-testid="telemetry-current">
+                                      <div className="flex items-center gap-2">
+                                        <Activity className="w-4 h-4 text-purple-600" />
+                                        <div>
+                                          <span className="text-sm font-medium">{isArabic ? "شدة التيار" : "Current Flow"}</span>
+                                          <p className="text-xs text-muted-foreground">
+                                            {isArabic ? "أقصى / متوسط" : "Max / Average"}
+                                          </p>
                                         </div>
-                                        <span className={`text-sm font-bold ${freqStatus.color}`}>{freqStatus.status}</span>
+                                      </div>
+                                      <div className="text-end">
+                                        <span className="text-lg font-bold text-purple-600">{sessionData.maxCurrentA.toFixed(1)}A</span>
+                                        {sessionData.avgCurrentA && (
+                                          <p className="text-xs text-muted-foreground">
+                                            {isArabic ? "متوسط" : "avg"}: {sessionData.avgCurrentA.toFixed(1)}A
+                                          </p>
+                                        )}
+                                      </div>
+                                    </div>
+                                  )}
+                                  
+                                  {sessionData.maxPowerKw && (() => {
+                                    const powerStatus = getPowerStatus(sessionData.maxPowerKw);
+                                    return (
+                                      <div className={`flex items-center justify-between p-3 rounded-lg ${powerStatus.bg}`} data-testid="telemetry-power">
+                                        <div className="flex items-center gap-2">
+                                          <Gauge className={`w-4 h-4 ${powerStatus.color}`} />
+                                          <div>
+                                            <span className="text-sm font-medium">{isArabic ? "قوة الشحن" : "Charging Power"}</span>
+                                            <p className="text-xs text-muted-foreground">
+                                              {isArabic ? "أقصى قوة" : "Peak power"}
+                                            </p>
+                                          </div>
+                                        </div>
+                                        <div className="text-end">
+                                          <span className={`text-lg font-bold ${powerStatus.color}`}>{sessionData.maxPowerKw.toFixed(1)} kW</span>
+                                          <p className={`text-xs ${powerStatus.color}`}>{powerStatus.status}</p>
+                                        </div>
                                       </div>
                                     );
                                   })()}
@@ -439,28 +477,66 @@ export default function ChargingHistory() {
                                   {sessionData.gridVoltage && (() => {
                                     const voltStatus = getVoltageStatus(sessionData.gridVoltage);
                                     return (
-                                      <div className={`flex items-center justify-between p-3 rounded-lg ${voltStatus.bg}`}>
+                                      <div className={`flex items-center justify-between p-3 rounded-lg ${voltStatus.bg}`} data-testid="telemetry-voltage">
                                         <div className="flex items-center gap-2">
                                           <Bolt className={`w-4 h-4 ${voltStatus.color}`} />
-                                          <span className="text-sm font-medium">{isArabic ? "جهد الكهرباء" : "Voltage Level"}</span>
+                                          <div>
+                                            <span className="text-sm font-medium">{isArabic ? "جهد الشبكة" : "Grid Voltage"}</span>
+                                            <p className="text-xs text-muted-foreground">
+                                              {isArabic ? "جهد الكهرباء" : "Power supply"}
+                                            </p>
+                                          </div>
                                         </div>
-                                        <span className={`text-sm font-bold ${voltStatus.color}`}>{voltStatus.status}</span>
+                                        <div className="text-end">
+                                          <span className={`text-lg font-bold ${voltStatus.color}`}>{sessionData.gridVoltage.toFixed(0)}V</span>
+                                          <p className={`text-xs ${voltStatus.color}`}>{voltStatus.status}</p>
+                                        </div>
                                       </div>
                                     );
                                   })()}
                                   
-                                  {sessionData.maxPowerKw && (() => {
-                                    const powerStatus = getPowerStatus(sessionData.maxPowerKw);
+                                  {sessionData.gridFrequency && (() => {
+                                    const freqStatus = getFreqStatus(sessionData.gridFrequency);
                                     return (
-                                      <div className={`flex items-center justify-between p-3 rounded-lg ${powerStatus.bg}`}>
+                                      <div className={`flex items-center justify-between p-3 rounded-lg ${freqStatus.bg}`} data-testid="telemetry-frequency">
                                         <div className="flex items-center gap-2">
-                                          <Gauge className={`w-4 h-4 ${powerStatus.color}`} />
-                                          <span className="text-sm font-medium">{isArabic ? "سرعة الشحن" : "Charging Speed"}</span>
+                                          <Radio className={`w-4 h-4 ${freqStatus.color}`} />
+                                          <div>
+                                            <span className="text-sm font-medium">{isArabic ? "تردد الشبكة" : "Grid Frequency"}</span>
+                                            <p className="text-xs text-muted-foreground">
+                                              {isArabic ? "استقرار الكهرباء" : "Power stability"}
+                                            </p>
+                                          </div>
                                         </div>
-                                        <span className={`text-sm font-bold ${powerStatus.color}`}>{powerStatus.status}</span>
+                                        <div className="text-end">
+                                          <span className={`text-lg font-bold ${freqStatus.color}`}>{sessionData.gridFrequency.toFixed(1)} Hz</span>
+                                          <p className={`text-xs ${freqStatus.color}`}>{freqStatus.status}</p>
+                                        </div>
                                       </div>
                                     );
                                   })()}
+
+                                  {session.energyKwh && session.durationMinutes && session.durationMinutes > 0 && (
+                                    <div className="flex items-center justify-between p-3 rounded-lg bg-emerald-50 dark:bg-emerald-950/30" data-testid="telemetry-efficiency">
+                                      <div className="flex items-center gap-2">
+                                        <TrendingUp className="w-4 h-4 text-emerald-600" />
+                                        <div>
+                                          <span className="text-sm font-medium">{isArabic ? "كفاءة الشحن" : "Charging Efficiency"}</span>
+                                          <p className="text-xs text-muted-foreground">
+                                            {isArabic ? "معدل الشحن بالساعة" : "Avg. rate per hour"}
+                                          </p>
+                                        </div>
+                                      </div>
+                                      <div className="text-end">
+                                        <span className="text-lg font-bold text-emerald-600">
+                                          {((session.energyKwh / session.durationMinutes) * 60).toFixed(1)} kWh/h
+                                        </span>
+                                        <p className="text-xs text-muted-foreground">
+                                          {session.energyKwh.toFixed(1)} kWh / {formatDuration(session.durationMinutes)}
+                                        </p>
+                                      </div>
+                                    </div>
+                                  )}
                                 </div>
                                 
                                 <div className="mt-3 p-2 rounded-lg bg-primary/5 border border-primary/10">
@@ -468,8 +544,8 @@ export default function ChargingHistory() {
                                     <Cpu className="w-3 h-3" />
                                     <span>
                                       {isArabic 
-                                        ? "تم التسجيل تلقائياً" 
-                                        : "Auto-recorded"}
+                                        ? "بيانات مسجلة تلقائياً من شاحن تسلا" 
+                                        : "Auto-recorded from Tesla Wall Connector"}
                                     </span>
                                   </div>
                                 </div>
