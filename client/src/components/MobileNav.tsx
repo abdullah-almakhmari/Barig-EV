@@ -3,12 +3,20 @@ import { MapPin, Navigation, Plus, History, BarChart3 } from "lucide-react";
 import { useLanguage } from "./LanguageContext";
 import { useIsPWA, useIsMobile } from "@/hooks/use-pwa";
 
-const navItems = [
+const navItemsAr = [
   { path: "/stats", icon: BarChart3, labelAr: "إحصائيات", labelEn: "Stats" },
   { path: "/history", icon: History, labelAr: "السجل", labelEn: "History" },
   { path: "/admin/add-station", icon: Plus, labelAr: "إضافة", labelEn: "Add", isCenter: true },
   { path: "/nearby", icon: Navigation, labelAr: "قريب", labelEn: "Nearby" },
   { path: "/", icon: MapPin, labelAr: "الخريطة", labelEn: "Map" },
+];
+
+const navItemsEn = [
+  { path: "/", icon: MapPin, labelAr: "الخريطة", labelEn: "Map" },
+  { path: "/nearby", icon: Navigation, labelAr: "قريب", labelEn: "Nearby" },
+  { path: "/admin/add-station", icon: Plus, labelAr: "إضافة", labelEn: "Add", isCenter: true },
+  { path: "/history", icon: History, labelAr: "السجل", labelEn: "History" },
+  { path: "/stats", icon: BarChart3, labelAr: "إحصائيات", labelEn: "Stats" },
 ];
 
 const triggerHaptic = () => {
@@ -35,7 +43,7 @@ export function MobileNav() {
           alignItems: 'center',
         }}
       >
-        {navItems.map((item) => {
+        {(language === "ar" ? navItemsAr : navItemsEn).map((item) => {
           const isActive = location === item.path;
           const Icon = item.icon;
           const label = language === "ar" ? item.labelAr : item.labelEn;
