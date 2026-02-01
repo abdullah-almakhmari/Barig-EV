@@ -46,7 +46,6 @@ Preferred communication style: Simple, everyday language.
 - **Station Management**: Station owners can edit their stations via `/station/:id/edit` page. Features include updating station info (name, city, address), managing chargers (add/edit/delete multiple charger types like AC/DC), setting pricing (free/paid with details), and contact information. Owner verification ensures only the original submitter can modify their station.
 - **PWA Update Notification**: Automatic detection of new app versions with user-friendly update prompt. Works on Android and iOS. Service worker checks for updates every hour and shows a notification when a new version is available.
 - **Tesla Integrations**:
-    - **CSV Import**: Users can import charging history from Tesla app CSV files.
     - **ESP32 Tesla Wall Connector Integration**: An ESP32 device can bridge Tesla Wall Connector Gen 3 local API data to Bariq, enabling automatic charging session tracking and station status updates.
     - **Real-time Charging Visualization**: Stations with active ESP32 charging sessions display orange pulsing markers on the map and show "Charging" status on the station details page. Auto-tracked sessions cannot be manually cancelled to preserve data integrity.
     - **Vitals Data Logging**: All Tesla Wall Connector vitals are stored in `tesla_vitals_log` table for data analytics, including: grid voltage/frequency, 3-phase currents (A/B/C/N), 3-phase voltages, relay voltages, temperatures (PCBA/handle/MCU), pilot signals, EVSE state, alerts, and not-ready reasons.

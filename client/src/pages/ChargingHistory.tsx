@@ -1,54 +1,17 @@
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useLanguage } from "@/components/LanguageContext";
 import { useChargingSessions, useStations, useUserVehicles } from "@/hooks/use-stations";
-import { Loader2, BatteryCharging, Clock, Zap, Battery, Camera, MapPin, Banknote, Car, Upload, FileSpreadsheet, Cpu, Thermometer, Gauge, Activity, Radio, CircuitBoard, Timer, Bolt, TrendingUp, ChevronRight } from "lucide-react";
-import { UserFriendlySessionCard } from "@/components/UserFriendlySessionCard";
+import { Loader2, BatteryCharging, Clock, Zap, Battery, Camera, MapPin, Banknote, Car, Cpu, Thermometer, Gauge, Activity, Radio, CircuitBoard, Bolt, TrendingUp, ChevronRight } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { Link } from "wouter";
 import { SEO } from "@/components/SEO";
-import { useMutation } from "@tanstack/react-query";
-import { apiRequest, queryClient } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
 import type { ChargingSession } from "@shared/schema";
-
-interface ParsedSession {
-  startTime: string;
-  durationMinutes: number;
-  energyKwh: number;
-}
-
-function parseTeslaCSV(csvContent: string): ParsedSession[] {
-  const lines = csvContent.trim().split('\n');
-  if (lines.length < 2) return [];
-  
-  const sessions: ParsedSession[] = [];
-  
-  for (let i = 1; i < lines.length; i++) {
-    const line = lines[i].trim();
-    if (!line) continue;
-    
-    const values = line.split(',');
-    if (values.length >= 3) {
-      const startTime = values[0].trim();
-      const durationMinutes = parseFloat(values[1]) || 0;
-      const energyKwh = parseFloat(values[2]) || 0;
-      
-      if (startTime && energyKwh > 0) {
-        sessions.push({ startTime, durationMinutes, energyKwh });
-      }
-    }
-  }
-  
-  return sessions;
-}
 
 const ELECTRICITY_STORAGE_KEY = "bariq_electricity_rate";
 const CURRENCY_STORAGE_KEY = "bariq_currency";
@@ -86,83 +49,6 @@ export default function ChargingHistory() {
   useEffect(() => {
     localStorage.setItem(VEHICLE_FILTER_KEY, selectedVehicleId);
   }, [selectedVehicleId]);
-
-  const selectedVehicleIsTesla = useMemo(() => {
-    if (selectedVehicleId === "all") return false;
-    const selectedVehicle = userVehicles.find(v => String(v.id) === selectedVehicleId);
-    if (!selectedVehicle) return false;
-    return (
-      selectedVehicle.evVehicle?.brand?.toLowerCase().includes('tesla') ||
-      selectedVehicle.nickname?.toLowerCase().includes('tesla')
-    );
-  }, [userVehicles, selectedVehicleId]);
-
-  const selectedTeslaVehicle = useMemo(() => {
-    if (!selectedVehicleIsTesla) return null;
-    return userVehicles.find(v => String(v.id) === selectedVehicleId);
-  }, [userVehicles, selectedVehicleId, selectedVehicleIsTesla]);
-  
-  const [showImportDialog, setShowImportDialog] = useState(false);
-  const [parsedSessions, setParsedSessions] = useState<ParsedSession[]>([]);
-  const [importStationId, setImportStationId] = useState<string>("");
-  const [importVehicleId, setImportVehicleId] = useState<string>("");
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const { toast } = useToast();
-
-  const importSessionsMutation = useMutation({
-    mutationFn: async (data: { sessions: ParsedSession[]; stationId: number; userVehicleId?: number }) => {
-      const res = await apiRequest("POST", "/api/charging-sessions/import-csv", data);
-      return res.json();
-    },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/charging-sessions"] });
-      toast({
-        title: t("charging.importSuccess"),
-        description: `${data.imported} ${t("charging.importSuccessDesc")}`,
-      });
-      setShowImportDialog(false);
-      setParsedSessions([]);
-      setImportStationId("");
-      setImportVehicleId("");
-    },
-    onError: () => {
-      toast({
-        title: t("charging.importError"),
-        description: isArabic ? "حدث خطأ أثناء الاستيراد" : "An error occurred during import",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const content = event.target?.result as string;
-      const parsed = parseTeslaCSV(content);
-      setParsedSessions(parsed);
-      if (parsed.length === 0) {
-        toast({
-          title: isArabic ? "خطأ" : "Error",
-          description: t("charging.noValidSessions"),
-          variant: "destructive",
-        });
-      }
-    };
-    reader.readAsText(file);
-  };
-
-  const handleImport = () => {
-    if (!importStationId || parsedSessions.length === 0) return;
-    
-    importSessionsMutation.mutate({
-      sessions: parsedSessions,
-      stationId: parseInt(importStationId),
-      userVehicleId: importVehicleId ? parseInt(importVehicleId) : undefined,
-    });
-  };
 
   useEffect(() => {
     const savedRate = localStorage.getItem(ELECTRICITY_STORAGE_KEY);
@@ -270,36 +156,16 @@ export default function ChargingHistory() {
       
       {/* Header */}
       <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm pt-4 pb-3 -mx-4 px-4 border-b mb-4">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center shadow-lg">
-              <BatteryCharging className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold">{t("charging.history")}</h1>
-              <p className="text-muted-foreground text-xs">
-                {filteredSessions.length} {isArabic ? "جلسة شحن" : "charging sessions"}
-              </p>
-            </div>
+        <div className="flex items-center gap-3">
+          <div className="w-11 h-11 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center shadow-lg">
+            <BatteryCharging className="w-5 h-5 text-white" />
           </div>
-          
-          {selectedVehicleIsTesla && (
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => {
-                setShowImportDialog(true);
-                if (selectedTeslaVehicle) {
-                  setImportVehicleId(String(selectedTeslaVehicle.id));
-                }
-              }}
-              data-testid="button-import-csv"
-              className="gap-1.5 h-9"
-            >
-              <Upload className="w-4 h-4" />
-              <span className="hidden sm:inline">{t("charging.import")}</span>
-            </Button>
-          )}
+          <div>
+            <h1 className="text-xl font-bold">{t("charging.history")}</h1>
+            <p className="text-muted-foreground text-xs">
+              {filteredSessions.length} {isArabic ? "جلسة شحن" : "charging sessions"}
+            </p>
+          </div>
         </div>
       </div>
 
@@ -311,7 +177,7 @@ export default function ChargingHistory() {
               variant={selectedVehicleId === "all" ? "default" : "outline"}
               size="sm"
               onClick={() => setSelectedVehicleId("all")}
-              className="shrink-0 h-9"
+              className="shrink-0"
               data-testid="filter-all-vehicles"
             >
               {isArabic ? "الكل" : "All"}
@@ -322,7 +188,7 @@ export default function ChargingHistory() {
                 variant={selectedVehicleId === String(vehicle.id) ? "default" : "outline"}
                 size="sm"
                 onClick={() => setSelectedVehicleId(String(vehicle.id))}
-                className="shrink-0 h-9 gap-1.5"
+                className="shrink-0 gap-1.5"
                 data-testid={`filter-vehicle-${vehicle.id}`}
               >
                 <Car className="w-3.5 h-3.5" />
@@ -512,7 +378,7 @@ export default function ChargingHistory() {
                               e.stopPropagation();
                               setExpandedTelemetry(isExpanded ? null : session.id);
                             }}
-                            className="w-full px-4 py-2.5 flex items-center justify-center gap-2 text-xs text-primary border-t bg-primary/5 hover:bg-primary/10 transition-colors"
+                            className="w-full px-4 py-2.5 flex items-center justify-center gap-2 text-xs text-primary border-t bg-primary/5 hover-elevate transition-colors"
                             data-testid={`telemetry-toggle-${session.id}`}
                           >
                             <CircuitBoard className="w-3.5 h-3.5" />
@@ -662,122 +528,6 @@ export default function ChargingHistory() {
               />
             </div>
           )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Tesla Import Dialog */}
-      <Dialog open={showImportDialog} onOpenChange={setShowImportDialog}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <FileSpreadsheet className="w-5 h-5 text-primary" />
-              {t("charging.importTitle")}
-            </DialogTitle>
-            <DialogDescription>
-              {t("charging.importDesc")}
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4">
-            <div>
-              <Label>{t("charging.selectFile")}</Label>
-              <input
-                type="file"
-                accept=".csv"
-                ref={fileInputRef}
-                onChange={handleFileSelect}
-                className="hidden"
-              />
-              <Button
-                variant="outline"
-                className="w-full mt-2 gap-2 h-11"
-                onClick={() => fileInputRef.current?.click()}
-                data-testid="button-select-csv-file"
-              >
-                <Upload className="w-4 h-4" />
-                {parsedSessions.length > 0 
-                  ? `${parsedSessions.length} ${t("charging.sessionsFound")}`
-                  : t("charging.selectFile")
-                }
-              </Button>
-            </div>
-
-            {parsedSessions.length > 0 && (
-              <>
-                <div>
-                  <Label>{t("charging.selectStation")}</Label>
-                  <Select value={importStationId} onValueChange={setImportStationId}>
-                    <SelectTrigger className="w-full mt-2 h-11" data-testid="select-import-station">
-                      <SelectValue placeholder={t("charging.selectStation")} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {stations?.filter(s => s.stationType === "HOME").map((station) => (
-                        <SelectItem key={station.id} value={String(station.id)}>
-                          {isArabic ? station.nameAr : station.name}
-                        </SelectItem>
-                      ))}
-                      {stations?.filter(s => s.stationType !== "HOME").map((station) => (
-                        <SelectItem key={station.id} value={String(station.id)}>
-                          {isArabic ? station.nameAr : station.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {selectedTeslaVehicle && (
-                  <div className="p-3 bg-primary/5 rounded-lg border border-primary/20">
-                    <Label className="text-muted-foreground text-xs">
-                      {isArabic ? "السيارة المختارة" : "Selected Vehicle"}
-                    </Label>
-                    <p className="font-medium text-primary mt-1">
-                      {selectedTeslaVehicle.nickname || 
-                        (selectedTeslaVehicle.evVehicle 
-                          ? `${selectedTeslaVehicle.evVehicle.brand} ${selectedTeslaVehicle.evVehicle.model}` 
-                          : "Tesla")}
-                    </p>
-                  </div>
-                )}
-
-                <Card className="p-3 bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">{isArabic ? "إجمالي الطاقة" : "Total Energy"}</span>
-                    <span className="font-bold text-emerald-600">
-                      {parsedSessions.reduce((sum, s) => sum + s.energyKwh, 0).toFixed(1)} kWh
-                    </span>
-                  </div>
-                </Card>
-              </>
-            )}
-          </div>
-
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button
-              variant="outline"
-              onClick={() => {
-                setShowImportDialog(false);
-                setParsedSessions([]);
-                setImportStationId("");
-                setImportVehicleId("");
-              }}
-            >
-              {isArabic ? "إلغاء" : "Cancel"}
-            </Button>
-            <Button
-              onClick={handleImport}
-              disabled={!importStationId || parsedSessions.length === 0 || importSessionsMutation.isPending}
-              data-testid="button-confirm-import"
-            >
-              {importSessionsMutation.isPending ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <>
-                  <Upload className="w-4 h-4 me-2" />
-                  {t("charging.importButton")}
-                </>
-              )}
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
