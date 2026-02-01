@@ -221,7 +221,8 @@ function LocationSearch({
               onChange("");
               setResults([]);
             }}
-            className="absolute end-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            className="absolute end-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+            data-testid="button-clear-location"
           >
             <X className="w-5 h-5" />
           </button>
@@ -238,8 +239,8 @@ function LocationSearch({
                 onChange(result.display_name.split(",")[0]);
                 setIsOpen(false);
               }}
-              className="w-full px-4 py-3 text-start hover-elevate flex items-start gap-3 border-b last:border-b-0"
-              data-testid={`location-result-${result.place_id}`}
+              className="w-full px-4 py-3 text-start flex items-start gap-3 border-b last:border-b-0 hover:bg-muted/50"
+              data-testid={`button-location-result-${result.place_id}`}
             >
               <MapPin className="w-5 h-5 text-muted-foreground shrink-0 mt-0.5" />
               <span className="text-sm line-clamp-2">{result.display_name}</span>
@@ -256,17 +257,34 @@ function getDistanceFromRoute(
   routeCoords: [number, number][]
 ): number {
   let minDistance = Infinity;
+  const [lat, lng] = point;
   
-  for (const coord of routeCoords) {
-    const distance = Math.sqrt(
-      Math.pow(point[0] - coord[0], 2) + Math.pow(point[1] - coord[1], 2)
-    );
+  for (let i = 0; i < routeCoords.length - 1; i++) {
+    const [lat1, lng1] = routeCoords[i];
+    const [lat2, lng2] = routeCoords[i + 1];
+    
+    const dx = lat2 - lat1;
+    const dy = lng2 - lng1;
+    const lengthSq = dx * dx + dy * dy;
+    
+    let t = 0;
+    if (lengthSq > 0) {
+      t = Math.max(0, Math.min(1, ((lat - lat1) * dx + (lng - lng1) * dy) / lengthSq));
+    }
+    
+    const nearestLat = lat1 + t * dx;
+    const nearestLng = lng1 + t * dy;
+    
+    const dLat = (lat - nearestLat) * 111;
+    const dLng = (lng - nearestLng) * 111 * Math.cos(lat * Math.PI / 180);
+    const distance = Math.sqrt(dLat * dLat + dLng * dLng);
+    
     if (distance < minDistance) {
       minDistance = distance;
     }
   }
   
-  return minDistance * 111;
+  return minDistance;
 }
 
 export default function TripPlanner() {
@@ -366,12 +384,19 @@ export default function TripPlanner() {
     <>
       <Helmet>
         <title>{isArabic ? "مخطط الرحلات - بارق" : "Trip Planner - Bariq"}</title>
+        <meta 
+          name="description" 
+          content={isArabic 
+            ? "خطط رحلتك واعثر على محطات شحن السيارات الكهربائية على طول الطريق في عُمان والخليج"
+            : "Plan your trip and find EV charging stations along your route in Oman and the GCC"
+          } 
+        />
       </Helmet>
       
       <div className="space-y-4 pb-20" dir={isArabic ? "rtl" : "ltr"}>
         <div className="flex items-center gap-2 mb-4">
-          <Route className="w-6 h-6 text-primary" />
-          <h1 className="text-xl font-bold">
+          <Route className="w-6 h-6" />
+          <h1 className="text-xl font-bold" data-testid="text-trip-planner-title">
             {isArabic ? "مخطط الرحلات" : "Trip Planner"}
           </h1>
         </div>
@@ -421,6 +446,7 @@ export default function TripPlanner() {
                     onCheckedChange={(checked) =>
                       setFilters({ ...filters, public: !!checked })
                     }
+                    data-testid="checkbox-filter-public"
                   />
                   <Label htmlFor="filter-public" className="flex items-center gap-1.5 text-sm">
                     <Building2 className="w-4 h-4 text-blue-500" />
@@ -435,6 +461,7 @@ export default function TripPlanner() {
                     onCheckedChange={(checked) =>
                       setFilters({ ...filters, home: !!checked })
                     }
+                    data-testid="checkbox-filter-home"
                   />
                   <Label htmlFor="filter-home" className="flex items-center gap-1.5 text-sm">
                     <Home className="w-4 h-4 text-green-500" />
@@ -449,6 +476,7 @@ export default function TripPlanner() {
                     onCheckedChange={(checked) =>
                       setFilters({ ...filters, free: !!checked })
                     }
+                    data-testid="checkbox-filter-free"
                   />
                   <Label htmlFor="filter-free" className="flex items-center gap-1.5 text-sm">
                     <span className="text-green-600 font-bold text-xs">FREE</span>
@@ -463,6 +491,7 @@ export default function TripPlanner() {
                     onCheckedChange={(checked) =>
                       setFilters({ ...filters, dcOnly: !!checked })
                     }
+                    data-testid="checkbox-filter-dc"
                   />
                   <Label htmlFor="filter-dc" className="flex items-center gap-1.5 text-sm">
                     <Zap className="w-4 h-4 text-amber-500 fill-current" />
@@ -485,6 +514,7 @@ export default function TripPlanner() {
                   value={routeDistance}
                   onChange={(e) => setRouteDistance(parseInt(e.target.value))}
                   className="w-full accent-primary"
+                  data-testid="input-route-distance"
                 />
               </div>
             </div>
@@ -533,7 +563,7 @@ export default function TripPlanner() {
           </Card>
         )}
 
-        <div className="rounded-xl overflow-hidden border" style={{ height: "400px" }}>
+        <div className="rounded-xl overflow-hidden border" style={{ height: "400px" }} data-testid="map-trip-planner">
           <MapContainer
             center={[23.5880, 58.3829]}
             zoom={7}
@@ -602,7 +632,7 @@ export default function TripPlanner() {
                       {station.chargerType} • {station.powerKw} kW
                     </p>
                     <Link href={`/station/${station.id}`}>
-                      <Button size="sm" className="w-full">
+                      <Button size="sm" className="w-full" data-testid={`button-view-station-${station.id}`}>
                         {isArabic ? "عرض التفاصيل" : "View Details"}
                       </Button>
                     </Link>
@@ -620,8 +650,8 @@ export default function TripPlanner() {
             </h2>
             <div className="space-y-2">
               {stationsAlongRoute.map((station) => (
-                <Link key={station.id} href={`/station/${station.id}`}>
-                  <Card className="p-3 hover-elevate">
+                <Link key={station.id} href={`/station/${station.id}`} data-testid={`link-station-${station.id}`}>
+                  <Card className="p-3">
                     <div className="flex items-center gap-3">
                       <div 
                         className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
