@@ -4,7 +4,7 @@ import { useStation, useStationReports } from "@/hooks/use-stations";
 import { useTranslation } from "react-i18next";
 import { useLanguage } from "@/components/LanguageContext";
 import type { StationWithConnector, ChargerRental, StationCharger } from "@shared/schema";
-import { Loader2, Navigation, Clock, ShieldCheck, MapPin, BatteryCharging, Home, Phone, MessageCircle, AlertTriangle, CheckCircle2, XCircle, Users, ShieldAlert, ThumbsUp, ThumbsDown, Zap, Shield, Trash2, Cpu, Edit3, ChevronDown, Plug, DollarSign, Info, CircleDot } from "lucide-react";
+import { Loader2, Navigation, Clock, ShieldCheck, MapPin, BatteryCharging, Home, Phone, MessageCircle, AlertTriangle, CheckCircle2, XCircle, Users, ShieldAlert, ThumbsUp, ThumbsDown, Zap, Shield, Trash2, Cpu, Edit3, ChevronDown, Plug, DollarSign, Info, CircleDot, ExternalLink } from "lucide-react";
 import { useLocation } from "wouter";
 import { api } from "@shared/routes";
 import { Button } from "@/components/ui/button";
@@ -31,6 +31,20 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import type { VerificationSummary } from "@shared/schema";
+
+function openNavigation(lat: number, lng: number, name: string) {
+  const encodedName = encodeURIComponent(name);
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  const isAndroid = /Android/.test(navigator.userAgent);
+  
+  if (isIOS) {
+    window.open(`maps://maps.apple.com/?daddr=${lat},${lng}&q=${encodedName}`, '_blank');
+  } else if (isAndroid) {
+    window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&destination_place_id=${encodedName}`, '_blank');
+  } else {
+    window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`, '_blank');
+  }
+}
 
 function formatTimeAgo(isoString: string, t: (key: string, options?: any) => string): string {
   const date = new Date(isoString);
@@ -550,7 +564,7 @@ export default function StationDetails() {
               </div>
             </div>
           </div>
-          <div className="mt-3">
+          <div className="mt-3 flex gap-2">
             <ChargingSessionDialog 
               stationId={id}
               availableChargers={availableCount}
@@ -558,6 +572,15 @@ export default function StationDetails() {
               stationStatus={station.status ?? undefined}
               hasActiveConnector={station.hasActiveConnector ?? false}
             />
+            <Button 
+              variant="outline" 
+              className="flex-1 h-10"
+              onClick={() => openNavigation(station.lat, station.lng, name || '')}
+              data-testid="button-start-navigation"
+            >
+              <Navigation className="w-4 h-4 me-2" />
+              {isAr ? "ابدأ الملاحة" : "Navigate"}
+            </Button>
           </div>
         </Card>
 

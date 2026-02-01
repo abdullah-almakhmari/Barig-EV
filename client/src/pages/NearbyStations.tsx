@@ -1,14 +1,15 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { Station, ChargerRental } from "@shared/schema";
 import { useLanguage } from "@/components/LanguageContext";
-import { Loader2, Navigation, RefreshCw, AlertCircle, Building2, Home, LayoutGrid, Zap, MapPin, CheckCircle, AlertTriangle, BatteryCharging, Clock, ChevronRight } from "lucide-react";
+import { Loader2, Navigation, RefreshCw, AlertCircle, Building2, Home, LayoutGrid, Zap, MapPin, CheckCircle, AlertTriangle, BatteryCharging, Clock, ChevronRight, Locate, LocateOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Link } from "wouter";
 import { SEO } from "@/components/SEO";
+import { useToast } from "@/hooks/use-toast";
 
 type StationTypeFilter = "ALL" | "PUBLIC" | "HOME";
 
@@ -247,11 +248,13 @@ function NearbyStationCard({
 export default function NearbyStations() {
   const { t } = useTranslation();
   const { language } = useLanguage();
+  const { toast } = useToast();
   const isArabic = language === "ar";
   const [userLocation, setUserLocation] = useState<{lat: number; lng: number} | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [isGettingLocation, setIsGettingLocation] = useState(true);
   const [stationTypeFilter, setStationTypeFilter] = useState<StationTypeFilter>("ALL");
+  const notifiedStationsRef = useRef<Set<number>>(new Set());
 
   const { data: stations = [], isLoading } = useQuery<Station[]>({
     queryKey: ["/api/stations"],
@@ -268,6 +271,9 @@ export default function NearbyStations() {
         .map(r => r.stationId)
     );
   }, [chargerRentals]);
+
+  const [isLiveTracking, setIsLiveTracking] = useState(false);
+  const watchIdRef = useRef<number | null>(null);
 
   const getUserLocation = () => {
     setIsGettingLocation(true);
@@ -299,8 +305,43 @@ export default function NearbyStations() {
     );
   };
 
+  const startLiveTracking = () => {
+    if (!navigator.geolocation) return;
+    
+    const id = navigator.geolocation.watchPosition(
+      (position) => {
+        setUserLocation({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+        });
+        setIsGettingLocation(false);
+      },
+      (error) => {
+        console.error("Live tracking error:", error);
+      },
+      { enableHighAccuracy: true, maximumAge: 5000 }
+    );
+    watchIdRef.current = id;
+    setIsLiveTracking(true);
+  };
+
+  const stopLiveTracking = () => {
+    if (watchIdRef.current !== null) {
+      navigator.geolocation.clearWatch(watchIdRef.current);
+      watchIdRef.current = null;
+    }
+    setIsLiveTracking(false);
+    notifiedStationsRef.current.clear();
+  };
+
   useEffect(() => {
     getUserLocation();
+    return () => {
+      if (watchIdRef.current !== null) {
+        navigator.geolocation.clearWatch(watchIdRef.current);
+        watchIdRef.current = null;
+      }
+    };
   }, []);
 
   const sortedStations = userLocation
@@ -315,6 +356,27 @@ export default function NearbyStations() {
         }))
         .sort((a, b) => a.distance - b.distance)
     : [];
+
+  useEffect(() => {
+    if (!isLiveTracking || !userLocation || sortedStations.length === 0) return;
+    
+    const PROXIMITY_THRESHOLD_KM = 0.5;
+    
+    sortedStations.forEach(station => {
+      if (station.distance <= PROXIMITY_THRESHOLD_KM && !notifiedStationsRef.current.has(station.id)) {
+        notifiedStationsRef.current.add(station.id);
+        const stationName = isArabic ? station.nameAr : station.name;
+        const distanceText = station.distance < 1 
+          ? `${Math.round(station.distance * 1000)}m` 
+          : `${station.distance.toFixed(1)}km`;
+        
+        toast({
+          title: isArabic ? "اقتربت من محطة شحن" : "Approaching Charging Station",
+          description: `${stationName} - ${distanceText}`,
+        });
+      }
+    });
+  }, [userLocation, isLiveTracking, sortedStations, isArabic, toast]);
 
   const filterOptions: { value: StationTypeFilter; labelAr: string; labelEn: string; icon: typeof LayoutGrid }[] = [
     { value: "ALL", labelAr: "الكل", labelEn: "All", icon: LayoutGrid },
@@ -349,16 +411,31 @@ export default function NearbyStations() {
       <SEO title={t("nearby.title")} />
       
       {/* Header */}
-      <div className="flex items-center gap-3 mb-4">
-        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-          <Navigation className="w-5 h-5 text-primary" />
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-3">
+          <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${isLiveTracking ? 'bg-emerald-500/10' : 'bg-primary/10'}`}>
+            <Navigation className={`w-5 h-5 ${isLiveTracking ? 'text-emerald-500' : 'text-primary'}`} />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold">{t("nearby.title")}</h1>
+            <p className="text-sm text-muted-foreground">
+              {sortedStations.length} {isArabic ? "محطة" : "stations"}
+              {isLiveTracking && (
+                <span className="ms-2 text-emerald-500">
+                  • {isArabic ? "تتبع مباشر" : "Live"}
+                </span>
+              )}
+            </p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-xl font-bold">{t("nearby.title")}</h1>
-          <p className="text-sm text-muted-foreground">
-            {sortedStations.length} {isArabic ? "محطة" : "stations"}
-          </p>
-        </div>
+        <Button
+          variant={isLiveTracking ? "default" : "outline"}
+          size="icon"
+          onClick={isLiveTracking ? stopLiveTracking : startLiveTracking}
+          data-testid="button-toggle-live-tracking"
+        >
+          {isLiveTracking ? <LocateOff className="w-4 h-4" /> : <Locate className="w-4 h-4" />}
+        </Button>
       </div>
 
       {/* Filter Buttons */}
