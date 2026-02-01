@@ -234,22 +234,43 @@ export async function registerRoutes(
     }
   });
 
+  // Charger validation schema
+  const chargerSchema = z.object({
+    chargerType: z.enum(["AC", "DC"]),
+    powerKw: z.coerce.number().min(1).max(500),
+    count: z.coerce.number().min(1).max(100).optional().default(1),
+    connectorType: z.string().optional(),
+  });
+
   // Station Chargers - Add charger to station (authenticated)
   app.post("/api/stations/:id/chargers", isAuthenticated, async (req: any, res) => {
     try {
       const stationId = Number(req.params.id);
+      const userId = req.user?.id;
+      
+      // Validate request body
+      const parsed = chargerSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ message: "Invalid charger data", errors: parsed.error.errors });
+      }
+      const { chargerType, powerKw, count, connectorType } = parsed.data;
+      
       const station = await storage.getStation(stationId);
       if (!station) {
         return res.status(404).json({ message: "Station not found" });
       }
       
-      const { chargerType, powerKw, count, connectorType } = req.body;
+      // Check if the user is the owner of this station
+      if (station.addedByUserId !== userId) {
+        return res.status(403).json({ message: "You can only add chargers to stations you added" });
+      }
+      
       const charger = await storage.createStationCharger({
         stationId,
         chargerType,
-        powerKw: parseFloat(powerKw),
-        count: parseInt(count) || 1,
-        availableCount: parseInt(count) || 1,
+        powerKw,
+        count,
+        availableCount: count,
         connectorType: connectorType || null
       });
       res.json(charger);
@@ -258,10 +279,78 @@ export async function registerRoutes(
     }
   });
 
+  // Station Chargers - Update charger
+  const chargerUpdateSchema = z.object({
+    chargerType: z.enum(["AC", "DC"]).optional(),
+    powerKw: z.coerce.number().min(1).max(500).optional(),
+    count: z.coerce.number().min(1).max(100).optional(),
+    connectorType: z.string().optional(),
+  });
+
+  app.patch("/api/stations/:stationId/chargers/:chargerId", isAuthenticated, async (req: any, res) => {
+    try {
+      const stationId = Number(req.params.stationId);
+      const chargerId = Number(req.params.chargerId);
+      const userId = req.user?.id;
+      
+      // Validate request body
+      const parsed = chargerUpdateSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ message: "Invalid charger data", errors: parsed.error.errors });
+      }
+      
+      const station = await storage.getStation(stationId);
+      if (!station) {
+        return res.status(404).json({ message: "Station not found" });
+      }
+      
+      // Check if the user is the owner of this station
+      if (station.addedByUserId !== userId) {
+        return res.status(403).json({ message: "You can only edit chargers on stations you added" });
+      }
+      
+      // Verify charger belongs to this station
+      const charger = await storage.getStationCharger(chargerId);
+      if (!charger || charger.stationId !== stationId) {
+        return res.status(404).json({ message: "Charger not found for this station" });
+      }
+      
+      const { chargerType, powerKw, count, connectorType } = parsed.data;
+      const updated = await storage.updateStationCharger(chargerId, {
+        chargerType,
+        powerKw,
+        count,
+        connectorType
+      });
+      res.json(updated);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update charger" });
+    }
+  });
+
   // Station Chargers - Delete charger
   app.delete("/api/stations/:stationId/chargers/:chargerId", isAuthenticated, async (req: any, res) => {
     try {
+      const stationId = Number(req.params.stationId);
       const chargerId = Number(req.params.chargerId);
+      const userId = req.user?.id;
+      
+      const station = await storage.getStation(stationId);
+      if (!station) {
+        return res.status(404).json({ message: "Station not found" });
+      }
+      
+      // Check if the user is the owner of this station
+      if (station.addedByUserId !== userId) {
+        return res.status(403).json({ message: "You can only delete chargers from stations you added" });
+      }
+      
+      // Verify charger belongs to this station
+      const charger = await storage.getStationCharger(chargerId);
+      if (!charger || charger.stationId !== stationId) {
+        return res.status(404).json({ message: "Charger not found for this station" });
+      }
+      
       await storage.deleteStationCharger(chargerId);
       res.json({ success: true });
     } catch (error) {
@@ -294,6 +383,31 @@ export async function registerRoutes(
         });
       }
       throw err;
+    }
+  });
+
+  // Update station - only the user who added it can update
+  app.patch(api.stations.update.path, isAuthenticated, async (req: any, res) => {
+    try {
+      const stationId = Number(req.params.id);
+      const userId = req.user?.id;
+      const input = api.stations.update.input.parse(req.body);
+
+      const station = await storage.getStation(stationId);
+      if (!station) {
+        return res.status(404).json({ message: "Station not found" });
+      }
+
+      // Check if the user is the owner of this station
+      if (station.addedByUserId !== userId) {
+        return res.status(403).json({ message: "You can only edit stations you added" });
+      }
+
+      const updated = await storage.updateStation(stationId, input);
+      res.json(updated);
+    } catch (error) {
+      console.error("Error updating station:", error);
+      res.status(500).json({ message: "Failed to update station" });
     }
   });
 

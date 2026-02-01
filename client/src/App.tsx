@@ -20,6 +20,7 @@ import { HelmetProvider } from "react-helmet-async";
 import Home from "@/pages/Home";
 import StationDetails from "@/pages/StationDetails";
 import AddStation from "@/pages/AddStation";
+import EditStation from "@/pages/EditStation";
 import NearbyStations from "@/pages/NearbyStations";
 import ChargingHistory from "@/pages/ChargingHistory";
 import ChargingStats from "@/pages/ChargingStats";
@@ -44,6 +45,7 @@ function Router() {
       <Route path="/admin" component={AdminPanel} />
       <Route path="/contact" component={Contact} />
       <Route path="/station/:id" component={StationDetails} />
+      <Route path="/station/:id/edit" component={EditStation} />
       <Route component={NotFound} />
     </Switch>
   );

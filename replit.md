@@ -43,6 +43,7 @@ Preferred communication style: Simple, everyday language.
 
 - **Mobile Map Interaction**: Default disabled map dragging/touch/zoom with a "Move map" button to prevent accidental movement during scrolling.
 - **Charging Session Enhancements**: Optional screenshot upload with OCR (OpenAI GPT-4o Vision) to automatically extract energy values, and user station deletion for self-added stations.
+- **Station Management**: Station owners can edit their stations via `/station/:id/edit` page. Features include updating station info (name, city, address), managing chargers (add/edit/delete multiple charger types like AC/DC), setting pricing (free/paid with details), and contact information. Owner verification ensures only the original submitter can modify their station.
 - **PWA Update Notification**: Automatic detection of new app versions with user-friendly update prompt. Works on Android and iOS. Service worker checks for updates every hour and shows a notification when a new version is available.
 - **Tesla Integrations**:
     - **CSV Import**: Users can import charging history from Tesla app CSV files.

@@ -4,7 +4,7 @@ import { useStation, useStationReports } from "@/hooks/use-stations";
 import { useTranslation } from "react-i18next";
 import { useLanguage } from "@/components/LanguageContext";
 import type { StationWithConnector, ChargerRental, StationCharger } from "@shared/schema";
-import { Loader2, Navigation, Clock, ShieldCheck, MapPin, BatteryCharging, Home, Phone, MessageCircle, AlertTriangle, CheckCircle2, XCircle, Users, ShieldAlert, ThumbsUp, ThumbsDown, Zap, Shield, Trash2, Cpu } from "lucide-react";
+import { Loader2, Navigation, Clock, ShieldCheck, MapPin, BatteryCharging, Home, Phone, MessageCircle, AlertTriangle, CheckCircle2, XCircle, Users, ShieldAlert, ThumbsUp, ThumbsDown, Zap, Shield, Trash2, Cpu, Edit3 } from "lucide-react";
 import { useLocation } from "wouter";
 import { api } from "@shared/routes";
 import { Button } from "@/components/ui/button";
@@ -171,7 +171,7 @@ function getStatusConfig(status: PrimaryStatus, t: (key: string) => string) {
 export default function StationDetails() {
   const [, params] = useRoute("/station/:id");
   const id = params ? parseInt(params.id) : 0;
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { language } = useLanguage();
   const { toast } = useToast();
   const { user, isAuthenticated } = useAuth();
@@ -453,10 +453,19 @@ export default function StationDetails() {
             
             {/* Show if user is the owner */}
             {user && station.addedByUserId === user.id && (
-              <div className="mt-2 flex items-center gap-2">
+              <div className="mt-2 flex items-center gap-2 flex-wrap">
                 <Badge variant="secondary" className="text-xs">
                   {t("station.youAdded")}
                 </Badge>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate(`/station/${id}/edit`)}
+                  data-testid="button-edit-station"
+                >
+                  <Edit3 className="w-4 h-4 me-1" />
+                  {i18n.language === "ar" ? "تعديل" : "Edit"}
+                </Button>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -464,7 +473,7 @@ export default function StationDetails() {
                   onClick={() => setShowDeleteConfirm(true)}
                   data-testid="button-delete-station"
                 >
-                  <Trash2 className="w-4 h-4 mr-1" />
+                  <Trash2 className="w-4 h-4 me-1" />
                   {t("station.delete")}
                 </Button>
               </div>

@@ -21,6 +21,7 @@ export interface IStorage {
   getStation(id: number): Promise<Station | undefined>;
   getStationByLocation(lat: number, lng: number, radiusMeters?: number): Promise<Station | undefined>;
   createStation(station: InsertStation, isUserSubmitted?: boolean): Promise<Station>;
+  updateStation(id: number, data: Partial<InsertStation>): Promise<Station | undefined>;
   updateStationAvailability(id: number, availableChargers: number): Promise<Station | undefined>;
   updateStationStatus(id: number, status: string): Promise<Station | undefined>;
   updateStationTrustLevel(id: number, trustLevel: string): Promise<Station | undefined>;
@@ -122,6 +123,7 @@ export interface IStorage {
   isOwnershipVerified(stationId: number, userId: string): Promise<boolean>;
   // Station Chargers (multiple charger types per station)
   getStationChargers(stationId: number): Promise<StationCharger[]>;
+  getStationCharger(chargerId: number): Promise<StationCharger | undefined>;
   createStationCharger(charger: InsertStationCharger): Promise<StationCharger>;
   updateStationCharger(id: number, data: Partial<InsertStationCharger>): Promise<StationCharger | undefined>;
   deleteStationCharger(id: number): Promise<void>;
@@ -216,6 +218,14 @@ export class DatabaseStorage implements IStorage {
       approvalStatus: isUserSubmitted ? "PENDING" : "APPROVED"
     }).returning();
     return station;
+  }
+
+  async updateStation(id: number, data: Partial<InsertStation>): Promise<Station | undefined> {
+    const [updated] = await db.update(stations)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(stations.id, id))
+      .returning();
+    return updated;
   }
 
   async updateStationAvailability(id: number, availableChargers: number): Promise<Station | undefined> {
@@ -1173,6 +1183,11 @@ export class DatabaseStorage implements IStorage {
   // Station Chargers (multiple charger types per station)
   async getStationChargers(stationId: number): Promise<StationCharger[]> {
     return await db.select().from(stationChargers).where(eq(stationChargers.stationId, stationId));
+  }
+
+  async getStationCharger(chargerId: number): Promise<StationCharger | undefined> {
+    const [charger] = await db.select().from(stationChargers).where(eq(stationChargers.id, chargerId));
+    return charger;
   }
 
   async createStationCharger(charger: InsertStationCharger): Promise<StationCharger> {
