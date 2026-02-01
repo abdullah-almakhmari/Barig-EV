@@ -102,6 +102,9 @@ function NearbyStationCard({
     staleTime: 60000,
   });
 
+  const isBusy = station.status === "BUSY" || 
+    (station.status !== "OFFLINE" && (station.availableChargers ?? 0) === 0);
+
   const getAvailabilityStatus = () => {
     if (station.status === "OFFLINE") {
       return {
@@ -111,26 +114,24 @@ function NearbyStationCard({
         label: t("station.status.offline")
       };
     }
-    if ((station.availableChargers ?? 0) > 0) {
+    if (isBusy) {
       return {
-        color: "bg-emerald-500/10 text-emerald-600 border-emerald-200 dark:border-emerald-800",
-        dotColor: "bg-emerald-500",
-        icon: CheckCircle,
-        label: t("station.status.available")
+        color: "bg-orange-500/10 text-orange-600 border-orange-200 dark:border-orange-800",
+        dotColor: "bg-orange-500",
+        icon: BatteryCharging,
+        label: t("station.status.inuse")
       };
     }
     return {
-      color: "bg-orange-500/10 text-orange-600 border-orange-200 dark:border-orange-800",
-      dotColor: "bg-orange-500",
-      icon: BatteryCharging,
-      label: t("station.status.inuse")
+      color: "bg-emerald-500/10 text-emerald-600 border-emerald-200 dark:border-emerald-800",
+      dotColor: "bg-emerald-500",
+      icon: CheckCircle,
+      label: t("station.status.available")
     };
   };
 
   const availabilityStatus = getAvailabilityStatus();
   const StatusIcon = availabilityStatus.icon;
-  
-  const isBusy = station.status !== "OFFLINE" && (station.availableChargers ?? 0) === 0;
 
   return (
     <Link href={`/station/${station.id}`}>
