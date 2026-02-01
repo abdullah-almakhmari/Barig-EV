@@ -87,6 +87,13 @@ export default function Rent() {
         description: isRtl ? "تم إلغاء طلب التأجير" : "Rental request cancelled",
       });
     },
+    onError: (error: any) => {
+      toast({
+        title: isRtl ? "خطأ" : "Error",
+        description: error.message || (isRtl ? "فشل إلغاء الطلب" : "Failed to cancel request"),
+        variant: "destructive",
+      });
+    },
   });
 
   useEffect(() => {
