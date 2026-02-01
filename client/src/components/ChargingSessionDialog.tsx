@@ -252,16 +252,25 @@ export function ChargingSessionDialog({ stationId, availableChargers, totalCharg
   return (
     <div className="space-y-4">
       {activeSession ? (
-        <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 space-y-4">
-          <div className="flex items-center gap-2 text-primary">
+        <div className={`rounded-xl p-4 space-y-4 ${
+          (activeSession as any).isAutoTracked 
+            ? "bg-orange-50 dark:bg-orange-950/30 border-2 border-orange-500" 
+            : "bg-primary/5 border border-primary/20"
+        }`}>
+          <div className={`flex items-center gap-2 ${(activeSession as any).isAutoTracked ? "text-orange-600" : "text-primary"}`}>
             <BatteryCharging className="w-5 h-5 animate-pulse" />
             <span className="font-bold">{t("charging.activeSession")}</span>
+            {(activeSession as any).isAutoTracked && (
+              <span className="text-xs bg-orange-100 dark:bg-orange-900 text-orange-700 dark:text-orange-300 px-2 py-0.5 rounded-full">
+                {isArabic ? "تتبع تلقائي" : "Auto-tracked"}
+              </span>
+            )}
           </div>
           
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
               <span className="text-muted-foreground">{t("charging.duration")}</span>
-              <p className="font-bold text-lg">{formatDuration(activeSession.startTime)}</p>
+              <p className={`font-bold text-lg ${(activeSession as any).isAutoTracked ? "text-orange-600" : ""}`}>{formatDuration(activeSession.startTime)}</p>
             </div>
             {activeSession.batteryStartPercent !== null && (
               <div>
@@ -271,6 +280,15 @@ export function ChargingSessionDialog({ stationId, availableChargers, totalCharg
             )}
           </div>
 
+          {(activeSession as any).isAutoTracked ? (
+            <div className="bg-orange-100 dark:bg-orange-900/50 border border-orange-200 dark:border-orange-800 rounded-lg p-3 text-center">
+              <p className="text-sm text-orange-700 dark:text-orange-300">
+                {isArabic 
+                  ? "هذه الجلسة يتم تتبعها تلقائياً وستنتهي عند انتهاء الشحن" 
+                  : "This session is auto-tracked and will end when charging completes"}
+              </p>
+            </div>
+          ) : (
           <Dialog open={openEnd} onOpenChange={setOpenEnd}>
             <DialogTrigger asChild>
               <Button 
@@ -387,6 +405,7 @@ export function ChargingSessionDialog({ stationId, availableChargers, totalCharg
               </DialogFooter>
             </DialogContent>
           </Dialog>
+          )}
         </div>
       ) : (
         <Dialog open={openStart} onOpenChange={setOpenStart}>
