@@ -129,6 +129,8 @@ function NearbyStationCard({
 
   const availabilityStatus = getAvailabilityStatus();
   const StatusIcon = availabilityStatus.icon;
+  
+  const isBusy = station.status !== "OFFLINE" && (station.availableChargers ?? 0) === 0;
 
   return (
     <Link href={`/station/${station.id}`}>
@@ -138,11 +140,15 @@ function NearbyStationCard({
       >
         <div className="flex">
           {/* Distance Indicator - Left Side */}
-          <div className="flex flex-col items-center justify-center w-20 shrink-0 bg-primary/5 border-e py-4 px-2">
-            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center mb-2">
-              <MapPin className="w-5 h-5 text-primary" />
+          <div className={`flex flex-col items-center justify-center w-20 shrink-0 border-e py-4 px-2 ${
+            isBusy ? "bg-orange-500/5" : "bg-primary/5"
+          }`}>
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center mb-2 ${
+              isBusy ? "bg-orange-500/10" : "bg-primary/10"
+            }`}>
+              <MapPin className={`w-5 h-5 ${isBusy ? "text-orange-500" : "text-primary"}`} />
             </div>
-            <span className="text-lg font-bold text-primary">
+            <span className={`text-lg font-bold ${isBusy ? "text-orange-500" : "text-primary"}`}>
               {station.distance < 1 
                 ? Math.round(station.distance * 1000) 
                 : station.distance.toFixed(1)}
