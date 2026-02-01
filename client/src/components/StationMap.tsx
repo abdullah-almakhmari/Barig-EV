@@ -37,12 +37,8 @@ function createCustomIcon(station: Station, isBestNearby: boolean = false, isCha
   const priority = getStationPriority(station, isCharging);
   
   let color: string;
-  let size: number;
+  let size: number = 14;
   let pulseAnimation = '';
-  let shadowSize: string;
-  
-  size = 12;
-  shadowSize = '0 2px 4px rgba(0,0,0,0.3)';
   
   switch (priority) {
     case 'charging':
@@ -53,6 +49,7 @@ function createCustomIcon(station: Station, isBestNearby: boolean = false, isCha
       color = '#10b981';
       if (isBestNearby) {
         pulseAnimation = 'animation: pulse 2s infinite;';
+        size = 16;
       }
       break;
     case 'good':
@@ -71,7 +68,7 @@ function createCustomIcon(station: Station, isBestNearby: boolean = false, isCha
     <style>
       @keyframes pulse {
         0%, 100% { transform: scale(1); opacity: 1; }
-        50% { transform: scale(1.1); opacity: 0.9; }
+        50% { transform: scale(1.2); opacity: 0.8; }
       }
     </style>
   ` : '';
@@ -85,8 +82,8 @@ function createCustomIcon(station: Station, isBestNearby: boolean = false, isCha
         width: ${size}px; 
         height: ${size}px; 
         border-radius: 50%; 
-        border: 2px solid white; 
-        box-shadow: ${shadowSize};
+        border: 3px solid white; 
+        box-shadow: 0 2px 6px rgba(0,0,0,0.3);
         ${pulseAnimation}
       "></div>
     `,
@@ -97,9 +94,9 @@ function createCustomIcon(station: Station, isBestNearby: boolean = false, isCha
 
 const userLocationIcon = L.divIcon({
   className: 'user-location-icon',
-  html: `<div style="background-color: #3b82f6; width: 14px; height: 14px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 0 2px #3b82f6, 0 4px 8px rgba(0,0,0,0.3);"></div>`,
-  iconSize: [14, 14],
-  iconAnchor: [7, 7],
+  html: `<div style="background-color: #3b82f6; width: 16px; height: 16px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 0 2px #3b82f6, 0 4px 8px rgba(0,0,0,0.3);"></div>`,
+  iconSize: [16, 16],
+  iconAnchor: [8, 8],
 });
 
 function FitBoundsToStations({ stations }: { stations: Station[] }) {
@@ -147,18 +144,18 @@ function MapInteractionControl({
         size="sm"
         variant={isInteractionEnabled ? "default" : "secondary"}
         onClick={onToggle}
-        className="shadow-lg gap-2 text-xs font-medium"
+        className="shadow-lg gap-2 text-xs font-medium rounded-full px-4"
         data-testid="button-toggle-map-interaction"
       >
         {isInteractionEnabled ? (
           <>
-            <Lock className="h-4 w-4" />
-            <span>{t("map.lockMap", "قفل الخريطة")}</span>
+            <Lock className="h-3.5 w-3.5" />
+            <span>{t("map.lockMap", "قفل")}</span>
           </>
         ) : (
           <>
-            <Move className="h-4 w-4" />
-            <span>{t("map.enableMovement", "تحريك الخريطة")}</span>
+            <Move className="h-3.5 w-3.5" />
+            <span>{t("map.enableMovement", "تحريك")}</span>
           </>
         )}
       </Button>
@@ -204,7 +201,7 @@ function LocateControl({
         variant="secondary"
         onClick={handleLocate}
         disabled={isLocating}
-        className="shadow-lg bg-background hover:bg-muted"
+        className="shadow-lg bg-background rounded-full w-10 h-10"
         data-testid="button-locate-me"
         title={t("map.locateMe")}
       >
@@ -298,7 +295,7 @@ export function StationMap({ stations }: StationMapProps) {
 
   const mapContainerClass = isFullscreen 
     ? "fixed inset-0 z-50 bg-background" 
-    : "h-full w-full rounded-2xl overflow-hidden border border-border shadow-inner bg-muted/20 relative";
+    : "h-full w-full rounded-xl overflow-hidden border border-border/50 shadow-sm bg-muted/10 relative";
 
   return (
     <div className={mapContainerClass}>
@@ -313,7 +310,7 @@ export function StationMap({ stations }: StationMapProps) {
         doubleClickZoom={false}
       >
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         
@@ -328,11 +325,11 @@ export function StationMap({ stations }: StationMapProps) {
           <>
             <Circle
               center={userLocation}
-              radius={100}
+              radius={150}
               pathOptions={{ 
                 color: '#3b82f6', 
                 fillColor: '#3b82f6', 
-                fillOpacity: 0.15,
+                fillOpacity: 0.1,
                 weight: 2
               }}
             />
@@ -348,7 +345,7 @@ export function StationMap({ stations }: StationMapProps) {
             zIndexOffset={chargingStationIds.has(station.id) ? 2000 : station.id === bestNearbyStationId ? 1000 : 0}
           >
             <Popup>
-              <div dir={document.documentElement.dir} className="w-full">
+              <div dir={document.documentElement.dir} className="w-full min-w-[200px]">
                 <StationCard station={station} variant="compact" />
               </div>
             </Popup>
@@ -361,7 +358,7 @@ export function StationMap({ stations }: StationMapProps) {
           size="icon"
           variant="secondary"
           onClick={toggleFullscreen}
-          className="shadow-lg bg-background hover:bg-muted"
+          className="shadow-lg bg-background rounded-full w-10 h-10"
           data-testid="button-toggle-fullscreen"
         >
           {isFullscreen ? (
