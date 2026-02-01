@@ -3,14 +3,13 @@ import { StationMap } from "@/components/StationMap";
 import { StationCard } from "@/components/StationCard";
 import { useTranslation } from "react-i18next";
 import { useLanguage } from "@/components/LanguageContext";
-import { MapPin, List, Zap, Home as HomeIcon, Battery, ChevronDown, History, BarChart3 } from "lucide-react";
+import { MapPin, List, Zap, Home as HomeIcon, Battery, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { SEO } from "@/components/SEO";
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "wouter";
 
 const STATIONS_PER_PAGE = 12;
 
@@ -144,22 +143,6 @@ export default function Home() {
               </button>
             );
           })}
-        </div>
-        
-        {/* Quick Actions */}
-        <div className="grid grid-cols-2 gap-2 mt-3">
-          <Link href="/history" data-testid="link-history">
-            <Button variant="outline" size="sm" className="w-full gap-2">
-              <History className="w-4 h-4" />
-              {isArabic ? "السجل" : "History"}
-            </Button>
-          </Link>
-          <Link href="/stats" data-testid="link-stats">
-            <Button variant="outline" size="sm" className="w-full gap-2">
-              <BarChart3 className="w-4 h-4" />
-              {isArabic ? "إحصائيات" : "Statistics"}
-            </Button>
-          </Link>
         </div>
       </Card>
 

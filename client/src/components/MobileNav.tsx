@@ -1,9 +1,10 @@
 import { useLocation, Link } from "wouter";
-import { MapPin, Navigation, Plus, History } from "lucide-react";
+import { MapPin, Navigation, Plus, History, BarChart3 } from "lucide-react";
 import { useLanguage } from "./LanguageContext";
 import { useIsPWA, useIsMobile } from "@/hooks/use-pwa";
 
 const navItemsAr = [
+  { path: "/stats", icon: BarChart3, labelAr: "إحصائيات", labelEn: "Stats" },
   { path: "/history", icon: History, labelAr: "السجل", labelEn: "History" },
   { path: "/admin/add-station", icon: Plus, labelAr: "إضافة", labelEn: "Add", isCenter: true },
   { path: "/nearby", icon: Navigation, labelAr: "قريب", labelEn: "Nearby" },
@@ -15,6 +16,7 @@ const navItemsEn = [
   { path: "/nearby", icon: Navigation, labelAr: "قريب", labelEn: "Nearby" },
   { path: "/admin/add-station", icon: Plus, labelAr: "إضافة", labelEn: "Add", isCenter: true },
   { path: "/history", icon: History, labelAr: "السجل", labelEn: "History" },
+  { path: "/stats", icon: BarChart3, labelAr: "إحصائيات", labelEn: "Stats" },
 ];
 
 const triggerHaptic = () => {
@@ -37,7 +39,7 @@ export function MobileNav() {
         className="h-[72px] pb-2 px-1"
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(4, 1fr)',
+          gridTemplateColumns: 'repeat(5, 1fr)',
           alignItems: 'center',
         }}
       >
