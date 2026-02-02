@@ -63,10 +63,11 @@ Preferred communication style: Simple, everyday language.
     - **Notifications Page**: `/notifications` route showing all user notifications with mark as read and delete functionality.
     - **Notification Types**: `rental_complete` (for renters), `rental_income` (for owners), `session_complete` (for regular sessions).
     - **Bilingual Support**: All notifications have both English and Arabic titles/messages.
+
 ## External Dependencies
 
 - **Database**: PostgreSQL
-- **Mapping**: Leaflet, OpenStreetMap, OSRM (routing)
+- **Mapping**: Leaflet, OpenStreetMap
 - **UI Components**: shadcn/ui, Radix UI
 - **AI**: OpenAI GPT-4o Vision (for OCR)
 - **Authentication**: Google OAuth
