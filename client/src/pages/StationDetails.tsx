@@ -692,8 +692,6 @@ export default function StationDetails() {
         </div>
       </Card>
 
-      {/* Report Problem - Separate Button */}
-      <ReportDialog stationId={id} />
 
       {/* Station Details - Expandable */}
       <Card className="overflow-hidden">
@@ -799,6 +797,20 @@ export default function StationDetails() {
           </div>
         </Card>
       )}
+
+      {/* Report Problem - Bottom of Page */}
+      <ReportDialog 
+        stationId={id} 
+        trigger={
+          <Button 
+            className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white shadow-md border-0 h-12 text-base font-medium rounded-xl"
+            data-testid="button-report-problem"
+          >
+            <AlertTriangle className="w-5 h-5 me-2" />
+            {isAr ? "الإبلاغ عن مشكلة" : "Report a Problem"}
+          </Button>
+        }
+      />
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
