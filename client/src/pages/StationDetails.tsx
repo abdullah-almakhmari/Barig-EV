@@ -4,7 +4,7 @@ import { useStation, useStationReports } from "@/hooks/use-stations";
 import { useTranslation } from "react-i18next";
 import { useLanguage } from "@/components/LanguageContext";
 import type { StationWithConnector, ChargerRental, StationCharger } from "@shared/schema";
-import { Loader2, Navigation, Clock, ShieldCheck, MapPin, BatteryCharging, Home, Phone, MessageCircle, AlertTriangle, CheckCircle2, XCircle, Users, ShieldAlert, ThumbsUp, ThumbsDown, Zap, Shield, Trash2, Cpu, Edit3, ChevronDown, Plug, DollarSign, Info, CircleDot } from "lucide-react";
+import { Loader2, Navigation, Clock, ShieldCheck, MapPin, BatteryCharging, Home, Phone, MessageCircle, AlertTriangle, CheckCircle2, XCircle, Users, ShieldAlert, ThumbsUp, ThumbsDown, Zap, Shield, Trash2, Cpu, Edit3, ChevronDown, Plug, DollarSign, Info, CircleDot, Building2 } from "lucide-react";
 import { useLocation } from "wouter";
 import { api } from "@shared/routes";
 import { Button } from "@/components/ui/button";
@@ -395,14 +395,23 @@ export default function StationDetails() {
             </p>
           )}
           
-          {/* Badges Row */}
-          <div className="flex flex-wrap gap-2 mt-3">
-            {station.stationType === "HOME" && (
-              <Badge variant="secondary" className="bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 text-xs" data-testid="badge-home-charger">
-                <Home className="w-3 h-3 me-1" />
-                {t("station.type.home")}
+          {/* Station Type Badge - Centered */}
+          <div className="flex justify-center mt-3">
+            {station.stationType === "HOME" ? (
+              <Badge variant="outline" className="bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/50 px-4 py-1" data-testid="badge-home-charger">
+                <Home className="w-4 h-4 me-1.5" />
+                {isAr ? "شاحن منزلي" : "Home Charger"}
+              </Badge>
+            ) : (
+              <Badge variant="outline" className="bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/50 px-4 py-1" data-testid="badge-public-charger">
+                <Building2 className="w-4 h-4 me-1.5" />
+                {isAr ? "شاحن عام" : "Public Charger"}
               </Badge>
             )}
+          </div>
+          
+          {/* Other Badges Row */}
+          <div className="flex flex-wrap justify-center gap-2 mt-2">
             {station.hasActiveConnector && (
               <Badge variant="secondary" className="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 text-xs" data-testid="badge-auto-tracked">
                 <Cpu className="w-3 h-3 me-1" />
