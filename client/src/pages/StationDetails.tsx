@@ -577,26 +577,65 @@ export default function StationDetails() {
           </div>
         </Card>
 
-        {/* Power Info */}
-        <Card className="p-4 bg-blue-50 dark:bg-blue-950/30 border-0" data-testid="card-power">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-blue-500 flex items-center justify-center">
-                <Zap className="w-5 h-5 text-white" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">{isAr ? "قدرة الشحن" : "Charging Power"}</p>
-                <p className="font-bold text-blue-600" data-testid="text-power-output">{station.powerKw} kW</p>
-              </div>
+        {/* Power Info - Shows all charger types */}
+        <Card className="p-4 bg-gradient-to-br from-blue-50 to-amber-50/50 dark:from-blue-950/30 dark:to-amber-950/20 border-0" data-testid="card-power">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-amber-500 flex items-center justify-center">
+              <Zap className="w-5 h-5 text-white" />
             </div>
-            <div className="flex gap-1 flex-wrap justify-end">
-              {station.chargerType.split(',').map(type => (
-                <Badge key={type} variant="secondary" className="text-xs bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300">
-                  {type.trim()}
-                </Badge>
+            <p className="text-sm font-medium">{isAr ? "الشواحن المتوفرة" : "Available Chargers"}</p>
+          </div>
+          
+          {stationChargers && stationChargers.length > 0 ? (
+            <div className="grid grid-cols-2 gap-2">
+              {stationChargers.map((charger) => (
+                <div 
+                  key={charger.id} 
+                  className={`p-3 rounded-lg ${
+                    charger.chargerType === 'DC' 
+                      ? 'bg-amber-100 dark:bg-amber-900/40' 
+                      : 'bg-blue-100 dark:bg-blue-900/40'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <Badge 
+                      variant="secondary" 
+                      className={`text-xs ${
+                        charger.chargerType === 'DC' 
+                          ? 'bg-amber-500 text-white' 
+                          : 'bg-blue-500 text-white'
+                      }`}
+                    >
+                      {charger.chargerType}
+                    </Badge>
+                    <span className="text-xs text-muted-foreground">×{charger.count}</span>
+                  </div>
+                  <p className={`font-bold text-lg ${
+                    charger.chargerType === 'DC' 
+                      ? 'text-amber-700 dark:text-amber-400' 
+                      : 'text-blue-700 dark:text-blue-400'
+                  }`}>
+                    {charger.powerKw} kW
+                  </p>
+                  {charger.connectorType && (
+                    <p className="text-xs text-muted-foreground">{charger.connectorType}</p>
+                  )}
+                </div>
               ))}
             </div>
-          </div>
+          ) : (
+            <div className="flex items-center justify-between p-3 rounded-lg bg-blue-100 dark:bg-blue-900/40">
+              <div>
+                <Badge variant="secondary" className="text-xs bg-blue-500 text-white mb-1">
+                  {station.chargerType}
+                </Badge>
+                <p className="font-bold text-lg text-blue-700 dark:text-blue-400" data-testid="text-power-output">
+                  {station.powerKw} kW
+                </p>
+              </div>
+              <span className="text-sm text-muted-foreground">×{station.chargerCount || 1}</span>
+            </div>
+          )}
         </Card>
       </div>
 
@@ -651,11 +690,10 @@ export default function StationDetails() {
             {t("verify.confirmNotWorking")}
           </Button>
         </div>
-        
-        <div className="mt-3">
-          <ReportDialog stationId={id} />
-        </div>
       </Card>
+
+      {/* Report Problem - Separate Button */}
+      <ReportDialog stationId={id} />
 
       {/* Station Details - Expandable */}
       <Card className="overflow-hidden">
@@ -679,27 +717,6 @@ export default function StationDetails() {
               </div>
             )}
             
-            {/* Additional Chargers */}
-            {stationChargers && stationChargers.length > 0 && (
-              <div className="pt-2 space-y-2">
-                <p className="text-xs font-medium text-muted-foreground">{isAr ? "الشواحن الإضافية" : "Additional Chargers"}</p>
-                {stationChargers.map((charger) => (
-                  <div key={charger.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
-                    <div className="flex items-center gap-2">
-                      <Plug className="w-4 h-4 text-muted-foreground" />
-                      <Badge variant={charger.chargerType === "DC" ? "default" : "secondary"} className="text-xs">
-                        {charger.chargerType}
-                      </Badge>
-                      <span className="font-mono text-sm">{charger.powerKw} kW</span>
-                      {charger.connectorType && (
-                        <span className="text-xs text-muted-foreground">({charger.connectorType})</span>
-                      )}
-                    </div>
-                    <span className="text-sm text-muted-foreground">x{charger.count}</span>
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
         )}
       </Card>

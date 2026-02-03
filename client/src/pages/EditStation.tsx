@@ -465,7 +465,7 @@ export default function EditStation() {
                         )}
                       </div>
                       
-                      <div className="grid grid-cols-3 gap-3">
+                      <div className="flex flex-wrap items-center gap-2">
                         <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium ${
                           charger.chargerType === 'DC' 
                             ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400' 
@@ -478,7 +478,7 @@ export default function EditStation() {
                           <span className="font-mono font-medium">{charger.powerKw} kW</span>
                         </div>
                         <div className="flex items-center gap-1 px-3 py-2 rounded-lg bg-muted text-sm">
-                          <span>{charger.count} {isArabic ? "منفذ" : "port(s)"}</span>
+                          <span>×{charger.count}</span>
                         </div>
                       </div>
                     </div>
@@ -490,7 +490,7 @@ export default function EditStation() {
                         <Plus className="w-4 h-4" />
                         {isArabic ? "شاحن جديد" : "New Charger"}
                       </div>
-                      <div className="grid grid-cols-3 gap-3">
+                      <div className="grid grid-cols-2 gap-3">
                         <div>
                           <label className="text-xs text-muted-foreground">{isArabic ? "النوع" : "Type"}</label>
                           <Select
@@ -516,8 +516,8 @@ export default function EditStation() {
                             data-testid="input-new-charger-power"
                           />
                         </div>
-                        <div>
-                          <label className="text-xs text-muted-foreground">{isArabic ? "العدد" : "Count"}</label>
+                        <div className="col-span-2">
+                          <label className="text-xs text-muted-foreground">{isArabic ? "عدد المنافذ" : "Number of Ports"}</label>
                           <Input
                             type="number"
                             min={1}
@@ -528,12 +528,13 @@ export default function EditStation() {
                           />
                         </div>
                       </div>
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 pt-2">
                         <Button
                           type="button"
                           size="sm"
                           onClick={() => addChargerMutation.mutate(newCharger)}
                           disabled={addChargerMutation.isPending}
+                          className="flex-1"
                           data-testid="button-save-new-charger"
                         >
                           {addChargerMutation.isPending ? (
@@ -548,6 +549,7 @@ export default function EditStation() {
                           variant="outline"
                           size="sm"
                           onClick={() => setShowAddCharger(false)}
+                          className="flex-1"
                           data-testid="button-cancel-new-charger"
                         >
                           {isArabic ? "إلغاء" : "Cancel"}
