@@ -265,7 +265,7 @@ export default function ChargingHistory() {
                       data-testid={`session-card-${session.id}`}
                     >
                       <Link href={`/station/${session.stationId}`}>
-                        <div className="p-4 hover-elevate cursor-pointer active:scale-[0.99] transition-transform">
+                        <div className="p-4 cursor-pointer active:bg-muted/30 transition-colors">
                           {/* Station Name & Status */}
                           <div className="flex items-start justify-between gap-2 mb-3">
                             <div className="flex items-center gap-2 min-w-0">
@@ -378,7 +378,7 @@ export default function ChargingHistory() {
                               e.stopPropagation();
                               setExpandedTelemetry(isExpanded ? null : session.id);
                             }}
-                            className="w-full px-4 py-2.5 flex items-center justify-center gap-2 text-xs text-primary border-t bg-primary/5 hover-elevate transition-colors"
+                            className="w-full px-4 py-2.5 flex items-center justify-center gap-2 text-xs text-primary border-t bg-primary/5 hover:bg-primary/10 transition-colors"
                             data-testid={`telemetry-toggle-${session.id}`}
                           >
                             <CircuitBoard className="w-3.5 h-3.5" />
