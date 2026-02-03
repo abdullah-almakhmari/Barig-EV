@@ -74,8 +74,18 @@ function formatTimeAgo(isoString: string, t: (key: string, options?: any) => str
   }
 }
 
+interface StationCharger {
+  id: number;
+  stationId: number;
+  chargerType: string;
+  powerKw: number;
+  count: number;
+  availableCount: number | null;
+}
+
 interface StationWithDistance extends Station {
   distance: number;
+  chargers?: StationCharger[];
 }
 
 function NearbyStationCard({ 
@@ -203,32 +213,55 @@ function NearbyStationCard({
 
             {/* Bottom Row - Charger Info */}
             <div className="flex items-center gap-2 flex-wrap">
-              {/* Charger Types */}
-              {chargerTypes.map((type) => (
-                <div 
-                  key={type}
-                  className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium ${
-                    type === 'DC' 
-                      ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400' 
-                      : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'
-                  }`}
-                  data-testid={`charger-type-${station.id}-${type}`}
-                >
-                  <Zap className="w-3 h-3 fill-current" />
-                  <span>{type}</span>
-                </div>
-              ))}
-              
-              {/* Power */}
-              <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-muted text-xs" data-testid={`charger-power-${station.id}`}>
-                <span className="font-mono font-medium">{station.powerKw || "?"} kW</span>
-              </div>
-              
-              {/* Available Chargers */}
-              <div className="flex items-center gap-1 text-xs text-muted-foreground" data-testid={`charger-count-${station.id}`}>
-                <BatteryCharging className="w-3.5 h-3.5" />
-                <span>{availableChargers}/{station.chargerCount ?? 1}</span>
-              </div>
+              {/* Show each charger type with count and availability */}
+              {station.chargers && station.chargers.length > 0 ? (
+                station.chargers.map((charger, idx) => (
+                  <div 
+                    key={charger.id || idx}
+                    className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium ${
+                      charger.chargerType === 'DC' 
+                        ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400' 
+                        : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'
+                    }`}
+                    data-testid={`charger-type-${station.id}-${charger.chargerType}-${idx}`}
+                  >
+                    <Zap className="w-3 h-3 fill-current" />
+                    <span>{charger.chargerType}</span>
+                    <span className="font-mono">{charger.powerKw}kW</span>
+                    <span className="opacity-70">•</span>
+                    <span className="font-mono">{charger.availableCount ?? charger.count}/{charger.count}</span>
+                  </div>
+                ))
+              ) : (
+                <>
+                  {/* Fallback for old stations without chargers array */}
+                  {chargerTypes.map((type) => (
+                    <div 
+                      key={type}
+                      className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium ${
+                        type === 'DC' 
+                          ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400' 
+                          : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'
+                      }`}
+                      data-testid={`charger-type-${station.id}-${type}`}
+                    >
+                      <Zap className="w-3 h-3 fill-current" />
+                      <span>{type}</span>
+                    </div>
+                  ))}
+                  
+                  {/* Power */}
+                  <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-muted text-xs" data-testid={`charger-power-${station.id}`}>
+                    <span className="font-mono font-medium">{station.powerKw || "?"} kW</span>
+                  </div>
+                  
+                  {/* Available Chargers */}
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground" data-testid={`charger-count-${station.id}`}>
+                    <BatteryCharging className="w-3.5 h-3.5" />
+                    <span>{availableChargers}/{station.chargerCount ?? 1}</span>
+                  </div>
+                </>
+              )}
 
               {verificationSummary?.lastVerifiedAt && (
                 <div className="flex items-center gap-1 text-xs text-muted-foreground">
