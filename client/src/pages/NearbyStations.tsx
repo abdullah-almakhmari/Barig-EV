@@ -205,6 +205,29 @@ function NearbyStationCard({
               {name || (isArabic ? "محطة بدون اسم" : "Unnamed Station")}
             </h3>
 
+            {/* Station Type Badge - Centered */}
+            <div className="flex justify-center my-2">
+              {station.stationType === 'HOME' ? (
+                <Badge 
+                  variant="outline" 
+                  className="text-xs bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/50 px-3"
+                  data-testid={`station-type-badge-${station.id}`}
+                >
+                  <Home className="w-3 h-3 me-1" />
+                  {isArabic ? "شاحن منزلي" : "Home Charger"}
+                </Badge>
+              ) : (
+                <Badge 
+                  variant="outline" 
+                  className="text-xs bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/50 px-3"
+                  data-testid={`station-type-badge-${station.id}`}
+                >
+                  <Building2 className="w-3 h-3 me-1" />
+                  {isArabic ? "شاحن عام" : "Public Charger"}
+                </Badge>
+              )}
+            </div>
+
             {/* Location */}
             <p className="text-sm text-muted-foreground flex items-center mb-2">
               <Navigation className="w-3 h-3 me-1 shrink-0" />
