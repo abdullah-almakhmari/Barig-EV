@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { 
   Shield, ShieldAlert, Zap, Clock, Gauge, Thermometer, 
   Activity, Calendar, MapPin, Trash2, Camera, CheckCircle2,
-  AlertTriangle, BatteryCharging, Banknote, Wifi, WifiOff
+  AlertTriangle, BatteryCharging, Banknote, Wifi, WifiOff, Car, TrendingUp
 } from "lucide-react";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
@@ -130,6 +130,20 @@ export function UserFriendlySessionCard({
     }
   };
 
+  const getEstimatedRange = () => {
+    if (!session.energyKwh || session.energyKwh <= 0) return null;
+    const kmPerKwh = 5.5;
+    const estimatedKm = Math.round(session.energyKwh * kmPerKwh);
+    return estimatedKm;
+  };
+
+  const getChargingRate = () => {
+    if (!session.maxPowerKw || session.maxPowerKw <= 0) return null;
+    const kmPerKwh = 5.5;
+    const kmPerHour = Math.round(session.maxPowerKw * kmPerKwh);
+    return kmPerHour;
+  };
+
   const formatDurationFriendly = (minutes: number | null) => {
     if (!minutes) return isArabic ? "غير محدد" : "Unknown";
     
@@ -172,6 +186,8 @@ export function UserFriendlySessionCard({
   const safetyStatus = getSafetyStatus();
   const speedInfo = getChargingSpeedInfo();
   const gridStatus = getGridStatus();
+  const estimatedRange = getEstimatedRange();
+  const chargingRate = getChargingRate();
   const sessionDate = session.startTime ? new Date(session.startTime) : null;
   const hasAutoData = session.isAutoTracked && (session.gridVoltage || session.maxPowerKw || session.maxTempC);
 
@@ -248,6 +264,40 @@ export function UserFriendlySessionCard({
             </p>
           </div>
         </div>
+
+        {(estimatedRange || chargingRate) && (
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            {estimatedRange && (
+              <div className="bg-purple-50 dark:bg-purple-950/30 rounded-xl p-3 border border-purple-100 dark:border-purple-900">
+                <div className="flex items-center gap-2 mb-1">
+                  <Car className="w-4 h-4 text-purple-600" />
+                  <span className="text-xs text-muted-foreground">
+                    {isArabic ? "المسافة المضافة" : "Range Added"}
+                  </span>
+                </div>
+                <p className="text-2xl font-bold text-purple-600">
+                  ~{estimatedRange}
+                  <span className="text-sm font-normal ms-1">{isArabic ? "كم" : "km"}</span>
+                </p>
+              </div>
+            )}
+
+            {chargingRate && (
+              <div className="bg-amber-50 dark:bg-amber-950/30 rounded-xl p-3 border border-amber-100 dark:border-amber-900">
+                <div className="flex items-center gap-2 mb-1">
+                  <TrendingUp className="w-4 h-4 text-amber-600" />
+                  <span className="text-xs text-muted-foreground">
+                    {isArabic ? "معدل الإضافة" : "Charging Rate"}
+                  </span>
+                </div>
+                <p className="text-xl font-bold text-amber-600">
+                  ~{chargingRate}
+                  <span className="text-sm font-normal ms-1">{isArabic ? "كم/ساعة" : "km/h"}</span>
+                </p>
+              </div>
+            )}
+          </div>
+        )}
 
         {(session.batteryStartPercent !== null || session.batteryEndPercent !== null) && (
           <div className="bg-primary/5 rounded-xl p-3 border border-primary/10 mb-4">
