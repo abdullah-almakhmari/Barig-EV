@@ -407,76 +407,13 @@ export default function EditStation() {
             </CardContent>
           </Card>
 
-          {/* Charger Settings Card */}
-          <Card>
-            <CardHeader className="pb-4">
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Zap className="w-4 h-4 text-primary" />
-                {isArabic ? "إعدادات الشاحن الرئيسي" : "Main Charger Settings"}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="chargerType"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{isArabic ? "نوع الشاحن" : "Charger Type"}</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger data-testid="select-charger-type">
-                            <SelectValue />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="AC">AC</SelectItem>
-                          <SelectItem value="DC">DC</SelectItem>
-                          <SelectItem value="Both">{isArabic ? "كلاهما" : "Both"}</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="powerKw"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{isArabic ? "القوة (كيلوواط)" : "Power (kW)"}</FormLabel>
-                      <FormControl>
-                        <Input type="number" {...field} data-testid="input-power" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              
-              <FormField
-                control={form.control}
-                name="chargerCount"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{isArabic ? "عدد الشواحن" : "Number of Chargers"}</FormLabel>
-                    <FormControl>
-                      <Input type="number" min={1} {...field} data-testid="input-charger-count" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </CardContent>
-          </Card>
-
-          {/* Additional Chargers Card */}
+          {/* Unified Chargers Card */}
           <Card>
             <CardHeader className="pb-4">
               <div className="flex items-center justify-between">
                 <CardTitle className="flex items-center gap-2 text-base">
-                  <Settings className="w-4 h-4 text-primary" />
-                  {isArabic ? "شواحن إضافية" : "Additional Chargers"}
+                  <Zap className="w-4 h-4 text-primary" />
+                  {isArabic ? "الشواحن" : "Chargers"}
                 </CardTitle>
                 <Button
                   type="button"
@@ -486,57 +423,81 @@ export default function EditStation() {
                   data-testid="button-add-charger"
                 >
                   <Plus className="w-4 h-4 me-1" />
-                  {isArabic ? "إضافة" : "Add"}
+                  {isArabic ? "إضافة شاحن" : "Add Charger"}
                 </Button>
               </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                {isArabic ? "أضف جميع أنواع الشواحن المتوفرة في هذه المحطة" : "Add all charger types available at this station"}
+              </p>
             </CardHeader>
             <CardContent>
               {chargers.length === 0 && !showAddCharger ? (
-                <p className="text-sm text-muted-foreground text-center py-4">
-                  {isArabic ? "لا توجد شواحن إضافية" : "No additional chargers"}
-                </p>
+                <div className="text-center py-6 bg-muted/20 rounded-lg border-2 border-dashed">
+                  <Zap className="w-8 h-8 mx-auto text-muted-foreground mb-2" />
+                  <p className="text-sm text-muted-foreground">
+                    {isArabic ? "لا توجد شواحن - اضغط إضافة شاحن" : "No chargers - click Add Charger"}
+                  </p>
+                </div>
               ) : (
                 <div className="space-y-3">
                   {chargers.map((charger, index) => (
                     <div
                       key={charger.id || index}
-                      className="flex items-center justify-between p-3 bg-muted/30 rounded-lg"
+                      className="p-3 border rounded-lg bg-background space-y-3"
                     >
-                      <div className="flex items-center gap-3">
-                        <Badge variant={charger.chargerType === "DC" ? "default" : "secondary"}>
-                          {charger.chargerType}
-                        </Badge>
-                        <div>
-                          <p className="text-sm font-medium">{charger.powerKw} kW</p>
-                          <p className="text-xs text-muted-foreground">
-                            {charger.connectorType} • {charger.count} {isArabic ? "منفذ" : "port(s)"}
-                          </p>
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium text-sm flex items-center gap-2">
+                          <div className={`w-2 h-2 rounded-full ${charger.chargerType === 'DC' ? 'bg-amber-500' : 'bg-blue-500'}`} />
+                          {isArabic ? "شاحن" : "Charger"} {index + 1}
+                        </span>
+                        {chargers.length > 1 && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                            onClick={() => charger.id && deleteChargerMutation.mutate(charger.id)}
+                            disabled={deleteChargerMutation.isPending}
+                            data-testid={`button-delete-charger-${charger.id}`}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        )}
+                      </div>
+                      
+                      <div className="grid grid-cols-3 gap-3">
+                        <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium ${
+                          charger.chargerType === 'DC' 
+                            ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400' 
+                            : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'
+                        }`}>
+                          <Zap className="w-4 h-4" />
+                          <span>{charger.chargerType}</span>
+                        </div>
+                        <div className="flex items-center gap-1 px-3 py-2 rounded-lg bg-muted text-sm">
+                          <span className="font-mono font-medium">{charger.powerKw} kW</span>
+                        </div>
+                        <div className="flex items-center gap-1 px-3 py-2 rounded-lg bg-muted text-sm">
+                          <span>{charger.count} {isArabic ? "منفذ" : "port(s)"}</span>
                         </div>
                       </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="text-destructive hover:text-destructive"
-                        onClick={() => charger.id && deleteChargerMutation.mutate(charger.id)}
-                        disabled={deleteChargerMutation.isPending}
-                        data-testid={`button-delete-charger-${charger.id}`}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
                     </div>
                   ))}
                   
                   {showAddCharger && (
-                    <div className="p-4 border rounded-lg space-y-4 bg-background">
-                      <div className="grid grid-cols-2 gap-3">
+                    <div className="p-4 border-2 border-primary/20 rounded-lg space-y-4 bg-primary/5">
+                      <div className="flex items-center gap-2 text-sm font-medium text-primary">
+                        <Plus className="w-4 h-4" />
+                        {isArabic ? "شاحن جديد" : "New Charger"}
+                      </div>
+                      <div className="grid grid-cols-3 gap-3">
                         <div>
-                          <label className="text-sm font-medium">{isArabic ? "النوع" : "Type"}</label>
+                          <label className="text-xs text-muted-foreground">{isArabic ? "النوع" : "Type"}</label>
                           <Select
                             value={newCharger.chargerType}
                             onValueChange={(v) => setNewCharger({ ...newCharger, chargerType: v as "AC" | "DC" })}
                           >
-                            <SelectTrigger data-testid="select-new-charger-type">
+                            <SelectTrigger className="mt-1" data-testid="select-new-charger-type">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
@@ -546,42 +507,23 @@ export default function EditStation() {
                           </Select>
                         </div>
                         <div>
-                          <label className="text-sm font-medium">{isArabic ? "القوة (kW)" : "Power (kW)"}</label>
+                          <label className="text-xs text-muted-foreground">{isArabic ? "القوة (kW)" : "Power (kW)"}</label>
                           <Input
                             type="number"
                             value={newCharger.powerKw}
                             onChange={(e) => setNewCharger({ ...newCharger, powerKw: parseFloat(e.target.value) })}
+                            className="mt-1"
                             data-testid="input-new-charger-power"
                           />
                         </div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-3">
                         <div>
-                          <label className="text-sm font-medium">{isArabic ? "الموصل" : "Connector"}</label>
-                          <Select
-                            value={newCharger.connectorType}
-                            onValueChange={(v) => setNewCharger({ ...newCharger, connectorType: v })}
-                          >
-                            <SelectTrigger data-testid="select-new-charger-connector">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="CCS">CCS</SelectItem>
-                              <SelectItem value="CHAdeMO">CHAdeMO</SelectItem>
-                              <SelectItem value="Type2">Type 2</SelectItem>
-                              <SelectItem value="J1772">J1772</SelectItem>
-                              <SelectItem value="Tesla">Tesla</SelectItem>
-                              <SelectItem value="GBT">GB/T</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div>
-                          <label className="text-sm font-medium">{isArabic ? "العدد" : "Count"}</label>
+                          <label className="text-xs text-muted-foreground">{isArabic ? "العدد" : "Count"}</label>
                           <Input
                             type="number"
                             min={1}
                             value={newCharger.count}
                             onChange={(e) => setNewCharger({ ...newCharger, count: parseInt(e.target.value) || 1 })}
+                            className="mt-1"
                             data-testid="input-new-charger-count"
                           />
                         </div>
