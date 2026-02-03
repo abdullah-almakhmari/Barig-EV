@@ -149,7 +149,7 @@ function NearbyStationCard({
   return (
     <Link href={`/station/${station.id}`}>
       <Card 
-        className="p-0 overflow-hidden hover-elevate cursor-pointer shadow-sm transition-all duration-200"
+        className="p-0 overflow-hidden hover-elevate cursor-pointer shadow-md border-0 bg-card transition-all duration-200"
         data-testid={`nearby-station-${station.id}`}
       >
         <div className="flex">
@@ -428,7 +428,7 @@ export default function NearbyStations() {
           </p>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-5">
           {sortedStations.map((station) => (
             <NearbyStationCard
               key={station.id}
