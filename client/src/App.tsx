@@ -129,7 +129,7 @@ function App() {
                 <Onboarding />
                 <ActiveSessionBanner />
                 <Header />
-                <main className="flex-1 container mx-auto px-4 py-3 pwa-main-content">
+                <main className="flex-1 container mx-auto px-4 py-3 pwa-main-content overflow-y-auto">
                   <PullToRefresh onRefresh={async () => {
                     await queryClient.invalidateQueries();
                     window.location.reload();
