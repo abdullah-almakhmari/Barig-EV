@@ -327,37 +327,115 @@ export default function AddStation() {
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t("add.stationName")}</FormLabel>
-                  <FormControl>
-                    <Input 
-                      placeholder={t("add.stationNamePlaceholder")} 
-                      {...field} 
-                      data-testid="input-station-name"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {/* Station Name - Arabic and English */}
+            <div className="space-y-4 p-4 border rounded-xl bg-muted/20">
+              <FormLabel className="text-base flex items-center gap-2">
+                <Building2 className="h-4 w-4 text-primary" />
+                {t("add.stationName")}
+              </FormLabel>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-xs text-muted-foreground">{t("add.nameEnglish")}</FormLabel>
+                      <FormControl>
+                        <Input 
+                          placeholder={t("add.nameEnglishPlaceholder")} 
+                          {...field} 
+                          data-testid="input-station-name"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="nameAr"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-xs text-muted-foreground">{t("add.nameArabic")}</FormLabel>
+                      <FormControl>
+                        <Input 
+                          placeholder={t("add.nameArabicPlaceholder")} 
+                          {...field}
+                          value={field.value || ""}
+                          dir="rtl"
+                          data-testid="input-station-name-ar"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">{t("add.nameHint")}</p>
+            </div>
 
+            {/* City - Arabic and English */}
+            <div className="space-y-4 p-4 border rounded-xl bg-muted/20">
+              <FormLabel className="text-base flex items-center gap-2">
+                <MapPin className="h-4 w-4 text-primary" />
+                {t("add.cityLabel")}
+              </FormLabel>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="city"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-xs text-muted-foreground">{t("add.cityEnglish")}</FormLabel>
+                      <FormControl>
+                        <Input 
+                          placeholder={t("add.cityEnglishPlaceholder")} 
+                          {...field}
+                          data-testid="input-city"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="cityAr"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-xs text-muted-foreground">{t("add.cityArabic")}</FormLabel>
+                      <FormControl>
+                        <Input 
+                          placeholder={t("add.cityArabicPlaceholder")} 
+                          {...field}
+                          value={field.value || ""}
+                          dir="rtl"
+                          data-testid="input-city-ar"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </div>
+
+            {/* Operator */}
             <FormField
               control={form.control}
-              name="city"
+              name="operator"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>{t("add.cityLabel")}</FormLabel>
+                  <FormLabel>{t("add.operatorLabel")}</FormLabel>
                   <FormControl>
                     <Input 
-                      placeholder={t("add.cityPlaceholder")} 
+                      placeholder={t("add.operatorPlaceholder")} 
                       {...field}
-                      data-testid="input-city"
+                      value={field.value || ""}
+                      data-testid="input-operator"
                     />
                   </FormControl>
+                  <p className="text-xs text-muted-foreground">{t("add.operatorHint")}</p>
                   <FormMessage />
                 </FormItem>
               )}
