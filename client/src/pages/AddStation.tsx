@@ -71,17 +71,19 @@ export default function AddStation() {
   const [whatsappCountryCode, setWhatsappCountryCode] = useState("+968");
   const [manualCoords, setManualCoords] = useState("");
   
-  // Additional chargers for stations with multiple charger types
-  type AdditionalCharger = {
+  // All chargers list - no main vs additional distinction
+  type Charger = {
     id: string;
     chargerType: "AC" | "DC";
     powerKw: number;
     count: number;
   };
-  const [additionalChargers, setAdditionalChargers] = useState<AdditionalCharger[]>([]);
+  const [chargers, setChargers] = useState<Charger[]>([
+    { id: "1", chargerType: "AC", powerKw: 22, count: 1 }
+  ]);
 
   function addCharger() {
-    setAdditionalChargers([...additionalChargers, {
+    setChargers([...chargers, {
       id: Date.now().toString(),
       chargerType: "DC",
       powerKw: 50,
@@ -90,11 +92,13 @@ export default function AddStation() {
   }
 
   function removeCharger(id: string) {
-    setAdditionalChargers(additionalChargers.filter(c => c.id !== id));
+    if (chargers.length > 1) {
+      setChargers(chargers.filter(c => c.id !== id));
+    }
   }
 
-  function updateCharger(id: string, field: keyof AdditionalCharger, value: any) {
-    setAdditionalChargers(additionalChargers.map(c => 
+  function updateCharger(id: string, field: keyof Charger, value: any) {
+    setChargers(chargers.map(c => 
       c.id === id ? { ...c, [field]: value } : c
     ));
   }
@@ -232,16 +236,25 @@ export default function AddStation() {
 
   async function onSubmit(data: InsertStation) {
     try {
+      // Calculate totals from all chargers
+      const totalChargers = chargers.reduce((sum, c) => sum + c.count, 0);
+      const firstCharger = chargers[0];
+      
       const submitData = {
         ...data,
         nameAr: data.nameAr || data.name,
         cityAr: data.cityAr || data.city,
+        // Use first charger for main station fields (backwards compatibility)
+        chargerType: firstCharger?.chargerType || "AC",
+        powerKw: firstCharger?.powerKw || 22,
+        chargerCount: totalChargers,
+        availableChargers: totalChargers,
       };
       const station = await createStation.mutateAsync(submitData);
       
-      // Save additional chargers if any
-      if (additionalChargers.length > 0 && station?.id) {
-        for (const charger of additionalChargers) {
+      // Save all chargers to stationChargers table
+      if (station?.id) {
+        for (const charger of chargers) {
           await apiRequest("POST", `/api/stations/${station.id}/chargers`, {
             chargerType: charger.chargerType,
             powerKw: charger.powerKw,
@@ -371,132 +384,15 @@ export default function AddStation() {
               )}
             />
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-               <FormField
-                control={form.control}
-                name="chargerType"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Type</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select type" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="AC">AC (Level 2)</SelectItem>
-                        <SelectItem value="DC">DC (Fast)</SelectItem>
-                        <SelectItem value="Both">Both</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="powerKw"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Power (kW)</FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="number" 
-                        placeholder="22"
-                        value={field.value ?? ""} 
-                        onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
-                        onBlur={field.onBlur}
-                        name={field.name}
-                        ref={field.ref}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="chargerCount"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-center block mb-2">{t("add.chargerCount")}</FormLabel>
-                    <div className="flex items-center justify-center gap-4 p-4 rounded-xl border-2 border-muted">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        className="h-12 w-12 rounded-full text-xl touch-manipulation"
-                        onClick={() => field.onChange(Math.max(1, (field.value || 1) - 1))}
-                        data-testid="button-charger-count-minus"
-                      >
-                        −
-                      </Button>
-                      <span className="text-3xl font-bold w-14 text-center">{field.value || 1}</span>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        className="h-12 w-12 rounded-full text-xl touch-manipulation"
-                        onClick={() => field.onChange((field.value || 1) + 1)}
-                        data-testid="button-charger-count-plus"
-                      >
-                        +
-                      </Button>
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="availableChargers"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-center block mb-2">{t("add.availableChargers")}</FormLabel>
-                    <div className="flex items-center justify-center gap-4 p-4 rounded-xl border-2 border-muted">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        className="h-12 w-12 rounded-full text-xl touch-manipulation"
-                        onClick={() => field.onChange(Math.max(0, (field.value || 1) - 1))}
-                        data-testid="button-available-chargers-minus"
-                      >
-                        −
-                      </Button>
-                      <span className="text-3xl font-bold w-14 text-center">{field.value || 1}</span>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        className="h-12 w-12 rounded-full text-xl touch-manipulation"
-                        onClick={() => {
-                          const chargerCount = form.getValues("chargerCount") || 1;
-                          field.onChange(Math.min(chargerCount, (field.value || 1) + 1));
-                        }}
-                        data-testid="button-available-chargers-plus"
-                      >
-                        +
-                      </Button>
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            {/* Additional Chargers Section - for stations with multiple charger types */}
+            {/* Chargers Section - all chargers are equal */}
             <div className="space-y-4 p-4 border rounded-xl bg-muted/20">
               <div className="flex items-center justify-between">
                 <div>
-                  <FormLabel className="text-base">{t("add.additionalChargers")}</FormLabel>
-                  <p className="text-xs text-muted-foreground mt-1">{t("add.additionalChargersHint")}</p>
+                  <FormLabel className="text-base flex items-center gap-2">
+                    <Zap className="h-5 w-5 text-primary" />
+                    {t("add.chargers")}
+                  </FormLabel>
+                  <p className="text-xs text-muted-foreground mt-1">{t("add.chargersHint")}</p>
                 </div>
                 <Button
                   type="button"
@@ -511,12 +407,15 @@ export default function AddStation() {
                 </Button>
               </div>
               
-              {additionalChargers.length > 0 && (
-                <div className="space-y-3">
-                  {additionalChargers.map((charger, index) => (
-                    <div key={charger.id} className="p-3 border rounded-lg bg-background space-y-3">
-                      <div className="flex items-center justify-between">
-                        <span className="font-medium text-sm">{t("add.charger")} {index + 2}</span>
+              <div className="space-y-3">
+                {chargers.map((charger, index) => (
+                  <div key={charger.id} className="p-3 border rounded-lg bg-background space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium text-sm flex items-center gap-2">
+                        <div className={`w-2 h-2 rounded-full ${charger.chargerType === 'DC' ? 'bg-amber-500' : 'bg-blue-500'}`} />
+                        {t("add.charger")} {index + 1}
+                      </span>
+                      {chargers.length > 1 && (
                         <Button
                           type="button"
                           variant="ghost"
@@ -527,50 +426,50 @@ export default function AddStation() {
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
+                      )}
+                    </div>
+                    
+                    <div className="grid grid-cols-3 gap-3">
+                      <div>
+                        <label className="text-xs text-muted-foreground">{t("add.chargerType")}</label>
+                        <Select 
+                          value={charger.chargerType} 
+                          onValueChange={(v) => updateCharger(charger.id, "chargerType", v as "AC" | "DC")}
+                        >
+                          <SelectTrigger className="mt-1">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="AC">AC</SelectItem>
+                            <SelectItem value="DC">DC</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
                       
-                      <div className="grid grid-cols-3 gap-3">
-                        <div>
-                          <label className="text-xs text-muted-foreground">{t("add.chargerType")}</label>
-                          <Select 
-                            value={charger.chargerType} 
-                            onValueChange={(v) => updateCharger(charger.id, "chargerType", v)}
-                          >
-                            <SelectTrigger className="mt-1">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="AC">AC</SelectItem>
-                              <SelectItem value="DC">DC</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        
-                        <div>
-                          <label className="text-xs text-muted-foreground">{t("add.power")} (kW)</label>
-                          <Input
-                            type="number"
-                            value={charger.powerKw}
-                            onChange={(e) => updateCharger(charger.id, "powerKw", Number(e.target.value))}
-                            className="mt-1"
-                          />
-                        </div>
-                        
-                        <div>
-                          <label className="text-xs text-muted-foreground">{t("add.count")}</label>
-                          <Input
-                            type="number"
-                            min={1}
-                            value={charger.count}
-                            onChange={(e) => updateCharger(charger.id, "count", Number(e.target.value))}
-                            className="mt-1"
-                          />
-                        </div>
+                      <div>
+                        <label className="text-xs text-muted-foreground">{t("add.power")} (kW)</label>
+                        <Input
+                          type="number"
+                          value={charger.powerKw}
+                          onChange={(e) => updateCharger(charger.id, "powerKw", Number(e.target.value))}
+                          className="mt-1"
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="text-xs text-muted-foreground">{t("add.count")}</label>
+                        <Input
+                          type="number"
+                          min={1}
+                          value={charger.count}
+                          onChange={(e) => updateCharger(charger.id, "count", Number(e.target.value))}
+                          className="mt-1"
+                        />
                       </div>
                     </div>
-                  ))}
-                </div>
-              )}
+                  </div>
+                ))}
+              </div>
             </div>
 
             <FormField
