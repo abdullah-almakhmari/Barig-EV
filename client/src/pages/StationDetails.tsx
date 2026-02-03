@@ -398,12 +398,12 @@ export default function StationDetails() {
           {/* Station Type Badge - Centered */}
           <div className="flex justify-center mt-3">
             {station.stationType === "HOME" ? (
-              <Badge variant="outline" className="bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/50 px-4 py-1" data-testid="badge-home-charger">
+              <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30 px-4 py-1" data-testid="badge-home-charger">
                 <Home className="w-4 h-4 me-1.5" />
                 {isAr ? "شاحن منزلي" : "Home Charger"}
               </Badge>
             ) : (
-              <Badge variant="outline" className="bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/50 px-4 py-1" data-testid="badge-public-charger">
+              <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30 px-4 py-1" data-testid="badge-public-charger">
                 <Building2 className="w-4 h-4 me-1.5" />
                 {isAr ? "شاحن عام" : "Public Charger"}
               </Badge>
