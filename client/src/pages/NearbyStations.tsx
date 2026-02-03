@@ -149,7 +149,7 @@ function NearbyStationCard({
   return (
     <Link href={`/station/${station.id}`}>
       <Card 
-        className="p-0 overflow-hidden hover-elevate cursor-pointer shadow-sm border border-border/40 bg-card rounded-2xl transition-all duration-200"
+        className="p-0 overflow-hidden hover-elevate cursor-pointer shadow-md border-2 border-border bg-card rounded-2xl transition-all duration-200"
         data-testid={`nearby-station-${station.id}`}
       >
         {/* Top Section - Header with Status Indicator */}
@@ -460,7 +460,7 @@ export default function NearbyStations() {
           </p>
         </div>
       ) : (
-        <div className="space-y-5">
+        <div className="space-y-6">
           {sortedStations.map((station) => (
             <NearbyStationCard
               key={station.id}
