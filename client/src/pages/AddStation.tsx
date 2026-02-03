@@ -17,14 +17,6 @@ import { MapPicker } from "@/components/MapPicker";
 import { SEO } from "@/components/SEO";
 import { apiRequest } from "@/lib/queryClient";
 
-type AdditionalCharger = {
-  id: string;
-  chargerType: "AC" | "DC";
-  powerKw: number;
-  count: number;
-  connectorType: string;
-};
-
 const GCC_COUNTRY_CODES = [
   { code: "+968", country: "عُمان", countryEn: "Oman", flag: "🇴🇲" },
   { code: "+971", country: "الإمارات", countryEn: "UAE", flag: "🇦🇪" },
@@ -78,27 +70,6 @@ export default function AddStation() {
   const [phoneCountryCode, setPhoneCountryCode] = useState("+968");
   const [whatsappCountryCode, setWhatsappCountryCode] = useState("+968");
   const [manualCoords, setManualCoords] = useState("");
-  const [additionalChargers, setAdditionalChargers] = useState<AdditionalCharger[]>([]);
-
-  function addCharger() {
-    setAdditionalChargers([...additionalChargers, {
-      id: Date.now().toString(),
-      chargerType: "DC",
-      powerKw: 50,
-      count: 1,
-      connectorType: "CCS"
-    }]);
-  }
-
-  function removeCharger(id: string) {
-    setAdditionalChargers(additionalChargers.filter(c => c.id !== id));
-  }
-
-  function updateCharger(id: string, field: keyof AdditionalCharger, value: any) {
-    setAdditionalChargers(additionalChargers.map(c => 
-      c.id === id ? { ...c, [field]: value } : c
-    ));
-  }
 
   function parseDMS(dmsStr: string): number | null {
     // Parse DMS format like: 24°24'52.2"N or 56°35'58.7"E
@@ -238,19 +209,7 @@ export default function AddStation() {
         nameAr: data.nameAr || data.name,
         cityAr: data.cityAr || data.city,
       };
-      const station = await createStation.mutateAsync(submitData);
-      
-      // Create additional chargers if any were added
-      if (additionalChargers.length > 0 && station?.id) {
-        for (const charger of additionalChargers) {
-          await apiRequest("POST", `/api/stations/${station.id}/chargers`, {
-            chargerType: charger.chargerType,
-            powerKw: charger.powerKw,
-            count: charger.count,
-            connectorType: charger.connectorType
-          });
-        }
-      }
+      await createStation.mutateAsync(submitData);
       
       toast({
         title: t("add.successTitle"),
@@ -403,16 +362,30 @@ export default function AddStation() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Power (kW)</FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="number" 
-                        value={field.value ?? ""} 
-                        onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
-                        onBlur={field.onBlur}
-                        name={field.name}
-                        ref={field.ref}
-                      />
-                    </FormControl>
+                    <Select 
+                      onValueChange={(val) => field.onChange(Number(val))} 
+                      value={field.value?.toString()}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select power" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="3.7">3.7 kW</SelectItem>
+                        <SelectItem value="7">7 kW</SelectItem>
+                        <SelectItem value="7.4">7.4 kW</SelectItem>
+                        <SelectItem value="11">11 kW</SelectItem>
+                        <SelectItem value="22">22 kW</SelectItem>
+                        <SelectItem value="50">50 kW</SelectItem>
+                        <SelectItem value="60">60 kW</SelectItem>
+                        <SelectItem value="100">100 kW</SelectItem>
+                        <SelectItem value="120">120 kW</SelectItem>
+                        <SelectItem value="150">150 kW</SelectItem>
+                        <SelectItem value="250">250 kW</SelectItem>
+                        <SelectItem value="350">350 kW</SelectItem>
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -490,112 +463,6 @@ export default function AddStation() {
                   </FormItem>
                 )}
               />
-            </div>
-
-            {/* Additional Chargers Section */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <FormLabel className="text-base">{t("add.additionalChargers")}</FormLabel>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={addCharger}
-                  className="gap-2"
-                  data-testid="button-add-charger"
-                >
-                  <Plus className="h-4 w-4" />
-                  {t("add.addCharger")}
-                </Button>
-              </div>
-              
-              {additionalChargers.length > 0 && (
-                <div className="space-y-3">
-                  {additionalChargers.map((charger) => (
-                    <div key={charger.id} className="p-4 border rounded-lg bg-muted/30 space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Zap className="h-4 w-4 text-primary" />
-                          <span className="font-medium text-sm">{t("add.chargerDetails")}</span>
-                        </div>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => removeCharger(charger.id)}
-                          className="h-8 w-8 text-destructive hover:bg-destructive/10"
-                          data-testid={`button-remove-charger-${charger.id}`}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                      
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <label className="text-xs text-muted-foreground">{t("add.chargerType")}</label>
-                          <Select 
-                            value={charger.chargerType} 
-                            onValueChange={(v) => updateCharger(charger.id, "chargerType", v)}
-                          >
-                            <SelectTrigger className="mt-1">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="AC">AC</SelectItem>
-                              <SelectItem value="DC">DC</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        
-                        <div>
-                          <label className="text-xs text-muted-foreground">{t("add.power")} (kW)</label>
-                          <Input
-                            type="number"
-                            value={charger.powerKw}
-                            onChange={(e) => updateCharger(charger.id, "powerKw", Number(e.target.value))}
-                            className="mt-1"
-                          />
-                        </div>
-                        
-                        <div>
-                          <label className="text-xs text-muted-foreground">{t("add.count")}</label>
-                          <Input
-                            type="number"
-                            min={1}
-                            value={charger.count}
-                            onChange={(e) => updateCharger(charger.id, "count", Number(e.target.value))}
-                            className="mt-1"
-                          />
-                        </div>
-                        
-                        <div>
-                          <label className="text-xs text-muted-foreground">{t("add.connectorType")}</label>
-                          <Select 
-                            value={charger.connectorType} 
-                            onValueChange={(v) => updateCharger(charger.id, "connectorType", v)}
-                          >
-                            <SelectTrigger className="mt-1">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="Type2">Type 2</SelectItem>
-                              <SelectItem value="CCS">CCS</SelectItem>
-                              <SelectItem value="CHAdeMO">CHAdeMO</SelectItem>
-                              <SelectItem value="GB/T">GB/T</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-              
-              {additionalChargers.length === 0 && (
-                <p className="text-sm text-muted-foreground text-center py-2">
-                  {t("add.noAdditionalChargers")}
-                </p>
-              )}
             </div>
 
             <FormField
