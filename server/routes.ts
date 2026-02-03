@@ -1361,12 +1361,13 @@ export async function registerRoutes(
         );
         const maxPowerKw = (vitals.grid_v * maxCurrent * 1.732) / 1000;
         
-        // Get max temperature from all sensors
-        const maxTemp = Math.max(
-          vitals.pcba_temp_c || 0,
-          vitals.mcu_temp_c || 0,
-          vitals.handle_temp_c || 0
-        );
+        // Get max temperature from all sensors (filter out invalid readings >= 100°C)
+        const validTemps = [
+          vitals.pcba_temp_c,
+          vitals.mcu_temp_c,
+          vitals.handle_temp_c
+        ].filter((t): t is number => typeof t === 'number' && t > 0 && t < 100);
+        const maxTemp = validTemps.length > 0 ? Math.max(...validTemps) : undefined;
         
         // Get session to check if it's a rental
         const session = await storage.getSessionById(connector.currentSessionId);
