@@ -176,20 +176,117 @@ export function UserFriendlySessionCard({
   const sessionDate = session.startTime ? new Date(session.startTime) : null;
   const hasAutoData = session.isAutoTracked && (session.gridVoltage || session.maxPowerKw || session.maxTempC);
 
+  // Simplified view for active charging sessions
+  if (session.isActive) {
+    const liveDuration = session.startTime 
+      ? Math.floor((Date.now() - new Date(session.startTime).getTime()) / 60000)
+      : 0;
+    
+    return (
+      <Card 
+        className="overflow-hidden ring-2 ring-orange-500 bg-gradient-to-br from-orange-50 to-background dark:from-orange-950/30"
+        data-testid={`session-card-${session.id}`}
+      >
+        {/* Live indicator header */}
+        <div className="bg-orange-500 text-white px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 bg-white rounded-full animate-pulse" />
+            <span className="font-bold">
+              {isArabic ? "جارٍ الشحن الآن" : "Charging Now"}
+            </span>
+          </div>
+          {session.isAutoTracked && (
+            <Badge className="bg-white/20 text-white border-0 text-xs">
+              {isArabic ? "تلقائي" : "Auto"}
+            </Badge>
+          )}
+        </div>
+
+        <div className="p-4">
+          {/* Station name */}
+          <div className="flex items-center gap-2 mb-4">
+            <MapPin className="w-4 h-4 text-orange-600" />
+            <span className="font-medium text-sm">{stationName}</span>
+            {session.isRentalSession && (
+              <Badge className="text-xs bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300 ms-auto">
+                {isArabic ? "إيجار" : "Rental"}
+              </Badge>
+            )}
+          </div>
+
+          {/* Main live stats - Energy prominent */}
+          <div className="text-center mb-4">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-emerald-100 dark:bg-emerald-900/50 mb-2">
+              <Zap className="w-8 h-8 text-emerald-600" />
+            </div>
+            <p className="text-4xl font-bold text-emerald-600">
+              {session.energyKwh ? session.energyKwh.toFixed(2) : "0.00"}
+              <span className="text-lg font-normal ms-1">kWh</span>
+            </p>
+            <p className="text-sm text-muted-foreground mt-1">
+              {isArabic ? "الطاقة المشحونة" : "Energy Charged"}
+            </p>
+          </div>
+
+          {/* Duration and Power in row */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-blue-50 dark:bg-blue-950/30 rounded-xl p-3 text-center border border-blue-100 dark:border-blue-900">
+              <Clock className="w-5 h-5 mx-auto mb-1 text-blue-600" />
+              <p className="text-xl font-bold text-blue-600">
+                {formatDurationFriendly(liveDuration)}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {isArabic ? "المدة" : "Duration"}
+              </p>
+            </div>
+
+            {speedInfo ? (
+              <div className="bg-purple-50 dark:bg-purple-950/30 rounded-xl p-3 text-center border border-purple-100 dark:border-purple-900">
+                <Gauge className="w-5 h-5 mx-auto mb-1 text-purple-600" />
+                <p className="text-xl font-bold text-purple-600">
+                  {speedInfo.power.toFixed(1)}
+                  <span className="text-sm font-normal ms-1">kW</span>
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {isArabic ? "القوة" : "Power"}
+                </p>
+              </div>
+            ) : (
+              <div className="bg-amber-50 dark:bg-amber-950/30 rounded-xl p-3 text-center border border-amber-100 dark:border-amber-900">
+                <Banknote className="w-5 h-5 mx-auto mb-1 text-amber-600" />
+                <p className="text-xl font-bold text-amber-600">
+                  {calculateCost(session.energyKwh) || "0.00"}
+                </p>
+                <p className="text-xs text-muted-foreground">{currencySymbol}</p>
+              </div>
+            )}
+          </div>
+
+          {/* Temperature warning only if high */}
+          {safetyStatus && safetyStatus.status !== "safe" && (
+            <div className={`mt-3 flex items-center gap-2 p-2 rounded-lg ${safetyStatus.bgColor} border ${safetyStatus.borderColor}`}>
+              <safetyStatus.icon className={`w-4 h-4 ${safetyStatus.color}`} />
+              <span className={`text-sm font-medium ${safetyStatus.color}`}>
+                {safetyStatus.label}
+              </span>
+              {session.maxTempC && (
+                <span className={`ms-auto font-bold ${safetyStatus.color}`}>
+                  {session.maxTempC.toFixed(0)}°C
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+      </Card>
+    );
+  }
+
+  // Regular view for completed sessions
   return (
     <Card 
-      className={`overflow-hidden transition-all ${session.isActive ? "ring-2 ring-orange-500" : ""}`}
+      className="overflow-hidden transition-all"
       data-testid={`session-card-${session.id}`}
     >
-      {session.isActive && (
-        <div className="bg-orange-500 text-white px-4 py-2 flex items-center gap-2">
-          <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
-          <span className="font-medium text-sm">
-            {isArabic ? "جلسة شحن نشطة الآن" : "Active Charging Session"}
-          </span>
-        </div>
-      )}
-
       <div className="p-4">
         <div className="flex items-start justify-between mb-4">
           <div className="flex-1">
@@ -243,9 +340,7 @@ export function UserFriendlySessionCard({
               </span>
             </div>
             <p className="text-xl font-bold text-blue-600">
-              {session.isActive && session.startTime
-                ? formatDurationFriendly(Math.floor((Date.now() - new Date(session.startTime).getTime()) / 60000))
-                : formatDurationFriendly(session.durationMinutes)}
+              {formatDurationFriendly(session.durationMinutes)}
             </p>
           </div>
         </div>
