@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { useLanguage } from "./LanguageContext";
-import { Station } from "@shared/schema";
+import { Station, StationCharger } from "@shared/schema";
 import { Zap, Battery, AlertTriangle, CheckCircle, Navigation, BatteryCharging, Clock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -39,8 +39,12 @@ function formatTimeAgo(isoString: string, t: (key: string, options?: any) => str
   }
 }
 
+interface StationWithChargers extends Station {
+  chargers?: StationCharger[];
+}
+
 interface StationCardProps {
-  station: Station;
+  station: StationWithChargers;
   variant?: "full" | "compact";
   isRentalStation?: boolean;
 }
@@ -154,15 +158,38 @@ export function StationCard({ station, variant = "full", isRentalStation = false
 
       {variant === "full" && (
         <div className="space-y-4 relative z-10">
-          <div className="flex items-center gap-3 text-sm p-3 bg-muted/30 rounded-xl border border-border/50">
-            <div className={`p-2 rounded-lg ${station.chargerType.includes('DC') ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}`}>
-              <Zap className="w-4 h-4 fill-current" />
+          {/* Show multiple charger types if available */}
+          {station.chargers && station.chargers.length > 0 ? (
+            <div className="flex flex-wrap gap-2">
+              {station.chargers.map((charger, idx) => (
+                <div 
+                  key={charger.id || idx}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm ${
+                    charger.chargerType === 'DC' 
+                      ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' 
+                      : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+                  }`}
+                >
+                  <Zap className="w-4 h-4 fill-current" />
+                  <span className="font-medium">{charger.chargerType}</span>
+                  <span className="text-xs opacity-75">{charger.powerKw}kW</span>
+                  {charger.connectorType && (
+                    <span className="text-xs opacity-75">• {charger.connectorType}</span>
+                  )}
+                </div>
+              ))}
             </div>
-            <div>
-              <p className="font-semibold">{t(`station.type.${station.chargerType.toLowerCase()}`)}</p>
-              <p className="text-xs text-muted-foreground">{station.operator || "Unknown Operator"}</p>
+          ) : (
+            <div className="flex items-center gap-3 text-sm p-3 bg-muted/30 rounded-xl border border-border/50">
+              <div className={`p-2 rounded-lg ${station.chargerType?.includes('DC') ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}`}>
+                <Zap className="w-4 h-4 fill-current" />
+              </div>
+              <div>
+                <p className="font-semibold">{t(`station.type.${station.chargerType?.toLowerCase() || 'ac'}`)}</p>
+                <p className="text-xs text-muted-foreground">{station.operator || "Unknown Operator"}</p>
+              </div>
             </div>
-          </div>
+          )}
 
           <div className="flex gap-2">
             <Link href={`/station/${station.id}`} className="flex-1">

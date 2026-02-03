@@ -136,12 +136,18 @@ export async function registerRoutes(
     try {
       const filters = api.stations.list.input?.parse(req.query);
       const stations = await storage.getStations(filters);
-      res.json(stations);
+      
+      // Include chargers for each station
+      const stationsWithChargers = await Promise.all(
+        stations.map(async (station) => {
+          const chargers = await storage.getStationChargers(station.id);
+          return { ...station, chargers };
+        })
+      );
+      
+      res.json(stationsWithChargers);
     } catch (err) {
       if (err instanceof z.ZodError) {
-         // handle optional input parsing if strictly required, but for query params usually permissive or we'd strict parse
-         // Since input is optional, if req.query is empty it might be undefined, but .optional() handles that.
-         // If parse fails on specific fields:
          return res.status(400).json({ message: "Invalid filters" });
       }
       throw err;
