@@ -149,7 +149,7 @@ function NearbyStationCard({
   return (
     <Link href={`/station/${station.id}`}>
       <Card 
-        className="p-0 overflow-hidden hover-elevate cursor-pointer shadow-md border-0 bg-card transition-all duration-200"
+        className="p-0 overflow-hidden hover-elevate cursor-pointer shadow-sm border border-border/50 bg-card rounded-xl transition-all duration-200"
         data-testid={`nearby-station-${station.id}`}
       >
         <div className="flex">
