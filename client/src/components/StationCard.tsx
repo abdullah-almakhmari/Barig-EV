@@ -119,10 +119,24 @@ export function StationCard({ station, variant = "full", isRentalStation = false
               {availabilityStatus.icon}
               {availabilityStatus.label}
             </Badge>
-            <Badge variant="outline" className="bg-muted/50">
-              <BatteryCharging className="w-3 h-3 me-1" />
-              {Math.max(0, station.availableChargers ?? 0)}/{station.chargerCount ?? 1} {t("station.available")}
-            </Badge>
+            {/* Show charger types with counts when multiple types exist */}
+            {station.chargers && station.chargers.length > 1 ? (
+              station.chargers.map((charger, idx) => (
+                <Badge 
+                  key={charger.id || idx} 
+                  variant="outline" 
+                  className={`${charger.chargerType === 'DC' ? 'bg-amber-500/10 text-amber-700 border-amber-500/30 dark:text-amber-400' : 'bg-blue-500/10 text-blue-700 border-blue-500/30 dark:text-blue-400'}`}
+                >
+                  <Zap className="w-3 h-3 me-1" />
+                  {charger.chargerType} {charger.powerKw}kW × {charger.count}
+                </Badge>
+              ))
+            ) : (
+              <Badge variant="outline" className="bg-muted/50">
+                <BatteryCharging className="w-3 h-3 me-1" />
+                {Math.max(0, station.availableChargers ?? 0)}/{station.chargerCount ?? 1} {t("station.available")}
+              </Badge>
+            )}
           </div>
           <h3 className="font-bold text-lg leading-tight text-foreground">{name}</h3>
           <p className="text-sm text-muted-foreground mt-1 flex items-center">
