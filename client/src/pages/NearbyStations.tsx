@@ -428,7 +428,7 @@ export default function NearbyStations() {
           </p>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-4">
           {sortedStations.map((station) => (
             <NearbyStationCard
               key={station.id}
