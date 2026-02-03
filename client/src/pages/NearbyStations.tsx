@@ -149,151 +149,160 @@ function NearbyStationCard({
   return (
     <Link href={`/station/${station.id}`}>
       <Card 
-        className="p-0 overflow-hidden hover-elevate cursor-pointer shadow-sm border border-border/50 bg-card rounded-xl transition-all duration-200"
+        className="p-0 overflow-hidden hover-elevate cursor-pointer shadow-sm border border-border/40 bg-card rounded-2xl transition-all duration-200"
         data-testid={`nearby-station-${station.id}`}
       >
-        <div className="flex">
-          {/* Distance Indicator - Left Side */}
-          <div className={`flex flex-col items-center justify-center w-20 shrink-0 border-e py-4 px-2 ${
-            isBusy ? "bg-orange-500/5" : "bg-primary/5"
-          }`}>
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center mb-2 ${
-              isBusy ? "bg-orange-500/10" : "bg-primary/10"
-            }`}>
-              <MapPin className={`w-5 h-5 ${isBusy ? "text-orange-500" : "text-primary"}`} />
+        {/* Top Section - Header with Status Indicator */}
+        <div className={`px-4 py-3 border-b border-border/30 ${
+          station.status === "OFFLINE" 
+            ? "bg-red-500/5" 
+            : isBusy 
+              ? "bg-orange-500/5" 
+              : "bg-emerald-500/5"
+        }`}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              {/* Status Dot */}
+              <div className={`w-2.5 h-2.5 rounded-full animate-pulse ${
+                station.status === "OFFLINE" 
+                  ? "bg-red-500" 
+                  : isBusy 
+                    ? "bg-orange-500" 
+                    : "bg-emerald-500"
+              }`} />
+              <Badge variant="outline" className={`text-xs font-medium ${availabilityStatus.color}`}>
+                <StatusIcon className="w-3 h-3 me-1" />
+                {availabilityStatus.label}
+              </Badge>
             </div>
-            <span className={`text-lg font-bold ${isBusy ? "text-orange-500" : "text-primary"}`}>
-              {station.distance < 1 
-                ? Math.round(station.distance * 1000) 
-                : station.distance.toFixed(1)}
-            </span>
-            <span className="text-xs text-muted-foreground">
-              {station.distance < 1 
-                ? (isArabic ? "متر" : "m") 
-                : (isArabic ? "كم" : "km")}
-            </span>
-          </div>
-
-          {/* Station Info - Right Side */}
-          <div className="flex-1 p-4">
-            {/* Station Type Badge - Top */}
-            <div className="flex items-center gap-2 mb-2">
-              {station.stationType === 'HOME' ? (
-                <Badge 
-                  variant="outline" 
-                  className="text-xs bg-primary/10 text-primary border-primary/30 px-2"
-                  data-testid={`station-type-badge-${station.id}`}
-                >
-                  <Home className="w-3 h-3 me-1" />
-                  {isArabic ? "شاحن منزلي" : "Home Charger"}
+            <div className="flex items-center gap-2">
+              {isRentalStation ? (
+                <Badge variant="outline" className="text-xs bg-amber-500/10 text-amber-600 border-amber-400">
+                  {t("station.price.paid")}
+                </Badge>
+              ) : station.isFree ? (
+                <Badge variant="outline" className="text-xs bg-emerald-500/10 text-emerald-600 border-emerald-400">
+                  {t("station.price.free")}
                 </Badge>
               ) : (
-                <Badge 
-                  variant="outline" 
-                  className="text-xs bg-primary/10 text-primary border-primary/30 px-2"
-                  data-testid={`station-type-badge-${station.id}`}
-                >
-                  <Building2 className="w-3 h-3 me-1" />
-                  {isArabic ? "شاحن عام" : "Public Charger"}
+                <Badge variant="outline" className="text-xs bg-amber-500/10 text-amber-600 border-amber-400">
+                  {t("station.price.paid")}
                 </Badge>
               )}
             </div>
+          </div>
+        </div>
 
-            {/* Station Name */}
-            <h3 className="font-semibold text-base leading-tight mb-1 line-clamp-1">
-              {name || (isArabic ? "محطة بدون اسم" : "Unnamed Station")}
-            </h3>
-
-            {/* Status and Price Row */}
-            <div className="flex items-center justify-between gap-2 mb-2">
-              <div className="flex items-center gap-2 flex-wrap">
-                <Badge variant="outline" className={`text-xs ${availabilityStatus.color}`}>
-                  <StatusIcon className="w-3 h-3 me-1" />
-                  {availabilityStatus.label}
-                </Badge>
-                {isRentalStation ? (
-                  <Badge variant="outline" className="text-xs bg-red-500/10 text-red-600 border-red-500">
-                    {t("station.price.paid")}
-                  </Badge>
-                ) : station.isFree ? (
-                  <Badge variant="outline" className="text-xs bg-emerald-500/10 text-emerald-600 border-emerald-500">
-                    {t("station.price.free")}
-                  </Badge>
+        {/* Main Content */}
+        <div className="p-4">
+          {/* Station Type & Name */}
+          <div className="flex items-start justify-between gap-3 mb-3">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1.5">
+                {station.stationType === 'HOME' ? (
+                  <span className="inline-flex items-center text-xs text-primary font-medium">
+                    <Home className="w-3.5 h-3.5 me-1" />
+                    {isArabic ? "شاحن منزلي" : "Home"}
+                  </span>
                 ) : (
-                  <Badge variant="outline" className="text-xs bg-red-500/10 text-red-600 border-red-500">
-                    {t("station.price.paid")}
-                  </Badge>
+                  <span className="inline-flex items-center text-xs text-primary font-medium">
+                    <Building2 className="w-3.5 h-3.5 me-1" />
+                    {isArabic ? "شاحن عام" : "Public"}
+                  </span>
                 )}
               </div>
-              <ChevronRight className="w-5 h-5 text-muted-foreground shrink-0" />
+              <h3 className="font-bold text-base leading-tight line-clamp-1">
+                {name || (isArabic ? "محطة بدون اسم" : "Unnamed Station")}
+              </h3>
             </div>
-
-            {/* Location */}
-            <p className="text-sm text-muted-foreground flex items-center mb-2">
-              <Navigation className="w-3 h-3 me-1 shrink-0" />
-              <span className="line-clamp-1">{city || station.address || "-"}</span>
-            </p>
-
-            {/* Bottom Row - Charger Info */}
-            <div className="flex items-center gap-2 flex-wrap">
-              {/* Show each charger type with count and availability */}
-              {station.chargers && station.chargers.length > 0 ? (
-                station.chargers.map((charger, idx) => (
-                  <div 
-                    key={charger.id || idx}
-                    className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium ${
-                      charger.chargerType === 'DC' 
-                        ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400' 
-                        : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'
-                    }`}
-                    data-testid={`charger-type-${station.id}-${charger.chargerType}-${idx}`}
-                  >
-                    <Zap className="w-3 h-3 fill-current" />
-                    <span>{charger.chargerType}</span>
-                    <span className="font-mono">{charger.powerKw}kW</span>
-                    <span className="opacity-70">•</span>
-                    <span className="font-mono">{charger.availableCount ?? charger.count}/{charger.count}</span>
-                  </div>
-                ))
-              ) : (
-                <>
-                  {/* Fallback for old stations without chargers array */}
-                  {chargerTypes.map((type) => (
-                    <div 
-                      key={type}
-                      className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium ${
-                        type === 'DC' 
-                          ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400' 
-                          : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'
-                      }`}
-                      data-testid={`charger-type-${station.id}-${type}`}
-                    >
-                      <Zap className="w-3 h-3 fill-current" />
-                      <span>{type}</span>
-                    </div>
-                  ))}
-                  
-                  {/* Power */}
-                  <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-muted text-xs" data-testid={`charger-power-${station.id}`}>
-                    <span className="font-mono font-medium">{station.powerKw || "?"} kW</span>
-                  </div>
-                  
-                  {/* Available Chargers */}
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground" data-testid={`charger-count-${station.id}`}>
-                    <BatteryCharging className="w-3.5 h-3.5" />
-                    <span>{availableChargers}/{station.chargerCount ?? 1}</span>
-                  </div>
-                </>
-              )}
-
-              {verificationSummary?.lastVerifiedAt && (
-                <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <Clock className="w-3 h-3" />
-                  <span>{formatTimeAgo(verificationSummary.lastVerifiedAt, t)}</span>
-                </div>
-              )}
+            
+            {/* Distance Badge */}
+            <div className={`flex flex-col items-center justify-center px-3 py-2 rounded-xl shrink-0 ${
+              isBusy ? "bg-orange-500/10" : "bg-primary/10"
+            }`}>
+              <span className={`text-lg font-bold leading-none ${isBusy ? "text-orange-600" : "text-primary"}`}>
+                {station.distance < 1 
+                  ? Math.round(station.distance * 1000) 
+                  : station.distance.toFixed(1)}
+              </span>
+              <span className="text-[10px] text-muted-foreground mt-0.5">
+                {station.distance < 1 
+                  ? (isArabic ? "متر" : "m") 
+                  : (isArabic ? "كم" : "km")}
+              </span>
             </div>
           </div>
+
+          {/* Location */}
+          <div className="flex items-center text-sm text-muted-foreground mb-4">
+            <MapPin className="w-3.5 h-3.5 me-1.5 shrink-0 text-primary/60" />
+            <span className="line-clamp-1">{city || station.address || "-"}</span>
+          </div>
+
+          {/* Charger Types Grid */}
+          <div className="flex flex-wrap gap-2">
+            {station.chargers && station.chargers.length > 0 ? (
+              station.chargers.map((charger, idx) => (
+                <div 
+                  key={charger.id || idx}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium border ${
+                    charger.chargerType === 'DC' 
+                      ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800' 
+                      : 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800'
+                  }`}
+                  data-testid={`charger-type-${station.id}-${charger.chargerType}-${idx}`}
+                >
+                  <Zap className="w-3.5 h-3.5" />
+                  <span className="font-semibold">{charger.chargerType}</span>
+                  <span className="text-[10px] opacity-70">|</span>
+                  <span>{charger.powerKw}kW</span>
+                  <span className="text-[10px] opacity-70">|</span>
+                  <span className="font-mono">{charger.availableCount ?? charger.count}/{charger.count}</span>
+                </div>
+              ))
+            ) : (
+              <>
+                {chargerTypes.map((type) => (
+                  <div 
+                    key={type}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium border ${
+                      type === 'DC' 
+                        ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800' 
+                        : 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800'
+                    }`}
+                    data-testid={`charger-type-${station.id}-${type}`}
+                  >
+                    <Zap className="w-3.5 h-3.5" />
+                    <span className="font-semibold">{type}</span>
+                  </div>
+                ))}
+                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted text-xs border border-border" data-testid={`charger-power-${station.id}`}>
+                  <span className="font-medium">{station.powerKw || "?"} kW</span>
+                </div>
+                <div className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-muted/50 text-xs text-muted-foreground border border-border" data-testid={`charger-count-${station.id}`}>
+                  <BatteryCharging className="w-3.5 h-3.5" />
+                  <span>{availableChargers}/{station.chargerCount ?? 1}</span>
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Footer - Last Verified */}
+          {verificationSummary?.lastVerifiedAt && (
+            <div className="flex items-center gap-1.5 mt-3 pt-3 border-t border-border/30 text-xs text-muted-foreground">
+              <Clock className="w-3 h-3" />
+              <span>{isArabic ? "آخر تحديث:" : "Last update:"}</span>
+              <span className="font-medium">{formatTimeAgo(verificationSummary.lastVerifiedAt, t)}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Bottom Action Bar */}
+        <div className="flex items-center justify-between px-4 py-2.5 bg-muted/30 border-t border-border/30">
+          <span className="text-xs text-muted-foreground">
+            {isArabic ? "اضغط للتفاصيل" : "Tap for details"}
+          </span>
+          <ChevronRight className="w-4 h-4 text-muted-foreground" />
         </div>
       </Card>
     </Link>
