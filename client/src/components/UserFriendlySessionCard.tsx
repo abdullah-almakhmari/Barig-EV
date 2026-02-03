@@ -250,35 +250,6 @@ export function UserFriendlySessionCard({
           </div>
         </div>
 
-        {(session.batteryStartPercent !== null || session.batteryEndPercent !== null) && (
-          <div className="bg-primary/5 rounded-xl p-3 border border-primary/10 mb-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <BatteryCharging className="w-4 h-4 text-primary" />
-                <span className="text-sm text-muted-foreground">
-                  {isArabic ? "مستوى البطارية" : "Battery Level"}
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-lg font-bold text-muted-foreground">
-                  {session.batteryStartPercent ?? "?"}%
-                </span>
-                <span className="text-muted-foreground">→</span>
-                <span className="text-lg font-bold text-primary">
-                  {session.batteryEndPercent ?? "?"}%
-                </span>
-              </div>
-            </div>
-            {session.batteryStartPercent !== null && session.batteryEndPercent !== null && (
-              <div className="mt-2 h-2 bg-muted rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-gradient-to-r from-amber-500 via-emerald-500 to-emerald-500 transition-all"
-                  style={{ width: `${session.batteryEndPercent}%` }}
-                />
-              </div>
-            )}
-          </div>
-        )}
 
         {hasAutoData && (
           <div className="space-y-2 mb-4">
