@@ -73,6 +73,51 @@ function App() {
     return () => clearInterval(interval);
   }, []);
 
+  // Auto-refresh when app returns from background
+  useEffect(() => {
+    let lastHiddenTime = 0;
+    const BACKGROUND_THRESHOLD = 5 * 60 * 1000; // 5 minutes in background
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        // App went to background - record time
+        lastHiddenTime = Date.now();
+      } else {
+        // App came back to foreground
+        const timeInBackground = Date.now() - lastHiddenTime;
+        
+        if (lastHiddenTime > 0 && timeInBackground > BACKGROUND_THRESHOLD) {
+          // Clear React Query cache
+          queryClient.clear();
+          
+          // Check for service worker updates
+          if (swRegistration) {
+            swRegistration.update();
+          }
+          
+          // Clear browser caches and reload
+          const clearAndReload = async () => {
+            if ('caches' in window) {
+              const names = await caches.keys();
+              await Promise.all(names.map(name => caches.delete(name)));
+            }
+            window.location.reload();
+          };
+          clearAndReload();
+        } else {
+          // Just refresh data without full reload
+          queryClient.invalidateQueries();
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [swRegistration]);
+
   return (
     <ErrorBoundary>
       <HelmetProvider>
