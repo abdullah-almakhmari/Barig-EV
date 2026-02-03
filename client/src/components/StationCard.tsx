@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { useLanguage } from "./LanguageContext";
-import { Station } from "@shared/schema";
+import { Station, StationCharger } from "@shared/schema";
 import { Zap, Battery, AlertTriangle, CheckCircle, Navigation, BatteryCharging, Clock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -39,8 +39,12 @@ function formatTimeAgo(isoString: string, t: (key: string, options?: any) => str
   }
 }
 
+interface StationWithChargers extends Station {
+  chargers?: StationCharger[];
+}
+
 interface StationCardProps {
-  station: Station;
+  station: StationWithChargers;
   variant?: "full" | "compact";
   isRentalStation?: boolean;
 }
@@ -154,24 +158,54 @@ export function StationCard({ station, variant = "full", isRentalStation = false
 
       {variant === "full" && (
         <div className="space-y-4 relative z-10">
-          {/* Show charger info: type - power - count */}
-          <div className="flex items-center gap-3 text-sm p-3 bg-muted/30 rounded-xl border border-border/50">
-            <div className={`p-2 rounded-lg ${station.chargerType?.includes('DC') ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'}`}>
-              <Zap className="w-4 h-4 fill-current" />
-            </div>
-            <div className="flex-1">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="font-semibold">{station.chargerType}</span>
-                <span className="text-muted-foreground">•</span>
-                <span className="font-medium">{station.powerKw} kW</span>
-                <span className="text-muted-foreground">•</span>
-                <span className="text-muted-foreground">{station.chargerCount} {t("station.chargers")}</span>
+          {/* Show all chargers: main + additional */}
+          <div className="space-y-2">
+            {/* Main charger */}
+            <div className="flex items-center gap-3 text-sm p-3 bg-muted/30 rounded-xl border border-border/50">
+              <div className={`p-2 rounded-lg ${station.chargerType?.includes('DC') ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'}`}>
+                <Zap className="w-4 h-4 fill-current" />
               </div>
-              {station.operator && (
-                <p className="text-xs text-muted-foreground mt-1">{station.operator}</p>
-              )}
+              <div className="flex-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-semibold">{station.chargerType}</span>
+                  <span className="text-muted-foreground">•</span>
+                  <span className="font-medium">{station.powerKw} kW</span>
+                  <span className="text-muted-foreground">•</span>
+                  <span className="text-muted-foreground">{station.chargerCount} {t("station.chargers")}</span>
+                </div>
+              </div>
+              <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 text-xs">
+                <CheckCircle className="w-3 h-3 me-1" />
+                {t("station.status.available")}
+              </Badge>
             </div>
+
+            {/* Additional chargers */}
+            {station.chargers && station.chargers.length > 0 && station.chargers.map((charger, index) => (
+              <div key={charger.id || index} className="flex items-center gap-3 text-sm p-3 bg-muted/30 rounded-xl border border-border/50">
+                <div className={`p-2 rounded-lg ${charger.chargerType === 'DC' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'}`}>
+                  <Zap className="w-4 h-4 fill-current" />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-semibold">{charger.chargerType}</span>
+                    <span className="text-muted-foreground">•</span>
+                    <span className="font-medium">{charger.powerKw} kW</span>
+                    <span className="text-muted-foreground">•</span>
+                    <span className="text-muted-foreground">{charger.count || 1} {t("station.chargers")}</span>
+                  </div>
+                </div>
+                <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 text-xs">
+                  <CheckCircle className="w-3 h-3 me-1" />
+                  {t("station.status.available")}
+                </Badge>
+              </div>
+            ))}
           </div>
+
+          {station.operator && (
+            <p className="text-xs text-muted-foreground">{t("station.operator")}: {station.operator}</p>
+          )}
 
           <div className="flex gap-2">
             <Link href={`/station/${station.id}`} className="flex-1">
