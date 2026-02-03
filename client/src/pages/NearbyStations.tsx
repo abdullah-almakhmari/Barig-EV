@@ -176,7 +176,35 @@ function NearbyStationCard({
 
           {/* Station Info - Right Side */}
           <div className="flex-1 p-4">
-            {/* Status and Power Row */}
+            {/* Station Type Badge - Top */}
+            <div className="flex items-center gap-2 mb-2">
+              {station.stationType === 'HOME' ? (
+                <Badge 
+                  variant="outline" 
+                  className="text-xs bg-primary/10 text-primary border-primary/30 px-2"
+                  data-testid={`station-type-badge-${station.id}`}
+                >
+                  <Home className="w-3 h-3 me-1" />
+                  {isArabic ? "شاحن منزلي" : "Home Charger"}
+                </Badge>
+              ) : (
+                <Badge 
+                  variant="outline" 
+                  className="text-xs bg-primary/10 text-primary border-primary/30 px-2"
+                  data-testid={`station-type-badge-${station.id}`}
+                >
+                  <Building2 className="w-3 h-3 me-1" />
+                  {isArabic ? "شاحن عام" : "Public Charger"}
+                </Badge>
+              )}
+            </div>
+
+            {/* Station Name */}
+            <h3 className="font-semibold text-base leading-tight mb-1 line-clamp-1">
+              {name || (isArabic ? "محطة بدون اسم" : "Unnamed Station")}
+            </h3>
+
+            {/* Status and Price Row */}
             <div className="flex items-center justify-between gap-2 mb-2">
               <div className="flex items-center gap-2 flex-wrap">
                 <Badge variant="outline" className={`text-xs ${availabilityStatus.color}`}>
@@ -198,34 +226,6 @@ function NearbyStationCard({
                 )}
               </div>
               <ChevronRight className="w-5 h-5 text-muted-foreground shrink-0" />
-            </div>
-
-            {/* Station Name */}
-            <h3 className="font-semibold text-base leading-tight mb-1 line-clamp-1">
-              {name || (isArabic ? "محطة بدون اسم" : "Unnamed Station")}
-            </h3>
-
-            {/* Station Type Badge - Centered */}
-            <div className="flex justify-center my-2">
-              {station.stationType === 'HOME' ? (
-                <Badge 
-                  variant="outline" 
-                  className="text-xs bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/50 px-3"
-                  data-testid={`station-type-badge-${station.id}`}
-                >
-                  <Home className="w-3 h-3 me-1" />
-                  {isArabic ? "شاحن منزلي" : "Home Charger"}
-                </Badge>
-              ) : (
-                <Badge 
-                  variant="outline" 
-                  className="text-xs bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/50 px-3"
-                  data-testid={`station-type-badge-${station.id}`}
-                >
-                  <Building2 className="w-3 h-3 me-1" />
-                  {isArabic ? "شاحن عام" : "Public Charger"}
-                </Badge>
-              )}
             </div>
 
             {/* Location */}
