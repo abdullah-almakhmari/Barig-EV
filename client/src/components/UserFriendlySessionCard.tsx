@@ -42,6 +42,17 @@ export function UserFriendlySessionCard({
 
   const getSafetyStatus = () => {
     if (!session.maxTempC) return null;
+    if (session.maxTempC >= 100) {
+      return {
+        status: "error",
+        label: isArabic ? "خطأ في القراءة" : "Sensor Error",
+        description: isArabic ? "قراءة غير صحيحة من المستشعر" : "Invalid sensor reading",
+        color: "text-muted-foreground",
+        bgColor: "bg-muted/50",
+        borderColor: "border-border",
+        icon: AlertTriangle,
+      };
+    }
     if (session.maxTempC < 45) {
       return {
         status: "safe",
